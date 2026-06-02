@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
@@ -9,11 +10,17 @@ export default function HomeScreen() {
         Le réseau social où chaque émotion trouve écho et soutien
       </Text>
 
-      <TouchableOpacity style={styles.loginButton}>
+      <TouchableOpacity
+  style={styles.loginButton}
+  onPress={() => router.push("/login")}
+>
         <Text style={styles.loginText}>Se connecter</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.registerButton}>
+      <TouchableOpacity
+  style={styles.registerButton}
+  onPress={() => router.push("/register")}
+  >
         <Text style={styles.registerText}>Créer un compte</Text>
       </TouchableOpacity>
     </View>
