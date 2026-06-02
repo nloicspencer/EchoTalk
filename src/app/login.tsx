@@ -1,22 +1,71 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase/firebaseConfig";
 
 export default function LoginScreen() {
+  const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const handleLogin = async () => {
+  console.log("Bouton connexion cliqué");
+
+  try {
+    const userCredential =
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+    console.log(
+      "Connexion réussie :",
+      userCredential.user
+    );
+
+    window.alert("Connexion réussie !");
+window.location.href = "/";
+  } catch (error: any) {
+    console.log(
+      "ERREUR CONNEXION :",
+      error
+    );
+
+    window.alert(
+      "Email ou mot de passe incorrect"
+    );
+  }
+};
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Connexion</Text>
 
       <TextInput
-        style={styles.input}
-        placeholder="Adresse email"
-      />
+  style={styles.input}
+  placeholder="Adresse email"
+  value={email}
+  onChangeText={setEmail}
+  autoCapitalize="none"
+/>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        secureTextEntry
-      />
+<TextInput
+  style={styles.input}
+  placeholder="Mot de passe"
+  value={password}
+  onChangeText={setPassword}
+  secureTextEntry
+/>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+  style={styles.button}
+  onPress={handleLogin}
+>
         <Text style={styles.buttonText}>Se connecter</Text>
       </TouchableOpacity>
     </View>
