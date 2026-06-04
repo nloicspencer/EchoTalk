@@ -14,6 +14,7 @@ function TabIcon({ focused, icon }: TabIconProps) {
 export default function TabsLayout() {
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -33,34 +34,10 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
       }}
     >
-      <Tabs.Screen
-        name="feed"
-        options={{
-          tabBarLabel: 'Fil',
-          tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon="🏠" />,
-        }}
-      />
-      <Tabs.Screen
-        name="decouverte"
-        options={{
-          tabBarLabel: 'Découverte',
-          tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon="🔍" />,
-        }}
-      />
-      <Tabs.Screen
-        name="profil"
-        options={{
-          tabBarLabel: 'EchoProfil',
-          tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon="👤" />,
-        }}
-      />
-      <Tabs.Screen
-        name="decouvrir"
-        options={{
-          tabBarLabel: 'EchoTalk',
-          tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon="🌱" />,
-        }}
-      />
+      <Tabs.Screen name="index" options={{ tabBarLabel: 'Fil', tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🏠" /> }} />
+      <Tabs.Screen name="decouverte" options={{ tabBarLabel: 'Découverte', tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🔍" /> }} />
+      <Tabs.Screen name="profil" options={{ tabBarLabel: 'EchoProfil', tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="👤" /> }} />
+      <Tabs.Screen name="decouvrir" options={{ tabBarLabel: 'EchoTalk', tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🌱" /> }} />
     </Tabs>
   );
 }
