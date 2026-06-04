@@ -1,34 +1,38 @@
-import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { useEffect } from 'react';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator } from 'react-native';
+import { useAuth } from '../firebase/auth';
+
+function AuthGuard() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!user && !inAuthGroup) router.replace('/(auth)/login');
+    else if (user && inAuthGroup) router.replace('/(tabs)/feed');
+  }, [user, loading, segments]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F4FF' }}>
+        <ActivityIndicator size="large" color="#7C5CBF" />
+      </View>
+    );
+  }
+
+  return <Slot />;
+}
 
 export default function RootLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopWidth: 0,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 12,
-          elevation: 12,
-          height: Platform.OS === "ios" ? 80 : 64,
-          paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: "#7C5CBF",
-        tabBarInactiveTintColor: "#aaa",
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-      }}
-    >
-      <Tabs.Screen name="feed" options={{ tabBarLabel: "Fil", tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🏠</Text> }} />
-      <Tabs.Screen name="decouverte" options={{ tabBarLabel: "Découverte", tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🔍</Text> }} />
-      <Tabs.Screen name="profile" options={{ tabBarLabel: "EchoProfil", tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👤</Text> }} />
-      <Tabs.Screen name="decouvrir" options={{ tabBarLabel: "EchoTalk", tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🌱</Text> }} />
-    </Tabs>
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <AuthGuard />
+    </SafeAreaProvider>
   );
 }
-
-import { Text } from "react-native";
