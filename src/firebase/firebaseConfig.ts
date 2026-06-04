@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDygrGd9IbrUGjIv621E0iSC1lDUyBO_Wc",
-  authDomain: "echotalk-36db1.firebaseapp.com",
-  projectId: "echotalk-36db1",
-  storageBucket: "echotalk-36db1.firebasestorage.app",
-  messagingSenderId: "856722110844",
-  appId: "1:856722110844:web:ad0a1ac37d58e1571c8cf9",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
