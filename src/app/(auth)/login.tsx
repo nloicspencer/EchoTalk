@@ -1,0 +1,1 @@
+notepad "src\app\(tabs)\_layout.tsx"
