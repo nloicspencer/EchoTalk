@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { doc, updateDoc, increment } from 'firebase/firestore';
-import { Echo } from '../types/Echo';
 import { db } from '../config/firebase';
+import { Echo } from '../types/Echo';
 
 interface Props {
   echo: Echo;
@@ -16,9 +16,9 @@ function tempsRestant(expiresAt: Date): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-async function incrementReaction(echoId: string, key: 'resonance' | 'soutien' | 'jare') {
+async function reagir(echoId: string, cle: 'resonance' | 'soutien' | 'jare') {
   await updateDoc(doc(db, 'echos', echoId), {
-    [`reactions.${key}`]: increment(1),
+    [`reactions.${cle}`]: increment(1),
   });
 }
 
@@ -42,7 +42,7 @@ export default function EchoCard({ echo }: Props) {
         <Text style={styles.pseudo}>{pseudonyme}</Text>
         <View style={styles.badges}>
           <Text style={styles.badge}>
-            {tonalite === 'soleil' ? '☀️' : '🌧️'}
+            {tonalite === 'soleil' ? '☀️ Lumière' : '🌧️ Nuage'}
           </Text>
           <Text style={styles.badge}>
             {diffusion === 'libre' ? '🌊 Libre' : '🏡 Cercle'}
@@ -58,7 +58,7 @@ export default function EchoCard({ echo }: Props) {
       {diffusion === 'cercle' && (
         <View style={styles.cercleInfo}>
           <Text style={styles.cercleText}>
-            👥 {participants.length} participant{participants.length > 1 ? 's' : ''}
+            👥 {participants.length} participant{participants.length !== 1 ? 's' : ''}
           </Text>
           <Text style={styles.cercleText}>⏳ {tempsRestant(expiresAt)}</Text>
         </View>
@@ -66,17 +66,17 @@ export default function EchoCard({ echo }: Props) {
 
       <View style={styles.footer}>
         <View style={styles.reactions}>
-          <TouchableOpacity onPress={() => incrementReaction(id, 'resonance')}>
+          <TouchableOpacity onPress={() => reagir(id, 'resonance')} activeOpacity={0.7}>
             <Text style={styles.reaction}>❤️ {reactions.resonance}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => incrementReaction(id, 'soutien')}>
+          <TouchableOpacity onPress={() => reagir(id, 'soutien')} activeOpacity={0.7}>
             <Text style={styles.reaction}>💔 {reactions.soutien}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => incrementReaction(id, 'jare')}>
+          <TouchableOpacity onPress={() => reagir(id, 'jare')} activeOpacity={0.7}>
             <Text style={styles.reaction}>🫙 {reactions.jare}</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.echoren}>🔁 {echorepCount}</Text>
+        <Text style={styles.echorep}>🔁 {echorepCount}</Text>
       </View>
     </View>
   );
@@ -90,16 +90,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 10,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   pseudo: {
     fontWeight: '700',
@@ -108,39 +110,42 @@ const styles = StyleSheet.create({
   },
   badges: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 4,
   },
   badge: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#555',
     backgroundColor: '#f0f0f5',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 8,
+    overflow: 'hidden',
   },
   contenu: {
     fontSize: 15,
     color: '#333',
     lineHeight: 22,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   cercleInfo: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 10,
+    marginBottom: 12,
     backgroundColor: '#f5f0ff',
-    padding: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 10,
   },
   cercleText: {
     fontSize: 13,
     color: '#7c5cbf',
+    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
   },
   reactions: {
     flexDirection: 'row',
@@ -150,8 +155,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#444',
   },
-  echoren: {
+  echorep: {
     fontSize: 13,
-    color: '#888',
+    color: '#999',
+    fontWeight: '500',
   },
 });
