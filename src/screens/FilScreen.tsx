@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CommunityBanner from '../components/CommunityBanner';
 import QuickActions from '../components/QuickActions';
 import PublishBox from '../components/PublishBox';
 import EchoCard from '../components/EchoCard';
-import { MOCK_ECHOS } from '../data/mockData';
+import { useEchos } from '../hooks/useEchos';
 
 export default function FilScreen() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const echos = activeCategory
-    ? MOCK_ECHOS.filter(e => e.category === activeCategory)
-    : MOCK_ECHOS;
+  const { echos, loading } = useEchos(activeCategory);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -30,6 +27,13 @@ export default function FilScreen() {
             <PublishBox />
           </>
         }
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.loader}>
+              <ActivityIndicator size="large" color="#7C5CBF" />
+            </View>
+          ) : null
+        }
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
@@ -40,4 +44,5 @@ export default function FilScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7F4FF' },
   list: { paddingTop: 12, paddingBottom: 16 },
+  loader: { paddingTop: 40, alignItems: 'center' },
 });
