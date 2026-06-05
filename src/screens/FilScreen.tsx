@@ -1,38 +1,49 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import {
+  View,
+  FlatList,
+  ActivityIndicator,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+} from 'react-native';
+import { useEchos } from '../hooks/useEchos';
+import EchoCard from '../components/EchoCard';
+import PublishBox from '../components/PublishBox';
 import CommunityBanner from '../components/CommunityBanner';
 import QuickActions from '../components/QuickActions';
-import PublishBox from '../components/PublishBox';
-import EchoCard from '../components/EchoCard';
-import { useEchos } from '../hooks/useEchos';
+import { Echo } from '../types/Echo';
 
 export default function FilScreen() {
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const { echos, loading } = useEchos(activeCategory);
+  const { echos, loading } = useEchos();
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#7c5cbf" />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe}>
       <FlatList
         data={echos}
-        keyExtractor={item => item.id}
+        keyExtractor={(item: Echo) => item.id}
         renderItem={({ item }) => <EchoCard echo={item} />}
         ListHeaderComponent={
           <>
-            <CommunityBanner count={27} />
-            <QuickActions
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-            />
+            <CommunityBanner />
             <PublishBox />
+            <QuickActions />
           </>
         }
         ListEmptyComponent={
-          loading ? (
-            <View style={styles.loader}>
-              <ActivityIndicator size="large" color="#7C5CBF" />
-            </View>
-          ) : null
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>
+              Sois le premier à partager un écho 🌱
+            </Text>
+          </View>
         }
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -42,7 +53,25 @@ export default function FilScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F4FF' },
-  list: { paddingTop: 12, paddingBottom: 16 },
-  loader: { paddingTop: 40, alignItems: 'center' },
+  safe: {
+    flex: 1,
+    backgroundColor: '#fafafa',
+  },
+  list: {
+    paddingBottom: 32,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  empty: {
+    paddingTop: 60,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#888',
+  },
 });

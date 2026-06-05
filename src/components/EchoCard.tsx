@@ -1,83 +1,157 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Echo } from '../data/mockData';
+import { Echo } from '../types/Echo';
+import { echosCollection } from '../config/firebase';
+import firestore from '@react-native-firebase/firestore';
 
-type Props = { echo: Echo };
+interface Props {
+  echo: Echo;
+}
+
+function tempsRestant(expiresAt: Date): string {
+  const diffMs = expiresAt.getTime() - Date.now();
+  if (diffMs <= 0) return 'Expiré';
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+async function incrementReaction(echoId: string, key: 'resonance' | 'soutien' | 'jare') {
+  await echosCollection.doc(echoId).update({
+    [`reactions.${key}`]: firestore.FieldValue.increment(1),
+  });
+}
 
 export default function EchoCard({ echo }: Props) {
-  const [echoRep, setEchoRep] = useState(echo.echoRep);
-  const [resonated, setResonated] = useState(false);
-
-  const handleEchoRep = () => {
-    setEchoRep(prev => resonated ? prev - 1 : prev + 1);
-    setResonated(prev => !prev);
-  };
+  const {
+    id,
+    pseudonyme,
+    contenu,
+    tonalite,
+    diffusion,
+    interaction,
+    participants,
+    expiresAt,
+    reactions,
+    echorepCount,
+  } = echo;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{echo.avatar}</Text>
-        </View>
-        <View style={styles.headerInfo}>
-          <Text style={styles.author}>{echo.author}</Text>
-          <View style={styles.meta}>
-            <Text style={styles.emotion}>{echo.emotion}</Text>
-            <Text style={styles.timestamp}> · {echo.timestamp}</Text>
-          </View>
-        </View>
+        <Text style={styles.pseudo}>{pseudonyme}</Text>
         <View style={styles.badges}>
-          {echo.isOpen && <View style={styles.badge}><Text style={styles.badgeText}>Ouvert</Text></View>}
-          {echo.isFree && <View style={[styles.badge, styles.freeBadge]}><Text style={styles.badgeText}>Libre</Text></View>}
+          <Text style={styles.badge}>
+            {tonalite === 'soleil' ? '☀️' : '🌧️'}
+          </Text>
+          <Text style={styles.badge}>
+            {diffusion === 'libre' ? '🌊 Libre' : '🏡 Cercle'}
+          </Text>
+          <Text style={styles.badge}>
+            {interaction === 'ouvert' ? '🤝 Ouvert' : '🔒 Fermé'}
+          </Text>
         </View>
       </View>
 
-      <Text style={styles.text}>{echo.text}</Text>
+      <Text style={styles.contenu}>{contenu}</Text>
 
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleEchoRep}>
-          <Text style={[styles.actionIcon, resonated && styles.resonated]}>🔊</Text>
-          <Text style={[styles.actionCount, resonated && styles.resonated]}>{echoRep} EchoRep</Text>
-        </TouchableOpacity>
-        <View style={styles.reactions}>
-          {echo.reactions.map((r, i) => (
-            <TouchableOpacity key={i} style={styles.reactionBtn}>
-              <Text style={styles.reactionEmoji}>{r.emoji}</Text>
-              <Text style={styles.reactionCount}>{r.count}</Text>
-            </TouchableOpacity>
-          ))}
+      {diffusion === 'cercle' && (
+        <View style={styles.cercleInfo}>
+          <Text style={styles.cercleText}>
+            👥 {participants.length} participant{participants.length > 1 ? 's' : ''}
+          </Text>
+          <Text style={styles.cercleText}>⏳ {tempsRestant(expiresAt)}</Text>
         </View>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text style={styles.actionIcon}>🏺</Text>
-          <Text style={styles.actionCount}>{echo.jares}</Text>
-        </TouchableOpacity>
+      )}
+
+      <View style={styles.footer}>
+        <View style={styles.reactions}>
+          <TouchableOpacity onPress={() => incrementReaction(id, 'resonance')}>
+            <Text style={styles.reaction}>❤️ {reactions.resonance}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => incrementReaction(id, 'soutien')}>
+            <Text style={styles.reaction}>💔 {reactions.soutien}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => incrementReaction(id, 'jare')}>
+            <Text style={styles.reaction}>🫙 {reactions.jare}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.echoren}>🔁 {echorepCount}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E8E0FF', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  avatarText: { fontSize: 16, fontWeight: '600', color: '#7C5CBF' },
-  headerInfo: { flex: 1 },
-  author: { fontSize: 15, fontWeight: '600', color: '#1a1a2e' },
-  meta: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  emotion: { fontSize: 12, color: '#7C5CBF', fontWeight: '500' },
-  timestamp: { fontSize: 12, color: '#999' },
-  badges: { flexDirection: 'row', gap: 4 },
-  badge: { backgroundColor: '#F0EBFF', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  freeBadge: { backgroundColor: '#FFF0E8' },
-  badgeText: { fontSize: 10, color: '#7C5CBF', fontWeight: '500' },
-  text: { fontSize: 15, color: '#333', lineHeight: 22, marginBottom: 14 },
-  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionIcon: { fontSize: 16 },
-  actionCount: { fontSize: 13, color: '#666' },
-  resonated: { color: '#7C5CBF' },
-  reactions: { flexDirection: 'row', gap: 8 },
-  reactionBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  reactionEmoji: { fontSize: 16 },
-  reactionCount: { fontSize: 13, color: '#666' },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  pseudo: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: '#1a1a2e',
+  },
+  badges: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  badge: {
+    fontSize: 12,
+    color: '#555',
+    backgroundColor: '#f0f0f5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  contenu: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  cercleInfo: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 10,
+    backgroundColor: '#f5f0ff',
+    padding: 8,
+    borderRadius: 10,
+  },
+  cercleText: {
+    fontSize: 13,
+    color: '#7c5cbf',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  reactions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  reaction: {
+    fontSize: 16,
+    color: '#444',
+  },
+  echoren: {
+    fontSize: 13,
+    color: '#888',
+  },
 });

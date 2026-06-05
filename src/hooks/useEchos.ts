@@ -1,62 +1,49 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { db } from '../firebase/firebaseConfig';
-import { Echo } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { echosCollection } from '../config/firebase';
+import { Echo } from '../types/Echo';
 
-function toRelativeTime(value: unknown): string {
-  if (!value) return '';
-  // Firestore Timestamp
-  if (typeof value === 'object' && value !== null && 'toDate' in value) {
-    const date = (value as { toDate(): Date }).toDate();
-    const diff = Date.now() - date.getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "À l'instant";
-    if (mins < 60) return `Il y a ${mins}min`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `Il y a ${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `Il y a ${days}j`;
-  }
-  // Already a string
-  if (typeof value === 'string') return value;
-  return '';
+interface UseEchosResult {
+  echos: Echo[];
+  loading: boolean;
 }
 
-export function useEchos(category: string | null = null) {
+export function useEchos(): UseEchosResult {
   const [echos, setEchos] = useState<Echo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const constraints = [orderBy('createdAt', 'desc')];
-    if (category) {
-      constraints.unshift(where('category', '==', category));
-    }
-    const q = query(collection(db, 'echos'), ...constraints);
+    const unsubscribe = echosCollection
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(
+        (snapshot) => {
+          const data: Echo[] = snapshot.docs.map((doc) => {
+            const d = doc.data();
+            return {
+              id: doc.id,
+              pseudonyme: d.pseudonyme,
+              userId: d.userId,
+              contenu: d.contenu,
+              tonalite: d.tonalite,
+              diffusion: d.diffusion,
+              interaction: d.interaction,
+              participants: d.participants ?? [],
+              duree: d.duree,
+              expiresAt: d.expiresAt?.toDate(),
+              reactions: d.reactions ?? { resonance: 0, soutien: 0, jare: 0 },
+              echorepCount: d.echorepCount ?? 0,
+              createdAt: d.createdAt?.toDate(),
+            };
+          });
+          setEchos(data);
+          setLoading(false);
+        },
+        () => {
+          setLoading(false);
+        }
+      );
 
-    const unsub = onSnapshot(q, snapshot => {
-      const docs: Echo[] = snapshot.docs.map(doc => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          author: d.author ?? 'Anonyme',
-          avatar: d.avatar ?? d.author?.[0] ?? '?',
-          text: d.text ?? '',
-          emotion: d.emotion ?? '',
-          timestamp: toRelativeTime(d.createdAt),
-          echoRep: d.echoRep ?? 0,
-          reactions: d.reactions ?? [],
-          jares: d.jares ?? 0,
-          isOpen: d.isOpen ?? false,
-          isFree: d.isFree ?? false,
-          category: d.category,
-        };
-      });
-      setEchos(docs);
-      setLoading(false);
-    });
-
-    return unsub;
-  }, [category]);
+    return () => unsubscribe();
+  }, []);
 
   return { echos, loading };
 }
