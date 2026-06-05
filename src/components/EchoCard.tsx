@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { Echo } from '../types/Echo';
-import { echosCollection } from '../config/firebase';
-import firestore from '@react-native-firebase/firestore';
+import { db } from '../config/firebase';
 
 interface Props {
   echo: Echo;
@@ -17,8 +17,8 @@ function tempsRestant(expiresAt: Date): string {
 }
 
 async function incrementReaction(echoId: string, key: 'resonance' | 'soutien' | 'jare') {
-  await echosCollection.doc(echoId).update({
-    [`reactions.${key}`]: firestore.FieldValue.increment(1),
+  await updateDoc(doc(db, 'echos', echoId), {
+    [`reactions.${key}`]: increment(1),
   });
 }
 
