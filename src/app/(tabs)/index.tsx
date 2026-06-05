@@ -1,1 +1,1 @@
-export { default } from '../../screens/DecouverteScreen';
+export { default } from "../../screens/FilScreen";
