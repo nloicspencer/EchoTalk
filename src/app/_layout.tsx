@@ -14,7 +14,7 @@ function AuthGuard() {
     if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
     if (!user && !inAuthGroup) router.replace('/(auth)/login');
-    else if (user && inAuthGroup) router.replace('/(tabs)/feed');
+    else if (user && inAuthGroup) router.replace('/(tabs)');
   }, [user, loading, segments]);
 
   if (loading) {
