@@ -10,6 +10,7 @@ export type Echo = {
   jares: number;
   isOpen: boolean;
   isFree: boolean;
+  category?: string;
 };
 
 export const MOCK_ECHOS: Echo[] = [
@@ -25,6 +26,7 @@ export const MOCK_ECHOS: Echo[] = [
     jares: 2,
     isOpen: true,
     isFree: false,
+    category: 'sante',
   },
   {
     id: '2',
@@ -38,6 +40,7 @@ export const MOCK_ECHOS: Echo[] = [
     jares: 4,
     isOpen: false,
     isFree: true,
+    category: 'solidarite',
   },
   {
     id: '3',
@@ -51,16 +54,22 @@ export const MOCK_ECHOS: Echo[] = [
     jares: 9,
     isOpen: true,
     isFree: false,
+    category: 'famille',
   },
 ];
 
 export const CATEGORIES = [
-  { id: '1', label: 'Anxiété', icon: '🌀' },
-  { id: '2', label: 'Deuil', icon: '🕯️' },
-  { id: '3', label: 'Joie', icon: '✨' },
-  { id: '4', label: 'Colère', icon: '🔥' },
-  { id: '5', label: 'Solitude', icon: '🌙' },
-  { id: '6', label: 'Espoir', icon: '🌱' },
+  { id: 'famille', label: 'Famille', icon: '👨‍👩‍👧' },
+  { id: 'couple', label: 'Couple', icon: '💕' },
+  { id: 'amitie', label: 'Amitié', icon: '🤝' },
+  { id: 'travail', label: 'Travail', icon: '💼' },
+  { id: 'etudes', label: 'Études', icon: '📚' },
+  { id: 'sante', label: 'Santé', icon: '🌿' },
+  { id: 'voyage', label: 'Voyage', icon: '✈️' },
+  { id: 'spiritualite', label: 'Spiritualité', icon: '🙏' },
+  { id: 'culture', label: 'Culture', icon: '🎭' },
+  { id: 'solidarite', label: 'Solidarité', icon: '🫂' },
+  { id: 'societe', label: 'Société', icon: '🌍' },
 ];
 
 export const ECHO_SOLIDAIRE = {
