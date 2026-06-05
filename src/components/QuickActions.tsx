@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
-import { CATEGORIES, ECHO_SOLIDAIRE } from '../data/mockData';
 
 type Props = {
   activeCategory: string | null;

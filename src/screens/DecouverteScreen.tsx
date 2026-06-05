@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CATEGORIES } from '../data/mockData';
+
 
 const EMOTIONS = ['😔 Tristesse', '😤 Colère', '😟 Anxiété', '🥰 Amour', '🎉 Joie', '😮 Surprise'];
 const POPULAR_TAGS = ['#solitude', '#guérison', '#thérapie', '#famille', '#travail', '#identité'];

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Echo } from '../types/Echo';
 import { echosCollection } from '../config/firebase';
-import firestore from '@react-native-firebase/firestore';
+import firestore from 'firebase/firestore';
 
 interface Props {
   echo: Echo;
