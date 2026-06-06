@@ -51,7 +51,7 @@ export function useAuth() {
     return unsub;
   }, []);
 
-  const inscription = async (email: string, password: string) => {
+  const inscription = async (email: string, password: string, prenom: string, nom: string, dateNaissance: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const pseudo = await genererPseudoUnique();
     const newProfile: UserProfile = {
@@ -63,7 +63,13 @@ export function useAuth() {
       jarresBleuesPartagees: 0,
       coeursRecus: 0,
     };
-    await setDoc(doc(db, 'users', cred.user.uid), newProfile);
+    // Données privées (jamais exposées publiquement)
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      ...newProfile,
+      prenom,
+      nom,
+      dateNaissance,
+    });
     setProfile(newProfile);
     return newProfile;
   };

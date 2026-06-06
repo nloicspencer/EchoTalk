@@ -12,7 +12,7 @@
   border-radius: 20px;
   padding: 2.5rem 2rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   border: 1px solid var(--border);
 }
 
@@ -21,25 +21,9 @@
   margin-bottom: 2rem;
 }
 
-.auth-logo-icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.auth-logo h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 0.5rem;
-}
-
-.auth-tagline {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin: 0;
-  line-height: 1.4;
-}
+.auth-logo-icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+.auth-logo h1 { font-size: 1.8rem; font-weight: 700; color: var(--text); margin: 0 0 0.5rem; }
+.auth-tagline { color: var(--text-muted); font-size: 0.9rem; margin: 0; line-height: 1.4; }
 
 .auth-tabs {
   display: flex;
@@ -75,7 +59,23 @@
   gap: 0.75rem;
 }
 
-.auth-form input {
+.auth-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.auth-row input { flex: 1; }
+
+.auth-label-small {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: -0.25rem;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="date"] {
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -84,17 +84,31 @@
   font-size: 0.95rem;
   outline: none;
   transition: border-color 0.2s;
+  width: 100%;
 }
 
-.auth-form input:focus {
-  border-color: var(--accent);
+.auth-form input:focus { border-color: var(--accent); }
+
+.auth-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.4;
 }
 
-.auth-erreur {
-  color: #e74c3c;
-  font-size: 0.85rem;
-  margin: 0;
+.auth-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
+
+.auth-erreur { color: #e74c3c; font-size: 0.85rem; margin: 0; }
 
 .auth-submit {
   padding: 0.9rem;
@@ -107,21 +121,100 @@
   cursor: pointer;
   transition: opacity 0.2s;
   margin-top: 0.25rem;
+  width: 100%;
 }
 
-.auth-submit:hover:not(:disabled) {
-  opacity: 0.9;
+.auth-submit:hover:not(:disabled) { opacity: 0.9; }
+.auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Onboarding */
+.onboarding-page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
 
-.auth-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.onboarding-content {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.auth-note {
-  text-align: center;
+.onboarding-carte {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.onboarding-icon { font-size: 1.8rem; display: block; margin-bottom: 0.5rem; }
+
+.onboarding-carte h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+
+.onboarding-carte p {
   color: var(--text-muted);
-  font-size: 0.8rem;
-  margin: 1rem 0 0;
-  line-height: 1.5;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.btn-rejoindre {
+  padding: 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 0.5rem;
+}
+
+.btn-rejoindre:hover { opacity: 0.9; }
+
+/* Pseudo attribué */
+.pseudo-card {
+  text-align: center;
+}
+
+.pseudo-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
+
+.pseudo-card h2 {
+  font-size: 1.3rem;
+  color: var(--text);
+  margin: 0 0 1.5rem;
+}
+
+.pseudo-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+}
+
+.pseudo-nom {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--accent-light);
+  border-radius: 12px;
+}
+
+.pseudo-note {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
 }
