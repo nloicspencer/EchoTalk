@@ -18,7 +18,8 @@ export interface Echo {
   placesMax?: 3 | 6 | 8;
   placesOccupees?: number;
   periodicitéJours?: 2 | 6 | 10;
-  ouvertureCount?: number; // max 3
+  ouvertureCount?: number;
+  reouverturesRestantes?: number; // max 3
   estOuvert?: boolean;
   expiresAt?: Date;
   // Écho Solidaire

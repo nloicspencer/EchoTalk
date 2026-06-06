@@ -11,7 +11,7 @@ export default function FilPage() {
   const [categorieActive, setCategorieActive] = useState('tous');
   const [showCategories, setShowCategories] = useState(false);
   const [showSolidaire, setShowSolidaire] = useState(false);
-  const { echos, loading } = useEchos(categorieActive);
+  const { echos, loading } = useEchos();
   const echoSolidaire = useEchoSolidaire();
   const { profile } = useAuth();
 

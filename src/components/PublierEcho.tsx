@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { publierEcho } from '../hooks/useEchos';
-import { UserProfile, EchoType, Tonalite, CATEGORIES } from '../types';
+import { UserProfile, EchoType, Tonalite } from '../types';
 import './PublierEcho.css';
 
 interface Props {
@@ -12,7 +12,6 @@ export default function PublierEcho({ profile }: Props) {
   const [contenu, setContenu] = useState('');
   const [tonalite, setTonalite] = useState<Tonalite>('soleil');
   const [type, setType] = useState<EchoType>('libre');
-  const [categorie, setCategorie] = useState('tous');
   const [placesMax, setPlacesMax] = useState<3 | 6 | 8>(6);
   const [periodicite, setPeriodicite] = useState<2 | 6 | 10>(6);
   const [loading, setLoading] = useState(false);
@@ -27,7 +26,6 @@ export default function PublierEcho({ profile }: Props) {
         auteurPseudo: profile.pseudo,
         tonalite,
         type,
-        categorie,
         ...(type === 'ouvert' && { placesMax, periodicitéJours: periodicite }),
       });
       setContenu('');
@@ -58,14 +56,8 @@ export default function PublierEcho({ profile }: Props) {
           <div className="option-row">
             <label>Tonalité</label>
             <div className="toggle-group">
-              <button
-                className={tonalite === 'soleil' ? 'active' : ''}
-                onClick={() => setTonalite('soleil')}
-              >☀️ Soleil</button>
-              <button
-                className={tonalite === 'pluie' ? 'active' : ''}
-                onClick={() => setTonalite('pluie')}
-              >🌧️ Pluie</button>
+              <button className={tonalite === 'soleil' ? 'active' : ''} onClick={() => setTonalite('soleil')}>☀️ Soleil</button>
+              <button className={tonalite === 'pluie' ? 'active' : ''} onClick={() => setTonalite('pluie')}>🌧️ Pluie</button>
             </div>
           </div>
 
@@ -73,14 +65,8 @@ export default function PublierEcho({ profile }: Props) {
           <div className="option-row">
             <label>Type</label>
             <div className="toggle-group">
-              <button
-                className={type === 'libre' ? 'active' : ''}
-                onClick={() => setType('libre')}
-              >🕊️ Libre</button>
-              <button
-                className={type === 'ouvert' ? 'active' : ''}
-                onClick={() => setType('ouvert')}
-              >🔓 Ouvert</button>
+              <button className={type === 'libre' ? 'active' : ''} onClick={() => setType('libre')}>🕊️ Libre</button>
+              <button className={type === 'ouvert' ? 'active' : ''} onClick={() => setType('ouvert')}>🔓 Ouvert</button>
             </div>
           </div>
 
@@ -91,11 +77,7 @@ export default function PublierEcho({ profile }: Props) {
                 <label>Participants</label>
                 <div className="toggle-group">
                   {([3, 6, 8] as const).map((n) => (
-                    <button
-                      key={n}
-                      className={placesMax === n ? 'active' : ''}
-                      onClick={() => setPlacesMax(n)}
-                    >{n}</button>
+                    <button key={n} className={placesMax === n ? 'active' : ''} onClick={() => setPlacesMax(n)}>{n}</button>
                   ))}
                 </div>
               </div>
@@ -103,35 +85,17 @@ export default function PublierEcho({ profile }: Props) {
                 <label>Durée</label>
                 <div className="toggle-group">
                   {([2, 6, 10] as const).map((j) => (
-                    <button
-                      key={j}
-                      className={periodicite === j ? 'active' : ''}
-                      onClick={() => setPeriodicite(j)}
-                    >{j} jours</button>
+                    <button key={j} className={periodicite === j ? 'active' : ''} onClick={() => setPeriodicite(j)}>{j} jours</button>
                   ))}
                 </div>
               </div>
             </>
           )}
 
-          {/* Catégorie */}
-          <div className="option-row">
-            <label>Catégorie</label>
-            <select value={categorie} onChange={(e) => setCategorie(e.target.value)}>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
-              ))}
-            </select>
-          </div>
-
           <div className="publier-actions">
             <button className="btn-annuler" onClick={() => setOuvert(false)}>Annuler</button>
-            <button
-              className="btn-publier"
-              onClick={handlePublier}
-              disabled={!contenu.trim() || loading}
-            >
-              {loading ? '...' : 'Publier l\'écho'}
+            <button className="btn-publier" onClick={handlePublier} disabled={!contenu.trim() || loading}>
+              {loading ? '...' : "Publier l'écho"}
             </button>
           </div>
         </div>
