@@ -17,7 +17,7 @@ const CARTES_ONBOARDING = [
   {
     icon: '🌊',
     titre: 'Bienvenue',
-    texte: "EchoTalk est un espace de résonance humaine. Pas de popularité, pas de performance. Juste des expériences qui trouvent écho chez les autres.",
+    texte: "EchoTalk est un espace de résonance humaine. Juste des expériences qui trouvent écho chez les autres.",
   },
   {
     icon: '☀️',
@@ -25,9 +25,9 @@ const CARTES_ONBOARDING = [
     texte: "Une joie, une réussite, un doute, une épreuve, une découverte. Tout ce qui fait partie de ton expérience humaine a sa place ici. Partage ce qui mérite d'être entendu.",
   },
   {
-    icon: '❤️',
+    icon: '🫙',
     titre: 'Les réactions',
-    texte: "Pas de likes. Trois façons d'être vraiment présent : un cœur pour résonner, un cœur brisé pour compatir, une jarre pour soutenir. Parce que certaines émotions méritent mieux qu'un chiffre.",
+    texte: "Trois façons d'être vraiment présent : un cœur pour résonner, un cœur brisé pour compatir, une jarre pour soutenir. Parce que certaines émotions méritent mieux qu'un chiffre.",
   },
   {
     icon: '✨',
@@ -110,7 +110,6 @@ export default function AuthPage() {
     }
   };
 
-  // Écran onboarding
   if (etape === 'onboarding') {
     return (
       <div className="onboarding-page">
@@ -134,7 +133,6 @@ export default function AuthPage() {
     );
   }
 
-  // Écran pseudo attribué
   if (etape === 'pseudo') {
     return (
       <div className="auth-page">
@@ -177,21 +175,11 @@ export default function AuthPage() {
           <form onSubmit={handleConnexion} className="auth-form">
             <input type="email" placeholder="Adresse email" value={email} onChange={e => setEmail(e.target.value)} required />
             <div className="input-password">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Mot de passe"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-              <button type="button" className="toggle-pwd" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? '🙈' : '👁'}
-              </button>
+              <input type={showPassword ? 'text' : 'password'} placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)} required />
+              <button type="button" className="toggle-pwd" onClick={() => setShowPassword(!showPassword)}>{showPassword ? '🙈' : '👁'}</button>
             </div>
             {erreur && <p className="auth-erreur">{erreur}</p>}
-            <button type="submit" className="auth-submit" disabled={loading}>
-              {loading ? '...' : 'Se connecter'}
-            </button>
+            <button type="submit" className="auth-submit" disabled={loading}>{loading ? '...' : 'Se connecter'}</button>
           </form>
         ) : (
           <form onSubmit={handleInscription} className="auth-form">
@@ -203,29 +191,12 @@ export default function AuthPage() {
             <input type="date" value={dateNaissance} onChange={e => setDateNaissance(e.target.value)} required max={new Date().toISOString().split('T')[0]} />
             <input type="email" placeholder="Adresse email" value={email} onChange={e => setEmail(e.target.value)} required />
             <div className="input-password">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Mot de passe (6 caractères min)"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-              <button type="button" className="toggle-pwd" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? '🙈' : '👁'}
-              </button>
+              <input type={showPassword ? 'text' : 'password'} placeholder="Mot de passe (6 caractères min)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+              <button type="button" className="toggle-pwd" onClick={() => setShowPassword(!showPassword)}>{showPassword ? '🙈' : '👁'}</button>
             </div>
             <div className="input-password">
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                placeholder="Confirmer le mot de passe"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                required
-              />
-              <button type="button" className="toggle-pwd" onClick={() => setShowConfirm(!showConfirm)}>
-                {showConfirm ? '🙈' : '👁'}
-              </button>
+              <input type={showConfirm ? 'text' : 'password'} placeholder="Confirmer le mot de passe" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+              <button type="button" className="toggle-pwd" onClick={() => setShowConfirm(!showConfirm)}>{showConfirm ? '🙈' : '👁'}</button>
             </div>
             <label className="auth-checkbox">
               <input type="checkbox" checked={majeur} onChange={e => setMajeur(e.target.checked)} />

@@ -187,7 +187,7 @@ export default function ProfilPage() {
 
       {/* Principe */}
       <div className="profil-principe">
-        <p>L'EchoProfil ne mesure pas la popularité. Il met en valeur votre activité, votre participation, votre soutien aux autres et la résonance de vos Échos.</p>
+        <p>L'EchoProfil met en valeur votre activité, votre participation, votre soutien aux autres et la résonance de vos Échos au sein de la communauté.</p>
       </div>
 
       {/* Déconnexion */}

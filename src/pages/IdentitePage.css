@@ -1,0 +1,174 @@
+.identite-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+}
+
+/* Accroche */
+.identite-accroche {
+  text-align: center;
+  padding: 2.5rem 1rem 2rem;
+}
+
+.identite-logo {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.identite-accroche h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.5px;
+}
+
+.identite-phrase {
+  font-size: 1.15rem;
+  color: var(--accent);
+  line-height: 1.8;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Sections */
+.identite-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.identite-section h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 1.25rem;
+}
+
+.identite-intro p {
+  font-size: 1rem;
+  color: var(--text);
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* Piliers */
+.piliers-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pilier-carte {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.pilier-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.pilier-carte h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.4rem;
+}
+
+.pilier-carte p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Philosophie */
+.identite-philosophie {
+  text-align: center;
+  padding: 2rem 1rem;
+  position: relative;
+}
+
+.philosophie-guillemet {
+  font-size: 3rem;
+  color: var(--accent);
+  opacity: 0.3;
+  display: block;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.identite-philosophie p {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  font-style: italic;
+}
+
+/* Valeurs */
+.valeurs-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.valeur-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  font-size: 0.88rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Manifeste */
+.identite-manifeste ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.identite-manifeste li {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.5;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.identite-manifeste li:last-child {
+  border-bottom: none;
+}
+
+/* Slogan final */
+.identite-slogan {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.identite-slogan p {
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
