@@ -1,0 +1,91 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.modal-header h2 {
+  font-size: 1.3rem;
+  color: var(--text);
+  margin: 0;
+}
+
+.modal-pseudo {
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.75rem;
+}
+
+.modal-contenu {
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.modal-reaction {
+  text-align: center;
+}
+
+.modal-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.btn-jarre-rose {
+  padding: 0.85rem 2rem;
+  background: linear-gradient(135deg, #e91e8c, #ff6b9d);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-jarre-rose:hover {
+  opacity: 0.9;
+}
+
+.modal-vide {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1rem 0;
+}
