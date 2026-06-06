@@ -1,8 +1,36 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import './ProfilPage.css';
 
 export default function ProfilPage() {
   const { profile, user, deconnexion } = useAuth();
+  const [stats, setStats] = useState({
+    echosPublies: 0,
+    jarresBleuesRecues: 0,
+    coeursRecus: 0,
+    echoRepsPubliees: 0,
+  });
+
+  useEffect(() => {
+    if (!profile?.uid) return;
+
+    // Échos publiés + réactions reçues
+    const q = query(collection(db, 'echos'), where('auteurId', '==', profile.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      let jarres = 0;
+      let coeurs = 0;
+      snap.docs.forEach(d => {
+        const data = d.data();
+        jarres += data.jarresBleues || 0;
+        coeurs += data.coeurs || 0;
+      });
+      setStats(s => ({ ...s, echosPublies: snap.size, jarresBleuesRecues: jarres, coeursRecus: coeurs }));
+    });
+
+    return unsub;
+  }, [profile?.uid]);
 
   if (!profile) return null;
 
@@ -13,7 +41,6 @@ export default function ProfilPage() {
   return (
     <div className="profil-page">
 
-      {/* En-tête profil */}
       <div className="profil-header">
         <div className="profil-avatar">🫙</div>
         <h2 className="profil-pseudo">{profile.pseudo}</h2>
@@ -22,27 +49,25 @@ export default function ProfilPage() {
         </p>
       </div>
 
-      {/* Statistiques */}
       <div className="profil-stats">
         <div className="stat-card">
-          <span className="stat-valeur">{profile.echosPublies}</span>
+          <span className="stat-valeur">{stats.echosPublies}</span>
           <span className="stat-label">Échos publiés</span>
         </div>
         <div className="stat-card">
-          <span className="stat-valeur">🫙 {profile.jarresBleuesRecues}</span>
+          <span className="stat-valeur">🫙 {stats.jarresBleuesRecues}</span>
           <span className="stat-label">Jarres reçues</span>
         </div>
         <div className="stat-card">
-          <span className="stat-valeur">🫙 {profile.jarresBleuesPartagees}</span>
-          <span className="stat-label">Jarres partagées</span>
+          <span className="stat-valeur">❤️ {stats.coeursRecus}</span>
+          <span className="stat-label">Cœurs reçus</span>
         </div>
         <div className="stat-card">
-          <span className="stat-valeur">❤️ {profile.coeursRecus}</span>
-          <span className="stat-label">Cœurs reçus</span>
+          <span className="stat-valeur">💬 {stats.echoRepsPubliees}</span>
+          <span className="stat-label">EchoReps publiées</span>
         </div>
       </div>
 
-      {/* Identité privée */}
       <div className="profil-section">
         <h3>Identité privée</h3>
         <p className="profil-note">
@@ -55,7 +80,6 @@ export default function ProfilPage() {
         </div>
       </div>
 
-      {/* Déconnexion */}
       <button className="btn-deconnexion" onClick={deconnexion}>
         Se déconnecter
       </button>

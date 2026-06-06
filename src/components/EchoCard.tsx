@@ -19,9 +19,18 @@ export default function EchoCard({ echo }: Props) {
 
   const estProprietaire = profile?.uid === echo.auteurId;
   const aDejaParticipe = echoReps.some(r => r.auteurId === profile?.uid);
-  const peutParticiper = echo.type === 'ouvert' && echo.estOuvert &&
-    !aDejaParticipe && !estProprietaire &&
-    (echo.placesOccupees ?? 0) < (echo.placesMax ?? 0);
+  const placesRestantes = (echo.placesMax ?? 0) - (echo.placesOccupees ?? 0);
+  const placesDispo = placesRestantes > 0;
+  const reouverturesRestantes = echo.reouverturesRestantes ?? 0;
+
+  // Peut ajouter une EchoRep si :
+  // - écho ouvert et non expiré
+  // - propriétaire : toujours (sans prendre de place)
+  // - participant déjà inscrit : toujours (place déjà prise)
+  // - nouveau participant : seulement si places disponibles
+  const peutAjouterRep = echo.type === 'ouvert' && (echo.estOuvert ?? false) && (
+    estProprietaire || aDejaParticipe || placesDispo
+  );
 
   const tempsRestant = () => {
     if (!echo.expiresAt) return null;
@@ -48,7 +57,8 @@ export default function EchoCard({ echo }: Props) {
         profile.pseudo,
         repContenu,
         echo.placesOccupees ?? 0,
-        echo.placesMax ?? 0
+        echo.placesMax ?? 0,
+        estProprietaire
       );
       setRepContenu('');
       setShowRepForm(false);
@@ -61,7 +71,7 @@ export default function EchoCard({ echo }: Props) {
 
   const handleToggleOuvert = async () => {
     try {
-      await toggleEchoOuvert(echo.id, echo.estOuvert ?? true, echo.reouverturesRestantes ?? 0);
+      await toggleEchoOuvert(echo.id, echo.estOuvert ?? true, reouverturesRestantes);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Erreur');
     }
@@ -88,9 +98,7 @@ export default function EchoCard({ echo }: Props) {
           <span className={`statut ${echo.estOuvert ? 'ouvert' : 'ferme'}`}>
             {echo.estOuvert ? '🔓 Ouvert' : '🔒 Fermé'}
           </span>
-          {echo.reouverturesRestantes !== undefined && (
-            <span className="reouvertures">↩️ {echo.reouverturesRestantes} réouverture{echo.reouverturesRestantes !== 1 ? 's' : ''} restante{echo.reouverturesRestantes !== 1 ? 's' : ''}</span>
-          )}
+          <span className="reouvertures">↩️ {reouverturesRestantes} réouverture{reouverturesRestantes !== 1 ? 's' : ''} restante{reouverturesRestantes !== 1 ? 's' : ''}</span>
         </div>
       )}
 
@@ -110,11 +118,9 @@ export default function EchoCard({ echo }: Props) {
             <button className="reaction" onClick={() => handleReaction('coeursBrises')}>💔 <span>{echo.coeursBrises || 0}</span></button>
           </>
         )}
-
-        {/* Bouton masquer EchoRep */}
         {echo.type === 'ouvert' && echoReps.length > 0 && (
           <button className="reaction masquer-btn" onClick={() => setMasquerReps(!masquerReps)}>
-            {masquerReps ? '👁 Voir les réponses' : '🙈 Masquer'}
+            {masquerReps ? '👁 Voir' : '🙈 Masquer'}
           </button>
         )}
       </div>
@@ -124,9 +130,14 @@ export default function EchoCard({ echo }: Props) {
         <button
           className={`btn-toggle-ouvert ${echo.estOuvert ? 'btn-fermer' : 'btn-rouvrir'}`}
           onClick={handleToggleOuvert}
-          disabled={(echo.reouverturesRestantes ?? 0) <= 0 && !echo.estOuvert}
+          disabled={!echo.estOuvert && reouverturesRestantes <= 0}
         >
-          {echo.estOuvert ? '🔒 Fermer cet écho' : `🔓 Rouvrir (${echo.reouverturesRestantes} restante${(echo.reouverturesRestantes ?? 0) !== 1 ? 's' : ''})`}
+          {echo.estOuvert
+            ? '🔒 Fermer cet écho'
+            : reouverturesRestantes > 0
+              ? `🔓 Rouvrir (${reouverturesRestantes} restante${reouverturesRestantes !== 1 ? 's' : ''})`
+              : '🚫 Plus de réouvertures disponibles'
+          }
         </button>
       )}
 
@@ -148,11 +159,16 @@ export default function EchoCard({ echo }: Props) {
           )}
 
           {/* Formulaire EchoRep */}
-          {(peutParticiper || (estProprietaire && echo.estOuvert)) && (
+          {peutAjouterRep && (
             <div className="echorep-form">
               {!showRepForm ? (
                 <button className="btn-add-rep" onClick={() => setShowRepForm(true)}>
-                  💬 {estProprietaire ? 'Répondre à votre écho' : `Rejoindre cet écho (${(echo.placesMax ?? 0) - (echo.placesOccupees ?? 0)} place${((echo.placesMax ?? 0) - (echo.placesOccupees ?? 0)) !== 1 ? 's' : ''} restante${((echo.placesMax ?? 0) - (echo.placesOccupees ?? 0)) !== 1 ? 's' : ''})`}
+                  💬 {estProprietaire
+                    ? 'Répondre à votre écho'
+                    : aDejaParticipe
+                      ? 'Ajouter une EchoRep'
+                      : `Rejoindre cet écho (${placesRestantes} place${placesRestantes !== 1 ? 's' : ''} restante${placesRestantes !== 1 ? 's' : ''})`
+                  }
                 </button>
               ) : (
                 <div className="echorep-input">
@@ -175,8 +191,9 @@ export default function EchoCard({ echo }: Props) {
             </div>
           )}
 
-          {aDejaParticipe && !estProprietaire && (
-            <p className="deja-participe">✅ Vous participez à cet écho</p>
+          {/* Places pleines pour un nouvel utilisateur */}
+          {!peutAjouterRep && echo.estOuvert && !estProprietaire && !aDejaParticipe && !placesDispo && (
+            <p className="places-pleines">🔒 Cet écho est complet</p>
           )}
         </div>
       )}
