@@ -15,11 +15,24 @@ export default function FilPage() {
   const echoSolidaire = useEchoSolidaire();
   const { profile } = useAuth();
 
-  // Total jarres bleues pour le puits
   const totalJarres = echos.reduce((sum, e) => sum + (e.jarresBleues || 0), 0);
 
   return (
     <div className="fil-page">
+
+      {/* En-tête application */}
+      <div className="fil-header">
+        <div className="fil-header-top">
+          <span className="fil-logo-icon">🫙</span>
+          <h1 className="fil-app-name">EchoTalk</h1>
+        </div>
+        {profile && (
+          <div className="fil-bienvenue">
+            <span className="fil-pseudo">🫙 {profile.pseudo}</span>
+            <span className="fil-slogan">Ton espace. Ta voix. Ton écho.</span>
+          </div>
+        )}
+      </div>
 
       {/* Puits communautaire */}
       <div className="puits">
@@ -61,7 +74,7 @@ export default function FilPage() {
         </div>
       )}
 
-      {/* Catégorie active affichée */}
+      {/* Catégorie active */}
       {categorieActive !== 'tous' && (
         <div className="categorie-active">
           <span>Filtré : {CATEGORIES.find(c => c.id === categorieActive)?.label}</span>
@@ -69,7 +82,7 @@ export default function FilPage() {
         </div>
       )}
 
-      {/* Publication d'un écho */}
+      {/* Publication */}
       {profile && <PublierEcho profile={profile} />}
 
       {/* Fil des échos */}

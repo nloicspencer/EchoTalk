@@ -40,11 +40,12 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'connexion' | 'inscription'>('connexion');
   const [etape, setEtape] = useState<Etape>('auth');
 
-  // Champs connexion
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  // Champs inscription
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [dateNaissance, setDateNaissance] = useState('');
@@ -68,8 +69,6 @@ export default function AuthPage() {
       setErreur(
         msg.includes('user-not-found') || msg.includes('invalid-credential')
           ? 'Email ou mot de passe incorrect'
-          : msg.includes('email-already')
-          ? 'Email déjà utilisé'
           : 'Une erreur est survenue'
       );
     } finally {
@@ -81,9 +80,12 @@ export default function AuthPage() {
     e.preventDefault();
     setErreur('');
 
-    // Vérification âge
     if (calculerAge(dateNaissance) < 18) {
       setErreur('Vous devez avoir 18 ans ou plus pour rejoindre EchoTalk.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErreur('Les mots de passe ne correspondent pas.');
       return;
     }
     if (!majeur || !attestation) {
@@ -113,6 +115,10 @@ export default function AuthPage() {
     return (
       <div className="onboarding-page">
         <div className="onboarding-content">
+          <div className="onboarding-header">
+            <span>🫙</span>
+            <h2>EchoTalk</h2>
+          </div>
           {CARTES_ONBOARDING.map((carte, i) => (
             <div className="onboarding-carte" key={i}>
               <span className="onboarding-icon">{carte.icon}</span>
@@ -149,7 +155,6 @@ export default function AuthPage() {
     );
   }
 
-  // Écran auth principal
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -171,7 +176,18 @@ export default function AuthPage() {
         {mode === 'connexion' ? (
           <form onSubmit={handleConnexion} className="auth-form">
             <input type="email" placeholder="Adresse email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <input type="password" placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)} required />
+            <div className="input-password">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Mot de passe"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+              <button type="button" className="toggle-pwd" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? '🙈' : '👁'}
+              </button>
+            </div>
             {erreur && <p className="auth-erreur">{erreur}</p>}
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? '...' : 'Se connecter'}
@@ -186,17 +202,39 @@ export default function AuthPage() {
             <label className="auth-label-small">Date de naissance</label>
             <input type="date" value={dateNaissance} onChange={e => setDateNaissance(e.target.value)} required max={new Date().toISOString().split('T')[0]} />
             <input type="email" placeholder="Adresse email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <input type="password" placeholder="Mot de passe (6 caractères min)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
-
+            <div className="input-password">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Mot de passe (6 caractères min)"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+              <button type="button" className="toggle-pwd" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? '🙈' : '👁'}
+              </button>
+            </div>
+            <div className="input-password">
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                placeholder="Confirmer le mot de passe"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+              />
+              <button type="button" className="toggle-pwd" onClick={() => setShowConfirm(!showConfirm)}>
+                {showConfirm ? '🙈' : '👁'}
+              </button>
+            </div>
             <label className="auth-checkbox">
-              <input type="checkbox" checked={majeur} onChange={e => setMajeur(e.target.checked)} required />
+              <input type="checkbox" checked={majeur} onChange={e => setMajeur(e.target.checked)} />
               <span>J'ai 18 ans ou plus</span>
             </label>
             <label className="auth-checkbox">
-              <input type="checkbox" checked={attestation} onChange={e => setAttestation(e.target.checked)} required />
+              <input type="checkbox" checked={attestation} onChange={e => setAttestation(e.target.checked)} />
               <span>J'atteste que les informations renseignées sont exactes</span>
             </label>
-
             {erreur && <p className="auth-erreur">{erreur}</p>}
             <button type="submit" className="auth-submit" disabled={loading || !majeur || !attestation}>
               {loading ? 'Création du compte...' : 'Créer mon compte'}

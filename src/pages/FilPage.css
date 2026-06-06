@@ -118,3 +118,50 @@
   color: var(--text-muted);
   font-size: 0.95rem;
 }
+
+/* En-tête */
+.fil-header {
+  padding: 1.25rem 0 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.fil-header-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.fil-logo-icon {
+  font-size: 1.8rem;
+}
+
+.fil-app-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.fil-bienvenue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--accent-light);
+  border-radius: 12px;
+  border-left: 3px solid var(--accent);
+}
+
+.fil-pseudo {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.fil-slogan {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
