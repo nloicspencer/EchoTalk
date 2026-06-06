@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import AuthPage from './pages/AuthPage';
 import FilPage from './pages/FilPage';
+import ProfilPage from './pages/ProfilPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import NavBar from './components/NavBar';
 import './App.css';
@@ -19,13 +20,7 @@ function AppLayout() {
               description="Recherche d'échos par critères et groupes — bientôt disponible."
             />
           } />
-          <Route path="/profil" element={
-            <PlaceholderPage
-              icon="👤"
-              titre="EchoProfil"
-              description="Vos statistiques, jarres partagées et reçues — bientôt disponible."
-            />
-          } />
+          <Route path="/profil" element={<ProfilPage />} />
           <Route path="/identite" element={
             <PlaceholderPage
               icon="💡"
