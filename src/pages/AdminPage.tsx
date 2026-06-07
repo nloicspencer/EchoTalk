@@ -164,7 +164,7 @@ export default function AdminPage() {
                 <div className="admin-rang">#{i + 1}</div>
                 <div className="admin-echo-content">
                   <span className="admin-pseudo">{echo.auteurPseudo}</span>
-                  <p className="admin-contenu">{echo.contenu.slice(0, 100)}{echo.contenu.length > 100 ? '...' : ''}</p>
+                  <p className="admin-contenu">{(echo.contenu || '').slice(0, 100)}{(echo.contenu || '').length > 100 ? '...' : ''}</p>
                   <div className="admin-stats">
                     <span>🫙 {echo.jarresBleues} jarres</span>
                     <span>❤️ {echo.coeurs}</span>
