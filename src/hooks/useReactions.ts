@@ -75,24 +75,16 @@ export async function donnerJarreBleu(
   });
 }
 
-// Donner une jarre rose (Écho Solidaire)
+// Donner une jarre rose (Écho Solidaire) — illimité tant que stock > 0
 export async function donnerJarreRose(
   echoId: string,
   userId: string,
   stockActuel: number,
   compteurActuel: number
 ) {
-  if (stockActuel <= 0) throw new Error('Stock de jarres roses épuisé');
-  const dejaReagi = await aDejaReagi(echoId, userId, 'jarreRose');
-  if (dejaReagi) throw new Error('Vous avez déjà offert une jarre rose à cet écho');
+  if (stockActuel <= 0) throw new Error('Stock de jarres roses épuisé. Acquérez un pack dans votre EchoProfil.');
 
-  await addDoc(collection(db, 'reactions'), {
-    echoId,
-    auteurId: userId,
-    type: 'jarreRose',
-    createdAt: serverTimestamp(),
-  });
-
+  // Pas d'anti-doublon — chaque jarre rose compte
   await updateDoc(doc(db, 'users', userId), {
     stockJarresRoses: stockActuel - 1,
   });
