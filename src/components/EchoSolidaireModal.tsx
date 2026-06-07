@@ -1,5 +1,7 @@
 import { Echo } from '../types';
-import { reagir } from '../hooks/useEchos';
+import { donnerJarreRose } from '../hooks/useReactions';
+import { useStockJarres } from '../hooks/useReactions';
+import { useAuth } from '../hooks/useAuth';
 import './EchoSolidaireModal.css';
 
 interface Props {
@@ -8,6 +10,18 @@ interface Props {
 }
 
 export default function EchoSolidaireModal({ echo, onClose }: Props) {
+  const { profile } = useAuth();
+  const stock = useStockJarres(profile?.uid ?? '');
+
+  const handleJarreRose = async () => {
+    if (!profile || !echo) return;
+    try {
+      await donnerJarreRose(echo.id, profile.uid, stock.jarresRoses, echo.jarresRoses || 0);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -21,13 +35,27 @@ export default function EchoSolidaireModal({ echo, onClose }: Props) {
           <>
             <p className="modal-pseudo">{echo.auteurPseudo}</p>
             <p className="modal-contenu">{echo.contenu}</p>
+
+            {/* Réactions existantes — lecture seule */}
+            <div className="modal-reactions-existantes">
+              <span className="reaction-inactive">🫙 {echo.jarresBleues || 0}</span>
+              <span className="reaction-inactive">❤️ {echo.coeurs || 0}</span>
+              <span className="reaction-inactive">💔 {echo.coeursBrises || 0}</span>
+            </div>
+
+            {/* Seule réaction active : jarre rose */}
             <div className="modal-reaction">
               <p className="modal-note">
-                Soutenez cet écho avec une Jarre Rose. Chaque contribution compte.
+                Soutenez cet écho avec une Jarre Rose.
+                {stock.jarresRoses > 0
+                  ? ` Vous avez ${stock.jarresRoses} jarre${stock.jarresRoses > 1 ? 's' : ''} rose${stock.jarresRoses > 1 ? 's' : ''}.`
+                  : ' Votre stock de jarres roses est épuisé.'
+                }
               </p>
               <button
-                className="btn-jarre-rose"
-                onClick={() => reagir(echo.id, 'jarresRoses', (echo.jarresRoses || 0) + 1)}
+                className={`btn-jarre-rose ${stock.jarresRoses <= 0 ? 'disabled' : ''}`}
+                onClick={handleJarreRose}
+                disabled={stock.jarresRoses <= 0}
               >
                 🫙 Offrir une Jarre Rose · {echo.jarresRoses || 0}
               </button>

@@ -53,6 +53,8 @@ export function useEchoSolidaire() {
       if (!snap.empty) {
         const d = snap.docs[0];
         setEchoSolidaire(convertEcho(d.id, d.data() as Record<string, unknown>));
+      } else {
+        setEchoSolidaire(null);
       }
     });
     return unsub;

@@ -89,3 +89,25 @@
   color: var(--text-muted);
   padding: 1rem 0;
 }
+
+.modal-reactions-existantes {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: 10px;
+}
+
+.reaction-inactive {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-jarre-rose.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
