@@ -24,6 +24,10 @@ export interface Echo {
   expiresAt?: Date;
   // Écho Solidaire
   estSolidaire?: boolean;
+  modifie?: boolean;
+  supprime?: boolean;
+  updatedAt?: Date;
+  clotureManuellement?: boolean;
   jarresRoses?: number;
 }
 

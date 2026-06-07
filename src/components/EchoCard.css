@@ -274,3 +274,123 @@
   padding: 0.5rem;
   margin: 0;
 }
+
+/* Écho supprimé */
+.echo-card.supprime {
+  opacity: 0.7;
+  border-left-color: var(--border);
+}
+
+.contenu-supprime {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Actions auteur */
+.echo-auteur-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.btn-edit, .btn-delete {
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+.btn-delete:hover { border-color: #e74c3c; color: #e74c3c; }
+
+/* Édition écho */
+.edit-echo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.edit-echo-form textarea,
+.edit-rep-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.edit-actions button {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.btn-save {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+  font-weight: 600 !important;
+}
+
+/* Mention modifié */
+.mention-modifie {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* EchoRep supprimée */
+.rep-supprimee {
+  opacity: 0.6;
+}
+
+.rep-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.rep-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.btn-edit-sm, .btn-delete-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.btn-edit-sm:hover { background: var(--accent-light); }
+.btn-delete-sm:hover { background: #fff5f5; }
+
+.edit-rep-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

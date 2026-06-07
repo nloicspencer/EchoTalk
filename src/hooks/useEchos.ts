@@ -6,11 +6,13 @@ import {
   where,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   Timestamp,
   collection,
   getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import { db, echosCollection } from '../services/firebase';
 import { Echo, EchoType, Tonalite } from '../types';
@@ -21,6 +23,7 @@ function convertEcho(id: string, data: Record<string, unknown>): Echo {
     id,
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
     expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : undefined,
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
     reouverturesRestantes: data.reouverturesRestantes !== undefined ? data.reouverturesRestantes : 3,
   } as Echo;
 }
@@ -65,6 +68,9 @@ export function useEchoReps(echoId: string) {
     auteurPseudo: string;
     contenu: string;
     createdAt: Date;
+    updatedAt?: Date;
+    supprime?: boolean;
+    modifie?: boolean;
   }>>([]);
 
   useEffect(() => {
@@ -76,6 +82,7 @@ export function useEchoReps(echoId: string) {
         id: d.id,
         ...d.data(),
         createdAt: d.data().createdAt instanceof Timestamp ? d.data().createdAt.toDate() : new Date(),
+        updatedAt: d.data().updatedAt instanceof Timestamp ? d.data().updatedAt.toDate() : undefined,
       })) as typeof echoReps);
     });
     return unsub;
@@ -83,6 +90,8 @@ export function useEchoReps(echoId: string) {
 
   return echoReps;
 }
+
+// ── PUBLIER ──────────────────────────────────────────────
 
 interface PublierEchoParams {
   contenu: string;
@@ -99,7 +108,7 @@ export async function publierEcho(params: PublierEchoParams) {
     ? new Date(Date.now() + params.periodicitéJours * 24 * 60 * 60 * 1000)
     : null;
 
-  const data = {
+  return addDoc(echosCollection, {
     contenu: params.contenu,
     auteurId: params.auteurId,
     auteurPseudo: params.auteurPseudo,
@@ -111,6 +120,8 @@ export async function publierEcho(params: PublierEchoParams) {
     coeurs: 0,
     coeursBrises: 0,
     estSolidaire: false,
+    modifie: false,
+    supprime: false,
     ...(params.type === 'ouvert' && {
       placesMax: params.placesMax ?? 6,
       placesOccupees: 0,
@@ -120,10 +131,51 @@ export async function publierEcho(params: PublierEchoParams) {
       estOuvert: true,
       expiresAt,
     }),
-  };
-
-  return addDoc(echosCollection, data);
+  });
 }
+
+// ── MODIFIER ÉCHO ─────────────────────────────────────────
+
+export async function modifierEcho(echoId: string, nouveauContenu: string, createdAt: Date) {
+  const diff = Date.now() - createdAt.getTime();
+  const heures24 = 24 * 60 * 60 * 1000;
+  if (diff > heures24) throw new Error('Le délai de modification de 24h est dépassé.');
+  await updateDoc(doc(db, 'echos', echoId), {
+    contenu: nouveauContenu,
+    modifie: true,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// ── SUPPRIMER ÉCHO ────────────────────────────────────────
+
+export async function supprimerEcho(echo: Echo) {
+  const echoRef = doc(db, 'echos', echo.id);
+
+  if (echo.type === 'ouvert') {
+    // Compter les EchoRep non supprimées
+    const repsRef = collection(db, 'echos', echo.id, 'echoreps');
+    const reps = await getDocs(repsRef);
+    const nbReps = reps.docs.filter(d => !d.data().supprime).length;
+
+    // Supprimer toutes les EchoRep
+    const batch = writeBatch(db);
+    reps.docs.forEach(d => batch.delete(d.ref));
+
+    // Marquer l'écho comme supprimé (pas delete, pour garder la trace)
+    batch.update(echoRef, {
+      supprime: true,
+      contenu: `Écho Ouvert supprimé par son auteur — ${nbReps} EchoRep${nbReps !== 1 ? 's' : ''} avaient été partagées`,
+      estOuvert: false,
+    });
+    await batch.commit();
+  } else {
+    // Écho Libre → suppression directe
+    await deleteDoc(echoRef);
+  }
+}
+
+// ── ECHOREP ───────────────────────────────────────────────
 
 export async function publierEchoRep(
   echoId: string,
@@ -135,56 +187,83 @@ export async function publierEchoRep(
   estProprietaire: boolean
 ) {
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
-
-  // Vérifier si c'est la première EchoRep de cet utilisateur
   const existing = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
   const premiereParticipation = existing.empty;
 
-  // Si c'est la première fois et que les places sont pleines (sauf pour le proprio)
   if (premiereParticipation && !estProprietaire && placesOccupees >= placesMax) {
     throw new Error('Plus de places disponibles dans cet écho');
   }
 
-  // Publier l'EchoRep
   await addDoc(repsRef, {
     auteurId,
     auteurPseudo,
     contenu,
     createdAt: serverTimestamp(),
+    modifie: false,
+    supprime: false,
   });
 
-  // Incrémenter les places uniquement si c'est la première participation (et pas le proprio)
   if (premiereParticipation && !estProprietaire) {
+    await updateDoc(doc(db, 'echos', echoId), { placesOccupees: placesOccupees + 1 });
+  }
+}
+
+export async function modifierEchoRep(echoId: string, repId: string, nouveauContenu: string, createdAt: Date) {
+  const diff = Date.now() - createdAt.getTime();
+  const minutes60 = 60 * 60 * 1000;
+  if (diff > minutes60) throw new Error('Le délai de modification de 60 minutes est dépassé.');
+  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
+    contenu: nouveauContenu,
+    modifie: true,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function supprimerEchoRep(
+  echoId: string,
+  repId: string,
+  auteurId: string,
+  placesOccupees: number,
+  estProprietaire: boolean
+) {
+  const repsRef = collection(db, 'echos', echoId, 'echoreps');
+
+  // Vérifier si c'est la seule EchoRep de cet auteur
+  const autresReps = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
+  const seulementCetteRep = autresReps.docs.length === 1;
+
+  // Marquer comme supprimée
+  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
+    supprime: true,
+    contenu: 'EchoRep supprimée par son auteur.',
+  });
+
+  // Libérer la place si c'était la seule participation
+  if (seulementCetteRep && !estProprietaire) {
     await updateDoc(doc(db, 'echos', echoId), {
-      placesOccupees: placesOccupees + 1,
+      placesOccupees: Math.max(0, placesOccupees - 1),
     });
   }
 }
 
-export async function toggleEchoOuvert(
-  echoId: string,
-  estOuvert: boolean,
-  reouverturesRestantes: number
-) {
-  // Fermeture → toujours possible
+// ── AUTRES ───────────────────────────────────────────────
+
+export async function toggleEchoOuvert(echoId: string, estOuvert: boolean, reouverturesRestantes: number) {
   if (estOuvert) {
-    await updateDoc(doc(db, 'echos', echoId), { estOuvert: false });
+    await updateDoc(doc(db, 'echos', echoId), {
+      estOuvert: false,
+      clotureManuellement: true,
+    });
     return;
   }
-  // Réouverture → vérifier le compteur
-  if (reouverturesRestantes <= 0) {
-    throw new Error('Plus de réouvertures disponibles pour cet écho');
-  }
+  if (reouverturesRestantes <= 0) throw new Error('Plus de réouvertures disponibles pour cet écho');
   await updateDoc(doc(db, 'echos', echoId), {
     estOuvert: true,
     reouverturesRestantes: reouverturesRestantes - 1,
+    clotureManuellement: false,
   });
 }
 
-export async function reagir(
-  echoId: string,
-  reaction: 'jarresBleues' | 'coeurs' | 'coeursBrises' | 'jarresRoses',
-  valeur: number
-) {
+export async function reagir(echoId: string, reaction: 'jarresBleues' | 'coeurs' | 'coeursBrises' | 'jarresRoses', valeur: number) {
   await updateDoc(doc(db, 'echos', echoId), { [reaction]: valeur });
 }
