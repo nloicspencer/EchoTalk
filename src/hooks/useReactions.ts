@@ -1,0 +1,137 @@
+import { useState, useEffect } from 'react';
+import {
+  doc, getDoc, updateDoc, setDoc,
+  collection, query, where, getDocs, addDoc,
+  serverTimestamp, onSnapshot, Timestamp
+} from 'firebase/firestore';
+import { db } from '../services/firebase';
+
+export interface StockJarres {
+  jarresBleues: number;
+  jarresRoses: number;
+}
+
+// Lire le stock en temps réel
+export function useStockJarres(userId: string) {
+  const [stock, setStock] = useState<StockJarres>({ jarresBleues: 15, jarresRoses: 0 });
+
+  useEffect(() => {
+    if (!userId) return;
+    const ref = doc(db, 'users', userId);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setStock({
+          jarresBleues: data.stockJarresBleues ?? 15,
+          jarresRoses: data.stockJarresRoses ?? 0,
+        });
+      }
+    });
+    return unsub;
+  }, [userId]);
+
+  return stock;
+}
+
+// Vérifier si l'utilisateur a déjà réagi à un écho
+export async function aDejaReagi(echoId: string, userId: string, type: string): Promise<boolean> {
+  const reactionsRef = collection(db, 'reactions');
+  const q = query(reactionsRef,
+    where('echoId', '==', echoId),
+    where('auteurId', '==', userId),
+    where('type', '==', type)
+  );
+  const snap = await getDocs(q);
+  return !snap.empty;
+}
+
+// Donner une réaction jarre bleue
+export async function donnerJarreBleu(
+  echoId: string,
+  userId: string,
+  stockActuel: number,
+  compteurActuel: number
+) {
+  if (stockActuel <= 0) throw new Error('Stock de jarres bleues épuisé');
+  const dejaReagi = await aDejaReagi(echoId, userId, 'jarreBleu');
+  if (dejaReagi) throw new Error('Vous avez déjà offert une jarre à cet écho');
+
+  // Enregistrer la réaction
+  await addDoc(collection(db, 'reactions'), {
+    echoId,
+    auteurId: userId,
+    type: 'jarreBleu',
+    createdAt: serverTimestamp(),
+  });
+
+  // Décrémenter le stock
+  await updateDoc(doc(db, 'users', userId), {
+    stockJarresBleues: stockActuel - 1,
+  });
+
+  // Incrémenter le compteur sur l'écho
+  await updateDoc(doc(db, 'echos', echoId), {
+    jarresBleues: compteurActuel + 1,
+  });
+}
+
+// Donner une jarre rose (Écho Solidaire)
+export async function donnerJarreRose(
+  echoId: string,
+  userId: string,
+  stockActuel: number,
+  compteurActuel: number
+) {
+  if (stockActuel <= 0) throw new Error('Stock de jarres roses épuisé');
+  const dejaReagi = await aDejaReagi(echoId, userId, 'jarreRose');
+  if (dejaReagi) throw new Error('Vous avez déjà offert une jarre rose à cet écho');
+
+  await addDoc(collection(db, 'reactions'), {
+    echoId,
+    auteurId: userId,
+    type: 'jarreRose',
+    createdAt: serverTimestamp(),
+  });
+
+  await updateDoc(doc(db, 'users', userId), {
+    stockJarresRoses: stockActuel - 1,
+  });
+
+  await updateDoc(doc(db, 'echos', echoId), {
+    jarresRoses: compteurActuel + 1,
+  });
+}
+
+// Acquérir un pack de jarres
+export async function acquerirPack(
+  userId: string,
+  type: 'bleues' | 'roses',
+  quantite: 5 | 15 | 20,
+  stockActuel: number
+) {
+  const champ = type === 'bleues' ? 'stockJarresBleues' : 'stockJarresRoses';
+  await updateDoc(doc(db, 'users', userId), {
+    [champ]: stockActuel + quantite,
+  });
+
+  // Historique des acquisitions
+  await addDoc(collection(db, 'packs'), {
+    userId,
+    type,
+    quantite,
+    createdAt: serverTimestamp(),
+    gratuit: type === 'bleues',
+  });
+}
+
+// Initialiser le stock d'un nouvel utilisateur
+export async function initialiserStock(userId: string) {
+  const ref = doc(db, 'users', userId);
+  const snap = await getDoc(ref);
+  if (snap.exists() && snap.data().stockJarresBleues === undefined) {
+    await updateDoc(ref, {
+      stockJarresBleues: 15,
+      stockJarresRoses: 0,
+    });
+  }
+}

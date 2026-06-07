@@ -394,3 +394,14 @@
   flex-direction: column;
   gap: 0.5rem;
 }
+
+.reaction-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.reaction-erreur {
+  font-size: 0.78rem;
+  color: #e74c3c;
+  margin: 0.25rem 0 0;
+}

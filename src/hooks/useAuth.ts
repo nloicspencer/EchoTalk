@@ -62,6 +62,8 @@ export function useAuth() {
       jarresBleuesRecues: 0,
       jarresBleuesPartagees: 0,
       coeursRecus: 0,
+      stockJarresBleues: 15,
+      stockJarresRoses: 0,
     };
     // Données privées (jamais exposées publiquement)
     await setDoc(doc(db, 'users', cred.user.uid), {

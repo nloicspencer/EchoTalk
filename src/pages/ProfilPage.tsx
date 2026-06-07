@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { useStockJarres, acquerirPack } from '../hooks/useReactions';
 import './ProfilPage.css';
 
 interface Stats {
@@ -14,40 +15,39 @@ interface Stats {
   jarresRosesRecues: number;
   echosAvecResonance: number;
   participantsTotal: number;
-  jarresBleuesDonnees: number;
-  jarresRosesDonnees: number;
 }
 
-function calcBadges(stats: Stats, membreDepuis: Date) {
+function calcBadges(stats: Stats) {
   const badges = [];
-
   if (stats.echosTotal >= 1) badges.push({ icon: '🌱', label: 'Premier Écho' });
-  if (stats.jarresBleuesDonnees >= 10) badges.push({ icon: '🤝', label: 'Soutien actif' });
   if (stats.jarresBleuesRecues >= 100) badges.push({ icon: '🫙', label: '100 Jarres Bleues reçues' });
   if (stats.echoRepsPubliees >= 10) badges.push({ icon: '💬', label: 'Contributeur régulier' });
-  if (stats.jarresRosesDonnees >= 1) badges.push({ icon: '🌸', label: 'Écho Solidaire validé' });
-
   return badges;
 }
 
+const PACKS = [
+  { quantite: 5 as const, label: '5 jarres' },
+  { quantite: 15 as const, label: '15 jarres' },
+  { quantite: 20 as const, label: '20 jarres' },
+];
+
 export default function ProfilPage() {
   const { profile, user, deconnexion } = useAuth();
+  const stock = useStockJarres(profile?.uid ?? '');
+  const [loadingPack, setLoadingPack] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({
     echosTotal: 0, echosLibres: 0, echosOuverts: 0,
     echosRejoints: 0, echoRepsPubliees: 0,
     jarresBleuesRecues: 0, jarresRosesRecues: 0,
     echosAvecResonance: 0, participantsTotal: 0,
-    jarresBleuesDonnees: 0, jarresRosesDonnees: 0,
   });
 
   useEffect(() => {
     if (!profile?.uid) return;
-
     const qEchos = query(collection(db, 'echos'), where('auteurId', '==', profile.uid));
     const unsubEchos = onSnapshot(qEchos, async (snap) => {
       let libres = 0, ouverts = 0, jarresBleues = 0, jarresRoses = 0;
       let avecResonance = 0, participantsTotal = 0;
-
       for (const d of snap.docs) {
         const data = d.data();
         if (data.supprime) continue;
@@ -55,46 +55,33 @@ export default function ProfilPage() {
         if (data.type === 'ouvert') ouverts++;
         jarresBleues += data.jarresBleues || 0;
         jarresRoses += data.jarresRoses || 0;
-        const resonance = (data.jarresBleues || 0) + (data.coeurs || 0) + (data.coeursBrises || 0);
-        if (resonance > 0) avecResonance++;
+        if ((data.jarresBleues || 0) + (data.coeurs || 0) + (data.coeursBrises || 0) > 0) avecResonance++;
         participantsTotal += data.placesOccupees || 0;
       }
-
-      // Participations dans échos des autres
       let echoRepsCount = 0, echosRejoints = 0;
       const allEchos = await getDocs(collection(db, 'echos'));
       for (const echoDoc of allEchos.docs) {
         if (echoDoc.data().auteurId === profile.uid) continue;
         const repsRef = collection(db, 'echos', echoDoc.id, 'echoreps');
         const reps = await getDocs(query(repsRef, where('auteurId', '==', profile.uid)));
-        if (!reps.empty) {
-          echosRejoints++;
-          echoRepsCount += reps.docs.filter(r => !r.data().supprime).length;
-        }
+        if (!reps.empty) { echosRejoints++; echoRepsCount += reps.docs.filter(r => !r.data().supprime).length; }
       }
-
-      // Jarres données = nombre de clics sur jarre bleue sur des échos des autres
-      // (approximation : on compte les réactions que l'utilisateur a données)
-      // Pour l'instant on stocke pas ça, on met 0 — à implémenter avec une collection reactions
-      // TODO: collection reactions pour tracking précis
-
-      setStats({
-        echosTotal: snap.size,
-        echosLibres: libres,
-        echosOuverts: ouverts,
-        echosRejoints,
-        echoRepsPubliees: echoRepsCount,
-        jarresBleuesRecues: jarresBleues,
-        jarresRosesRecues: jarresRoses,
-        echosAvecResonance: avecResonance,
-        participantsTotal,
-        jarresBleuesDonnees: 0, // TODO
-        jarresRosesDonnees: 0,  // TODO
-      });
+      setStats({ echosTotal: snap.size, echosLibres: libres, echosOuverts: ouverts, echosRejoints, echoRepsPubliees: echoRepsCount, jarresBleuesRecues: jarresBleues, jarresRosesRecues: jarresRoses, echosAvecResonance: avecResonance, participantsTotal });
     });
-
     return unsubEchos;
   }, [profile?.uid]);
+
+  const handleAcquerirPack = async (type: 'bleues' | 'roses', quantite: 5 | 15 | 20) => {
+    if (!profile) return;
+    const key = `${type}-${quantite}`;
+    setLoadingPack(key);
+    try {
+      const stockActuel = type === 'bleues' ? stock.jarresBleues : stock.jarresRoses;
+      await acquerirPack(profile.uid, type, quantite, stockActuel);
+    } finally {
+      setLoadingPack(null);
+    }
+  };
 
   if (!profile) return null;
 
@@ -102,11 +89,12 @@ export default function ProfilPage() {
     ? profile.createdAt
     : new Date((profile.createdAt as { seconds: number }).seconds * 1000);
 
-  const badges = calcBadges(stats, dateInscription);
+  const badges = calcBadges(stats);
 
   return (
     <div className="profil-page">
 
+      {/* En-tête */}
       <div className="profil-header">
         <div className="profil-avatar">🫙</div>
         <h2 className="profil-pseudo">{profile.pseudo}</h2>
@@ -115,6 +103,68 @@ export default function ProfilPage() {
         </p>
       </div>
 
+      {/* Stock de jarres */}
+      <div className="profil-section stock-section">
+        <h3>🫙 Mes jarres</h3>
+        <div className="stock-jarres">
+          <div className="stock-item stock-bleu">
+            <span className="stock-icon">🫙</span>
+            <div>
+              <span className="stock-nombre">{stock.jarresBleues}</span>
+              <span className="stock-label">Jarres bleues</span>
+            </div>
+          </div>
+          <div className="stock-item stock-rose">
+            <span className="stock-icon">🌸</span>
+            <div>
+              <span className="stock-nombre">{stock.jarresRoses}</span>
+              <span className="stock-label">Jarres roses</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Packs jarres bleues */}
+      <div className="profil-section">
+        <h3>🫙 Acquérir des jarres bleues</h3>
+        <p className="pack-note">Les jarres bleues permettent de soutenir les échos de la communauté.</p>
+        <div className="packs-liste">
+          {PACKS.map(pack => (
+            <button
+              key={pack.quantite}
+              className="pack-btn pack-bleu"
+              onClick={() => handleAcquerirPack('bleues', pack.quantite)}
+              disabled={loadingPack === `bleues-${pack.quantite}`}
+            >
+              <span className="pack-quantite">+{pack.quantite}</span>
+              <span className="pack-label">jarres bleues</span>
+              <span className="pack-gratuit">Gratuit</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Packs jarres roses */}
+      <div className="profil-section">
+        <h3>🌸 Acquérir des jarres roses</h3>
+        <p className="pack-note">Les jarres roses soutiennent l'Écho Solidaire du mois.</p>
+        <div className="packs-liste">
+          {PACKS.map(pack => (
+            <button
+              key={pack.quantite}
+              className="pack-btn pack-rose"
+              onClick={() => handleAcquerirPack('roses', pack.quantite)}
+              disabled={loadingPack === `roses-${pack.quantite}`}
+            >
+              <span className="pack-quantite">+{pack.quantite}</span>
+              <span className="pack-label">jarres roses</span>
+              <span className="pack-gratuit">Gratuit</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Badges */}
       {badges.length > 0 && (
         <div className="profil-section">
           <h3>✨ Distinctions</h3>
@@ -129,6 +179,7 @@ export default function ProfilPage() {
         </div>
       )}
 
+      {/* Activité */}
       <div className="profil-section">
         <h3>📊 Activité</h3>
         <div className="stats-grid">
@@ -138,6 +189,7 @@ export default function ProfilPage() {
         </div>
       </div>
 
+      {/* Participation */}
       <div className="profil-section">
         <h3>🤝 Participation</h3>
         <div className="stats-grid">
@@ -146,6 +198,7 @@ export default function ProfilPage() {
         </div>
       </div>
 
+      {/* Résonance */}
       <div className="profil-section">
         <h3>🌊 Résonance</h3>
         <div className="stats-grid">
@@ -160,11 +213,10 @@ export default function ProfilPage() {
         <p>L'EchoProfil met en valeur votre activité, votre participation, votre soutien aux autres et la résonance de vos Échos au sein de la communauté.</p>
       </div>
 
+      {/* Identité privée */}
       <div className="profil-section">
         <h3>Identité privée</h3>
-        <p className="profil-note">
-          Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.
-        </p>
+        <p className="profil-note">Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.</p>
         <div className="profil-email"><span>📧</span><span>{user?.email}</span></div>
       </div>
 

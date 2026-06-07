@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Echo } from '../types';
 import {
-  reagir, useEchoReps, publierEchoRep,
+  useEchoReps, publierEchoRep,
   toggleEchoOuvert, modifierEcho, supprimerEcho,
   modifierEchoRep, supprimerEchoRep,
 } from '../hooks/useEchos';
+import { useStockJarres, donnerJarreBleu, donnerJarreRose } from '../hooks/useReactions';
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { useAuth } from '../hooks/useAuth';
 import './EchoCard.css';
 
@@ -16,17 +19,15 @@ export default function EchoCard({ echo }: Props) {
   const [repContenu, setRepContenu] = useState('');
   const [loading, setLoading] = useState(false);
   const [erreur, setErreur] = useState('');
-
-  // Modification écho
   const [editEcho, setEditEcho] = useState(false);
   const [editContenu, setEditContenu] = useState(echo.contenu);
-
-  // Modification EchoRep
   const [editRepId, setEditRepId] = useState<string | null>(null);
   const [editRepContenu, setEditRepContenu] = useState('');
+  const [reactionErreur, setReactionErreur] = useState('');
 
   const echoReps = useEchoReps(echo.id);
   const { profile } = useAuth();
+  const stock = useStockJarres(profile?.uid ?? '');
 
   const estProprietaire = profile?.uid === echo.auteurId;
   const aDejaParticipe = echoReps.some(r => r.auteurId === profile?.uid && !r.supprime);
@@ -35,21 +36,9 @@ export default function EchoCard({ echo }: Props) {
   const reouverturesRestantes = echo.reouverturesRestantes ?? 0;
   const estSupprime = echo.supprime ?? false;
 
-  // Délais modification
-  const peutModifierEcho = () => {
-    if (!echo.createdAt) return false;
-    return Date.now() - echo.createdAt.getTime() < 24 * 60 * 60 * 1000;
-  };
-
-  const peutModifierRep = (createdAt: Date) => {
-    return Date.now() - createdAt.getTime() < 60 * 60 * 1000;
-  };
-
-  // Suppression écho libre : toujours / ouvert : seulement si actif
-  const peutSupprimerEcho = () => {
-    if (echo.type === 'libre') return true;
-    return echo.estOuvert === true && !estSupprime;
-  };
+  const peutModifierEcho = () => !echo.createdAt ? false : Date.now() - echo.createdAt.getTime() < 24 * 60 * 60 * 1000;
+  const peutModifierRep = (createdAt: Date) => Date.now() - createdAt.getTime() < 60 * 60 * 1000;
+  const peutSupprimerEcho = () => echo.type === 'libre' ? true : (echo.estOuvert === true && !estSupprime);
 
   const peutAjouterRep = echo.type === 'ouvert' && (echo.estOuvert ?? false) && !estSupprime && (
     estProprietaire || aDejaParticipe || placesDispo
@@ -64,9 +53,31 @@ export default function EchoCard({ echo }: Props) {
     return jours > 0 ? `${jours}j ${heures}h` : `${heures}h`;
   };
 
-  const handleReaction = async (type: 'jarresBleues' | 'coeurs' | 'coeursBrises') => {
-    if (echo.estSolidaire || estSupprime) return;
-    await reagir(echo.id, type, (echo[type] || 0) + 1);
+  const handleJarreBleu = async () => {
+    if (!profile || estSupprime) return;
+    setReactionErreur('');
+    try {
+      await donnerJarreBleu(echo.id, profile.uid, stock.jarresBleues, echo.jarresBleues || 0);
+    } catch (e: unknown) {
+      setReactionErreur(e instanceof Error ? e.message : 'Erreur');
+      setTimeout(() => setReactionErreur(''), 3000);
+    }
+  };
+
+  const handleJarreRose = async () => {
+    if (!profile) return;
+    setReactionErreur('');
+    try {
+      await donnerJarreRose(echo.id, profile.uid, stock.jarresRoses, echo.jarresRoses || 0);
+    } catch (e: unknown) {
+      setReactionErreur(e instanceof Error ? e.message : 'Erreur');
+      setTimeout(() => setReactionErreur(''), 3000);
+    }
+  };
+
+  const handleCoeur = async (type: 'coeurs' | 'coeursBrises') => {
+    if (estSupprime) return;
+    await updateDoc(doc(db, 'echos', echo.id), { [type]: (echo[type] || 0) + 1 });
   };
 
   const handleModifierEcho = async () => {
@@ -74,18 +85,12 @@ export default function EchoCard({ echo }: Props) {
     try {
       await modifierEcho(echo.id, editContenu, echo.createdAt);
       setEditEcho(false);
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur');
-    }
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
   const handleSupprimerEcho = async () => {
     if (!confirm('Supprimer cet écho ?')) return;
-    try {
-      await supprimerEcho(echo);
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur');
-    }
+    try { await supprimerEcho(echo); } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
   const handlePublierRep = async () => {
@@ -105,32 +110,24 @@ export default function EchoCard({ echo }: Props) {
     try {
       await modifierEchoRep(echo.id, repId, editRepContenu, createdAt);
       setEditRepId(null);
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur');
-    }
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
   const handleSupprimerRep = async (repId: string, auteurId: string) => {
     if (!confirm('Supprimer cette EchoRep ?')) return;
     try {
       await supprimerEchoRep(echo.id, repId, auteurId, echo.placesOccupees ?? 0, estProprietaire);
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur');
-    }
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
   const handleToggleOuvert = async () => {
-    try {
-      await toggleEchoOuvert(echo.id, echo.estOuvert ?? true, reouverturesRestantes);
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur');
-    }
+    try { await toggleEchoOuvert(echo.id, echo.estOuvert ?? true, reouverturesRestantes); }
+    catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
   return (
     <div className={`echo-card ${echo.tonalite ?? ''} ${echo.estSolidaire ? 'solidaire' : ''} ${estSupprime ? 'supprime' : ''}`}>
 
-      {/* En-tête */}
       <div className="echo-header">
         <span className="echo-pseudo">{echo.auteurPseudo}</span>
         <div className="echo-tags">
@@ -140,7 +137,6 @@ export default function EchoCard({ echo }: Props) {
         </div>
       </div>
 
-      {/* Infos écho ouvert */}
       {echo.type === 'ouvert' && !estSupprime && (
         <div className="echo-ouvert-info">
           <span>👥 {echo.placesOccupees ?? 0}/{echo.placesMax} places</span>
@@ -152,7 +148,6 @@ export default function EchoCard({ echo }: Props) {
         </div>
       )}
 
-      {/* Contenu */}
       {editEcho ? (
         <div className="edit-echo-form">
           <textarea value={editContenu} onChange={e => setEditContenu(e.target.value)} rows={4} autoFocus />
@@ -165,18 +160,12 @@ export default function EchoCard({ echo }: Props) {
         <p className={`echo-contenu ${estSupprime ? 'contenu-supprime' : ''}`}>{echo.contenu}</p>
       )}
 
-      {/* Mentions modification/clôture */}
       {echo.modifie && !estSupprime && <span className="mention-modifie">✏️ Écho modifié</span>}
 
-      {/* Actions auteur sur l'écho */}
       {estProprietaire && !estSupprime && !editEcho && (
         <div className="echo-auteur-actions">
-          {peutModifierEcho() && (
-            <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>✏️ Modifier</button>
-          )}
-          {peutSupprimerEcho() && (
-            <button className="btn-delete" onClick={handleSupprimerEcho}>🗑️ Supprimer</button>
-          )}
+          {peutModifierEcho() && <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>✏️ Modifier</button>}
+          {peutSupprimerEcho() && <button className="btn-delete" onClick={handleSupprimerEcho}>🗑️ Supprimer</button>}
         </div>
       )}
 
@@ -184,14 +173,24 @@ export default function EchoCard({ echo }: Props) {
       {!estSupprime && (
         <div className="echo-reactions">
           {echo.estSolidaire ? (
-            <button className="reaction solidaire-reaction" onClick={() => reagir(echo.id, 'jarresRoses', (echo.jarresRoses || 0) + 1)}>
+            <button
+              className={`reaction solidaire-reaction ${stock.jarresRoses <= 0 ? 'reaction-disabled' : ''}`}
+              onClick={handleJarreRose}
+              title={stock.jarresRoses <= 0 ? 'Stock de jarres roses épuisé' : `Stock : ${stock.jarresRoses} 🌸`}
+            >
               🫙 <span>{echo.jarresRoses || 0}</span>
             </button>
           ) : (
             <>
-              <button className="reaction" onClick={() => handleReaction('jarresBleues')}>🫙 <span>{echo.jarresBleues || 0}</span></button>
-              <button className="reaction" onClick={() => handleReaction('coeurs')}>❤️ <span>{echo.coeurs || 0}</span></button>
-              <button className="reaction" onClick={() => handleReaction('coeursBrises')}>💔 <span>{echo.coeursBrises || 0}</span></button>
+              <button
+                className={`reaction ${stock.jarresBleues <= 0 ? 'reaction-disabled' : ''}`}
+                onClick={handleJarreBleu}
+                title={stock.jarresBleues <= 0 ? 'Stock de jarres bleues épuisé' : `Stock : ${stock.jarresBleues} 🫙`}
+              >
+                🫙 <span>{echo.jarresBleues || 0}</span>
+              </button>
+              <button className="reaction" onClick={() => handleCoeur('coeurs')}>❤️ <span>{echo.coeurs || 0}</span></button>
+              <button className="reaction" onClick={() => handleCoeur('coeursBrises')}>💔 <span>{echo.coeursBrises || 0}</span></button>
             </>
           )}
           {echo.type === 'ouvert' && echoReps.length > 0 && (
@@ -202,7 +201,8 @@ export default function EchoCard({ echo }: Props) {
         </div>
       )}
 
-      {/* Bouton fermer/rouvrir */}
+      {reactionErreur && <p className="reaction-erreur">{reactionErreur}</p>}
+
       {estProprietaire && echo.type === 'ouvert' && !estSupprime && (
         <button
           className={`btn-toggle-ouvert ${echo.estOuvert ? 'btn-fermer' : 'btn-rouvrir'}`}
@@ -216,7 +216,6 @@ export default function EchoCard({ echo }: Props) {
         </button>
       )}
 
-      {/* EchoReps */}
       {echo.type === 'ouvert' && !masquerReps && (
         <div className="echoreps">
           {echoReps.length > 0 && (
@@ -240,7 +239,6 @@ export default function EchoCard({ echo }: Props) {
                         <span className="echorep-date">
                           {rep.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        {/* Actions auteur EchoRep */}
                         {profile?.uid === rep.auteurId && !rep.supprime && echo.estOuvert && (
                           <div className="rep-actions">
                             {peutModifierRep(rep.createdAt) && (
@@ -257,7 +255,6 @@ export default function EchoCard({ echo }: Props) {
             </div>
           )}
 
-          {/* Formulaire nouvelle EchoRep */}
           {peutAjouterRep && (
             <div className="echorep-form">
               {!showRepForm ? (
