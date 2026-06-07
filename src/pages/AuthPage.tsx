@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import './Auth.css';
 
-type Etape = 'auth' | 'onboarding' | 'pseudo';
+interface Props {
+  onInscriptionComplete: (pseudo: string) => void;
+}
 
 function calculerAge(dateNaissance: string): number {
   const naissance = new Date(dateNaissance);
@@ -13,48 +15,20 @@ function calculerAge(dateNaissance: string): number {
   return age;
 }
 
-const CARTES_ONBOARDING = [
-  {
-    icon: '🌊',
-    titre: 'Bienvenue',
-    texte: "EchoTalk est un espace de résonance humaine. Juste des expériences qui trouvent écho chez les autres.",
-  },
-  {
-    icon: '☀️',
-    titre: 'Les Échos',
-    texte: "Une joie, une réussite, un doute, une épreuve, une découverte. Tout ce qui fait partie de ton expérience humaine a sa place ici. Partage ce qui mérite d'être entendu.",
-  },
-  {
-    icon: '🫙',
-    titre: 'Les réactions',
-    texte: "Trois façons d'être vraiment présent : un cœur pour résonner, un cœur brisé pour compatir, une jarre pour soutenir. Parce que certaines émotions méritent mieux qu'un chiffre.",
-  },
-  {
-    icon: '✨',
-    titre: 'La règle d\'or',
-    texte: "Un esprit partagé grandit. Écris avec la bienveillance que tu aimerais recevoir.",
-  },
-];
-
-export default function AuthPage() {
+export default function AuthPage({ onInscriptionComplete }: Props) {
   const [mode, setMode] = useState<'connexion' | 'inscription'>('connexion');
-  const [etape, setEtape] = useState<Etape>('auth');
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [dateNaissance, setDateNaissance] = useState('');
   const [majeur, setMajeur] = useState(false);
   const [attestation, setAttestation] = useState(false);
-
   const [erreur, setErreur] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pseudoAttribue, setPseudoAttribue] = useState('');
 
   const { connexion, inscription } = useAuth();
 
@@ -79,7 +53,6 @@ export default function AuthPage() {
   const handleInscription = async (e: React.FormEvent) => {
     e.preventDefault();
     setErreur('');
-
     if (calculerAge(dateNaissance) < 18) {
       setErreur('Vous devez avoir 18 ans ou plus pour rejoindre EchoTalk.');
       return;
@@ -92,12 +65,10 @@ export default function AuthPage() {
       setErreur('Veuillez cocher les deux cases pour continuer.');
       return;
     }
-
     setLoading(true);
     try {
       const profile = await inscription(email, password, prenom, nom, dateNaissance);
-      setPseudoAttribue(profile.pseudo);
-      setEtape('onboarding');
+      onInscriptionComplete(profile.pseudo);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       setErreur(
@@ -110,49 +81,6 @@ export default function AuthPage() {
     }
   };
 
-  if (etape === 'onboarding') {
-    return (
-      <div className="onboarding-page">
-        <div className="onboarding-content">
-          <div className="onboarding-header">
-            <span>🫙</span>
-            <h2>EchoTalk</h2>
-          </div>
-          {CARTES_ONBOARDING.map((carte, i) => (
-            <div className="onboarding-carte" key={i}>
-              <span className="onboarding-icon">{carte.icon}</span>
-              <h3>{carte.titre}</h3>
-              <p>{carte.texte}</p>
-            </div>
-          ))}
-          <button className="btn-rejoindre" onClick={() => setEtape('pseudo')}>
-            Je rejoins la communauté EchoTalk 🌊
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (etape === 'pseudo') {
-    return (
-      <div className="auth-page">
-        <div className="auth-card pseudo-card">
-          <span className="pseudo-icon">🫙</span>
-          <h2>Votre identité EchoTalk</h2>
-          <p className="pseudo-label">Vous êtes désormais</p>
-          <div className="pseudo-nom">{pseudoAttribue}</div>
-          <p className="pseudo-note">
-            Ce pseudonyme est votre seule identité visible sur EchoTalk.
-            Votre nom, prénom et date de naissance restent strictement privés.
-          </p>
-          <button className="auth-submit" onClick={() => setEtape('auth')}>
-            Accéder au fil 🌊
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -163,12 +91,8 @@ export default function AuthPage() {
         </div>
 
         <div className="auth-tabs">
-          <button className={mode === 'connexion' ? 'active' : ''} onClick={() => { setMode('connexion'); setErreur(''); }}>
-            Connexion
-          </button>
-          <button className={mode === 'inscription' ? 'active' : ''} onClick={() => { setMode('inscription'); setErreur(''); }}>
-            Inscription
-          </button>
+          <button className={mode === 'connexion' ? 'active' : ''} onClick={() => { setMode('connexion'); setErreur(''); }}>Connexion</button>
+          <button className={mode === 'inscription' ? 'active' : ''} onClick={() => { setMode('inscription'); setErreur(''); }}>Inscription</button>
         </div>
 
         {mode === 'connexion' ? (

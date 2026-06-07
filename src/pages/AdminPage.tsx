@@ -6,7 +6,7 @@ import { Navigate } from 'react-router-dom';
 import './AdminPage.css';
 
 // Email(s) admin autorisés
-const ADMINS = ['loicspencer2@echotalk.com'];
+const ADMINS = ['loicspencer3@echotalk.com'];
 
 interface EchoCandidат {
   id: string;

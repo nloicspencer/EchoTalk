@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { Link } from 'react-router-dom';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useStockJarres, acquerirPack } from '../hooks/useReactions';
@@ -219,6 +220,10 @@ export default function ProfilPage() {
         <p className="profil-note">Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.</p>
         <div className="profil-email"><span>📧</span><span>{user?.email}</span></div>
       </div>
+
+      {user?.email === 'loicspencer3@echotalk.com' && (
+        <Link to="/admin" className="btn-admin">⚙️ Administration EchoTalk</Link>
+      )}
 
       <button className="btn-deconnexion" onClick={deconnexion}>Se déconnecter</button>
     </div>
