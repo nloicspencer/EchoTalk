@@ -1,0 +1,154 @@
+.decouverte-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+}
+
+.decouverte-header {
+  margin-bottom: 1.25rem;
+}
+
+.decouverte-header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 0.25rem;
+}
+
+.decouverte-header p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* Barre de recherche */
+.recherche-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.recherche-bar:focus-within {
+  border-color: var(--accent);
+}
+
+.recherche-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.recherche-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.recherche-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+.recherche-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* Filtres */
+.filtres {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filtre-groupe {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filtre-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+}
+
+.filtre-pills {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.filtre-pill {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filtre-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filtre-pill.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* Résultats */
+.resultats-count {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+}
+
+.echos-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.decouverte-vide {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+.decouverte-vide span {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.decouverte-vide p {
+  font-size: 0.9rem;
+  margin: 0;
+}

@@ -4,7 +4,7 @@ import AuthPage from './pages/AuthPage';
 import FilPage from './pages/FilPage';
 import ProfilPage from './pages/ProfilPage';
 import IdentitePage from './pages/IdentitePage';
-import PlaceholderPage from './pages/PlaceholderPage';
+import DecouvertePage from './pages/DecouvertePage';
 import NavBar from './components/NavBar';
 import './App.css';
 
@@ -14,13 +14,7 @@ function AppLayout() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<FilPage />} />
-          <Route path="/decouverte" element={
-            <PlaceholderPage
-              icon="🔍"
-              titre="Découverte"
-              description="Recherche d'échos par critères et groupes — bientôt disponible."
-            />
-          } />
+          <Route path="/decouverte" element={<DecouvertePage />} />
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/identite" element={<IdentitePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

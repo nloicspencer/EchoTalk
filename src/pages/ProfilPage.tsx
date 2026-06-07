@@ -14,18 +14,18 @@ interface Stats {
   jarresRosesRecues: number;
   echosAvecResonance: number;
   participantsTotal: number;
+  jarresBleuesDonnees: number;
+  jarresRosesDonnees: number;
 }
 
 function calcBadges(stats: Stats, membreDepuis: Date) {
   const badges = [];
-  const maintenant = new Date();
-  const joursDepuisInscription = Math.floor((maintenant.getTime() - membreDepuis.getTime()) / (1000 * 60 * 60 * 24));
 
   if (stats.echosTotal >= 1) badges.push({ icon: '🌱', label: 'Premier Écho' });
-  if (stats.jarresBleuesRecues >= 10) badges.push({ icon: '🤝', label: 'Soutien actif' });
+  if (stats.jarresBleuesDonnees >= 10) badges.push({ icon: '🤝', label: 'Soutien actif' });
   if (stats.jarresBleuesRecues >= 100) badges.push({ icon: '🫙', label: '100 Jarres Bleues reçues' });
-  if (stats.echoRepsPubliees >= 10 || joursDepuisInscription >= 7) badges.push({ icon: '💬', label: 'Contributeur régulier' });
-  if (stats.jarresRosesRecues >= 1) badges.push({ icon: '🌸', label: 'Écho Solidaire validé' });
+  if (stats.echoRepsPubliees >= 10) badges.push({ icon: '💬', label: 'Contributeur régulier' });
+  if (stats.jarresRosesDonnees >= 1) badges.push({ icon: '🌸', label: 'Écho Solidaire validé' });
 
   return badges;
 }
@@ -33,27 +33,24 @@ function calcBadges(stats: Stats, membreDepuis: Date) {
 export default function ProfilPage() {
   const { profile, user, deconnexion } = useAuth();
   const [stats, setStats] = useState<Stats>({
-    echosTotal: 0,
-    echosLibres: 0,
-    echosOuverts: 0,
-    echosRejoints: 0,
-    echoRepsPubliees: 0,
-    jarresBleuesRecues: 0,
-    jarresRosesRecues: 0,
-    echosAvecResonance: 0,
-    participantsTotal: 0,
+    echosTotal: 0, echosLibres: 0, echosOuverts: 0,
+    echosRejoints: 0, echoRepsPubliees: 0,
+    jarresBleuesRecues: 0, jarresRosesRecues: 0,
+    echosAvecResonance: 0, participantsTotal: 0,
+    jarresBleuesDonnees: 0, jarresRosesDonnees: 0,
   });
 
   useEffect(() => {
     if (!profile?.uid) return;
 
-    // Échos publiés
     const qEchos = query(collection(db, 'echos'), where('auteurId', '==', profile.uid));
     const unsubEchos = onSnapshot(qEchos, async (snap) => {
-      let libres = 0, ouverts = 0, jarresBleues = 0, jarresRoses = 0, avecResonance = 0, participantsTotal = 0;
+      let libres = 0, ouverts = 0, jarresBleues = 0, jarresRoses = 0;
+      let avecResonance = 0, participantsTotal = 0;
 
       for (const d of snap.docs) {
         const data = d.data();
+        if (data.supprime) continue;
         if (data.type === 'libre') libres++;
         if (data.type === 'ouvert') ouverts++;
         jarresBleues += data.jarresBleues || 0;
@@ -63,9 +60,8 @@ export default function ProfilPage() {
         participantsTotal += data.placesOccupees || 0;
       }
 
-      // EchoReps publiées par l'utilisateur (participation dans échos des autres)
-      let echoRepsCount = 0;
-      let echosRejoints = 0;
+      // Participations dans échos des autres
+      let echoRepsCount = 0, echosRejoints = 0;
       const allEchos = await getDocs(collection(db, 'echos'));
       for (const echoDoc of allEchos.docs) {
         if (echoDoc.data().auteurId === profile.uid) continue;
@@ -73,9 +69,14 @@ export default function ProfilPage() {
         const reps = await getDocs(query(repsRef, where('auteurId', '==', profile.uid)));
         if (!reps.empty) {
           echosRejoints++;
-          echoRepsCount += reps.size;
+          echoRepsCount += reps.docs.filter(r => !r.data().supprime).length;
         }
       }
+
+      // Jarres données = nombre de clics sur jarre bleue sur des échos des autres
+      // (approximation : on compte les réactions que l'utilisateur a données)
+      // Pour l'instant on stocke pas ça, on met 0 — à implémenter avec une collection reactions
+      // TODO: collection reactions pour tracking précis
 
       setStats({
         echosTotal: snap.size,
@@ -87,6 +88,8 @@ export default function ProfilPage() {
         jarresRosesRecues: jarresRoses,
         echosAvecResonance: avecResonance,
         participantsTotal,
+        jarresBleuesDonnees: 0, // TODO
+        jarresRosesDonnees: 0,  // TODO
       });
     });
 
@@ -104,7 +107,6 @@ export default function ProfilPage() {
   return (
     <div className="profil-page">
 
-      {/* Identité publique */}
       <div className="profil-header">
         <div className="profil-avatar">🫙</div>
         <h2 className="profil-pseudo">{profile.pseudo}</h2>
@@ -113,7 +115,6 @@ export default function ProfilPage() {
         </p>
       </div>
 
-      {/* Badges */}
       {badges.length > 0 && (
         <div className="profil-section">
           <h3>✨ Distinctions</h3>
@@ -128,73 +129,46 @@ export default function ProfilPage() {
         </div>
       )}
 
-      {/* Statistiques d'activité */}
       <div className="profil-section">
         <h3>📊 Activité</h3>
         <div className="stats-grid">
-          <div className="stat-row">
-            <span className="stat-label">Échos publiés</span>
-            <span className="stat-val">{stats.echosTotal}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">🕊️ Échos Libres</span>
-            <span className="stat-val">{stats.echosLibres}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">🔓 Échos Ouverts</span>
-            <span className="stat-val">{stats.echosOuverts}</span>
-          </div>
+          <div className="stat-row"><span className="stat-label">Échos publiés</span><span className="stat-val">{stats.echosTotal}</span></div>
+          <div className="stat-row"><span className="stat-label">🕊️ Échos Libres</span><span className="stat-val">{stats.echosLibres}</span></div>
+          <div className="stat-row"><span className="stat-label">🔓 Échos Ouverts</span><span className="stat-val">{stats.echosOuverts}</span></div>
         </div>
       </div>
 
-      {/* Participation */}
       <div className="profil-section">
         <h3>🤝 Participation</h3>
         <div className="stats-grid">
-          <div className="stat-row">
-            <span className="stat-label">Échos Ouverts rejoints</span>
-            <span className="stat-val">{stats.echosRejoints}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">EchoReps publiées</span>
-            <span className="stat-val">{stats.echoRepsPubliees}</span>
-          </div>
+          <div className="stat-row"><span className="stat-label">Échos Ouverts rejoints</span><span className="stat-val">{stats.echosRejoints}</span></div>
+          <div className="stat-row"><span className="stat-label">EchoReps publiées</span><span className="stat-val">{stats.echoRepsPubliees}</span></div>
         </div>
       </div>
 
-      {/* Résonance */}
       <div className="profil-section">
         <h3>🌊 Résonance</h3>
         <div className="stats-grid">
-          <div className="stat-row">
-            <span className="stat-label">🫙 Jarres Bleues reçues</span>
-            <span className="stat-val">{stats.jarresBleuesRecues}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">🌸 Jarres Roses reçues</span>
-            <span className="stat-val">{stats.jarresRosesRecues}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">Échos ayant résonné</span>
-            <span className="stat-val">{stats.echosAvecResonance}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">Participants totaux</span>
-            <span className="stat-val">{stats.participantsTotal}</span>
-          </div>
+          <div className="stat-row"><span className="stat-label">🫙 Jarres Bleues reçues</span><span className="stat-val">{stats.jarresBleuesRecues}</span></div>
+          <div className="stat-row"><span className="stat-label">🌸 Jarres Roses reçues</span><span className="stat-val">{stats.jarresRosesRecues}</span></div>
+          <div className="stat-row"><span className="stat-label">Échos ayant résonné</span><span className="stat-val">{stats.echosAvecResonance}</span></div>
+          <div className="stat-row"><span className="stat-label">Participants totaux</span><span className="stat-val">{stats.participantsTotal}</span></div>
         </div>
       </div>
 
-      {/* Principe */}
       <div className="profil-principe">
         <p>L'EchoProfil met en valeur votre activité, votre participation, votre soutien aux autres et la résonance de vos Échos au sein de la communauté.</p>
       </div>
 
-      {/* Déconnexion */}
-      <button className="btn-deconnexion" onClick={deconnexion}>
-        Se déconnecter
-      </button>
+      <div className="profil-section">
+        <h3>Identité privée</h3>
+        <p className="profil-note">
+          Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.
+        </p>
+        <div className="profil-email"><span>📧</span><span>{user?.email}</span></div>
+      </div>
 
+      <button className="btn-deconnexion" onClick={deconnexion}>Se déconnecter</button>
     </div>
   );
 }
