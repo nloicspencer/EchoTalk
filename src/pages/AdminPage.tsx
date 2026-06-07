@@ -27,14 +27,16 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
+  useEffect(() => {
+    if (user && ADMINS.includes(user.email ?? '')) {
+      chargerDonnees();
+    }
+  }, [user]);
+
   // Vérifier si admin
   if (!user || !ADMINS.includes(user.email ?? '')) {
     return <Navigate to="/" replace />;
   }
-
-  useEffect(() => {
-    chargerDonnees();
-  }, []);
 
   const chargerDonnees = async () => {
     setLoading(true);
