@@ -135,3 +135,26 @@ export async function initialiserStock(userId: string) {
     });
   }
 }
+
+// Donner un cœur (avec anti-doublon)
+export async function donnerCoeur(
+  echoId: string,
+  userId: string,
+  type: 'coeur' | 'coeurBrise',
+  compteurActuel: number
+) {
+  const dejaReagi = await aDejaReagi(echoId, userId, type);
+  if (dejaReagi) throw new Error('Vous avez déjà réagi à cet écho');
+
+  await addDoc(collection(db, 'reactions'), {
+    echoId,
+    auteurId: userId,
+    type,
+    createdAt: serverTimestamp(),
+  });
+
+  const champ = type === 'coeur' ? 'coeurs' : 'coeursBrises';
+  await updateDoc(doc(db, 'echos', echoId), {
+    [champ]: compteurActuel + 1,
+  });
+}

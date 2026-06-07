@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, updateDoc, doc, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+
 import './AdminPage.css';
 
 // Email(s) admin autorisés
@@ -35,7 +35,14 @@ export default function AdminPage() {
 
   // Vérifier si admin
   if (!user || !ADMINS.includes(user.email ?? '')) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="admin-page">
+        <div className="admin-header">
+          <h1>⚠️ Accès refusé</h1>
+          <p>Cette page est réservée à l'équipe EchoTalk.</p>
+        </div>
+      </div>
+    );
   }
 
   const chargerDonnees = async () => {

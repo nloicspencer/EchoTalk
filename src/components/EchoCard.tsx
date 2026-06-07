@@ -5,9 +5,7 @@ import {
   toggleEchoOuvert, modifierEcho, supprimerEcho,
   modifierEchoRep, supprimerEchoRep,
 } from '../hooks/useEchos';
-import { useStockJarres, donnerJarreBleu, donnerJarreRose } from '../hooks/useReactions';
-import { updateDoc, doc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { useStockJarres, donnerJarreBleu, donnerJarreRose, donnerCoeur } from '../hooks/useReactions';
 import { useAuth } from '../hooks/useAuth';
 import './EchoCard.css';
 
@@ -76,8 +74,15 @@ export default function EchoCard({ echo }: Props) {
   };
 
   const handleCoeur = async (type: 'coeurs' | 'coeursBrises') => {
-    if (estSupprime) return;
-    await updateDoc(doc(db, 'echos', echo.id), { [type]: (echo[type] || 0) + 1 });
+    if (!profile || estSupprime) return;
+    setReactionErreur('');
+    try {
+      const reactionType = type === 'coeurs' ? 'coeur' : 'coeurBrise';
+      await donnerCoeur(echo.id, profile.uid, reactionType, echo[type] || 0);
+    } catch (e: unknown) {
+      setReactionErreur(e instanceof Error ? e.message : 'Erreur');
+      setTimeout(() => setReactionErreur(''), 3000);
+    }
   };
 
   const handleModifierEcho = async () => {
