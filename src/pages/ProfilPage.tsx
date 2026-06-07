@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useEchos } from '../hooks/useEchos';
 import { Link } from 'react-router-dom';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -35,6 +36,8 @@ const PACKS = [
 export default function ProfilPage() {
   const { profile, user, deconnexion } = useAuth();
   const stock = useStockJarres(profile?.uid ?? '');
+  const { echos } = useEchos();
+  const echoSolidaireProprio = echos.find(e => e.estSolidaire && e.auteurId === profile?.uid);
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({
     echosTotal: 0, echosLibres: 0, echosOuverts: 0,
@@ -124,6 +127,19 @@ export default function ProfilPage() {
           </div>
         </div>
       </div>
+
+      {/* Écho Solidaire du proprio */}
+      {echoSolidaireProprio && (
+        <div className="profil-section echo-solidaire-proprio">
+          <h3>💛 Votre Écho est Solidaire ce mois-ci</h3>
+          <p className="solidaire-contenu">{echoSolidaireProprio.contenu}</p>
+          <div className="solidaire-compteur">
+            <span className="solidaire-nombre">🌸 {echoSolidaireProprio.jarresRoses || 0}</span>
+            <span className="solidaire-label">Jarres Roses reçues</span>
+          </div>
+          <p className="solidaire-note">Ce compteur se met à jour en temps réel.</p>
+        </div>
+      )}
 
       {/* Packs jarres bleues */}
       <div className="profil-section">

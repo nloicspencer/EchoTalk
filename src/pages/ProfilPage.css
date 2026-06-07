@@ -248,3 +248,54 @@
   background: var(--accent);
   color: white;
 }
+
+/* Écho Solidaire proprio */
+.echo-solidaire-proprio {
+  border: 2px solid #e91e8c !important;
+  background: linear-gradient(135deg, #fff9fc, #fff0f8) !important;
+}
+
+.echo-solidaire-proprio h3 {
+  color: #e91e8c !important;
+}
+
+.solidaire-contenu {
+  font-size: 0.92rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #fcc;
+  font-style: italic;
+}
+
+.solidaire-compteur {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #fcc;
+  margin-bottom: 0.5rem;
+}
+
+.solidaire-nombre {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #e91e8c;
+}
+
+.solidaire-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.solidaire-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-style: italic;
+}
