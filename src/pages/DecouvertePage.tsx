@@ -22,8 +22,10 @@ export default function DecouvertePage() {
       // Recherche par mot-clé
       if (recherche.trim()) {
         const terme = recherche.toLowerCase();
-        if (!echo.contenu.toLowerCase().includes(terme) &&
-            !echo.auteurPseudo.toLowerCase().includes(terme)) {
+        const contenu = (echo.contenu || "").toLowerCase();
+        const pseudo = (echo.auteurPseudo || "").toLowerCase();
+        if (!contenu.includes(terme) &&
+            !pseudo.includes(terme)) {
           return false;
         }
       }
