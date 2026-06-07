@@ -165,3 +165,71 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* Badge nombre de catégories */
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: var(--accent);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-left: 0.3rem;
+}
+
+/* Grille catégories */
+.categories-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cat-reset {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.cat-reset:hover { color: #e74c3c; }
+
+/* Tags catégories actives */
+.categories-actives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.cat-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--accent);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cat-tag button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  opacity: 0.8;
+  line-height: 1;
+}
+
+.cat-tag button:hover { opacity: 1; }
