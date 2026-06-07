@@ -27,8 +27,8 @@ function calcBadges(stats: Stats) {
 
 const PACKS = [
   { quantite: 5 as const, label: '5 jarres' },
+  { quantite: 10 as const, label: '10 jarres' },
   { quantite: 15 as const, label: '15 jarres' },
-  { quantite: 20 as const, label: '20 jarres' },
 ];
 
 export default function ProfilPage() {
@@ -71,7 +71,7 @@ export default function ProfilPage() {
     return unsubEchos;
   }, [profile?.uid]);
 
-  const handleAcquerirPack = async (type: 'bleues' | 'roses', quantite: 5 | 15 | 20) => {
+  const handleAcquerirPack = async (type: 'bleues' | 'roses', quantite: 5 | 10 | 15) => {
     if (!profile) return;
     const key = `${type}-${quantite}`;
     setLoadingPack(key);

@@ -4,6 +4,7 @@ import AuthPage from './pages/AuthPage';
 import FilPage from './pages/FilPage';
 import ProfilPage from './pages/ProfilPage';
 import IdentitePage from './pages/IdentitePage';
+import AdminPage from './pages/AdminPage';
 import DecouvertePage from './pages/DecouvertePage';
 import NavBar from './components/NavBar';
 import './App.css';
@@ -17,6 +18,7 @@ function AppLayout() {
           <Route path="/decouverte" element={<DecouvertePage />} />
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/identite" element={<IdentitePage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -106,7 +106,7 @@ export async function donnerJarreRose(
 export async function acquerirPack(
   userId: string,
   type: 'bleues' | 'roses',
-  quantite: 5 | 15 | 20,
+  quantite: 5 | 10 | 15,
   stockActuel: number
 ) {
   const champ = type === 'bleues' ? 'stockJarresBleues' : 'stockJarresRoses';
