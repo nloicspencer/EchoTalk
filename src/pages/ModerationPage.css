@@ -1,0 +1,168 @@
+.moderation-page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+}
+
+.modo-header {
+  padding: 1.5rem 0 1rem;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.modo-header h1 { font-size: 1.4rem; font-weight: 800; color: var(--text); margin: 0 0 0.25rem; }
+.modo-header p { font-size: 0.82rem; color: var(--text-muted); margin: 0; }
+
+.modo-message {
+  padding: 0.85rem 1rem;
+  background: #f0fff4;
+  border: 1px solid #27ae60;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #27ae60;
+  margin-bottom: 1rem;
+}
+
+.modo-onglets {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.modo-onglets button {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.modo-onglets button.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.badge {
+  background: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.modo-vide { color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 2rem; }
+
+.modo-liste { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.modo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--border);
+}
+
+.modo-card.algo { border-left-color: #f39c12; }
+.modo-card.user { border-left-color: #e74c3c; }
+
+.modo-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.modo-source {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+}
+
+.modo-source.algorithme { background: #fff8e1; color: #f39c12; }
+.modo-source.utilisateur { background: #fff5f5; color: #e74c3c; }
+
+.modo-type { font-size: 0.78rem; color: var(--text-muted); }
+.modo-date { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+
+.modo-auteur {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.modo-pseudo { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+.modo-identite { font-size: 0.78rem; color: var(--text-muted); background: var(--bg); padding: 0.3rem 0.6rem; border-radius: 6px; }
+
+.modo-contenu {
+  font-size: 0.88rem;
+  color: var(--text);
+  font-style: italic;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.modo-raison {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.modo-raison ul { margin: 0.3rem 0 0 1rem; padding: 0; }
+.modo-raison li { font-size: 0.8rem; }
+
+.modo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.modo-actions button {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-ignorer { background: var(--bg); color: var(--text-muted); }
+.btn-ignorer:hover { border-color: var(--text-muted); }
+
+.btn-masquer { background: #fff8e1; color: #f39c12; border-color: #f39c12; }
+.btn-masquer:hover { background: #f39c12; color: white; }
+
+.btn-supprimer { background: #fff5f5; color: #e74c3c; border-color: #e74c3c; }
+.btn-supprimer:hover { background: #e74c3c; color: white; }
+
+.btn-suspendre-temp { background: #fff0f8; color: #e91e8c; border-color: #e91e8c; }
+.btn-suspendre-temp:hover { background: #e91e8c; color: white; }
+
+.btn-suspendre-def { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+.btn-suspendre-def:hover { opacity: 0.8; }
+
+.modo-traite { font-size: 0.82rem; color: #27ae60; font-weight: 600; }

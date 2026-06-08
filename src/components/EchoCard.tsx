@@ -6,6 +6,7 @@ import {
   modifierEchoRep, supprimerEchoRep,
 } from '../hooks/useEchos';
 import { useStockJarres, donnerJarreBleu, donnerJarreRose, donnerCoeur } from '../hooks/useReactions';
+import { signalerContenu } from '../hooks/useModeration';
 import { useAuth } from '../hooks/useAuth';
 import './EchoCard.css';
 
@@ -22,6 +23,7 @@ export default function EchoCard({ echo }: Props) {
   const [editRepId, setEditRepId] = useState<string | null>(null);
   const [editRepContenu, setEditRepContenu] = useState('');
   const [reactionErreur, setReactionErreur] = useState('');
+  const [signalementFait, setSignalementFait] = useState(false);
 
   const echoReps = useEchoReps(echo.id);
   const { profile } = useAuth();
@@ -123,6 +125,15 @@ export default function EchoCard({ echo }: Props) {
     try {
       await supprimerEchoRep(echo.id, repId, auteurId, echo.placesOccupees ?? 0, estProprietaire);
     } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
+  };
+
+  const handleSignaler = async (type: 'echo' | 'echorep', contenu: string, auteurId: string, repId?: string) => {
+    if (!profile || signalementFait) return;
+    try {
+      await signalerContenu(echo.id, profile.uid, auteurId, echo.auteurPseudo, contenu, type, repId);
+      setSignalementFait(true);
+      setTimeout(() => setSignalementFait(false), 5000);
+    } catch {}
   };
 
   const handleToggleOuvert = async () => {
@@ -287,6 +298,16 @@ export default function EchoCard({ echo }: Props) {
             <p className="places-pleines">🔒 Cet écho est complet</p>
           )}
         </div>
+      )}
+
+      {!estSupprime && !estProprietaire && (
+        <button
+          className="btn-signaler"
+          onClick={() => handleSignaler('echo', echo.contenu, echo.auteurId)}
+          disabled={signalementFait}
+        >
+          {signalementFait ? '✅ Signalé' : '🚩 Signaler'}
+        </button>
       )}
 
       <span className="echo-date">

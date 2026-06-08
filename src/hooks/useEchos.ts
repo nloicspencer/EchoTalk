@@ -15,6 +15,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db, echosCollection } from '../services/firebase';
+import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
 import { Echo, EchoType, Tonalite } from '../types';
 
 function convertEcho(id: string, data: Record<string, unknown>): Echo {
@@ -110,7 +111,10 @@ export async function publierEcho(params: PublierEchoParams) {
     ? new Date(Date.now() + params.periodicitéJours * 24 * 60 * 60 * 1000)
     : null;
 
-  return addDoc(echosCollection, {
+  // Analyser le contenu automatiquement
+  await analyserEtSignaler('nouveau', params.auteurId, params.auteurPseudo, params.contenu, 'echo');
+
+  const echoRef = await addDoc(echosCollection, {
     contenu: params.contenu,
     auteurId: params.auteurId,
     auteurPseudo: params.auteurPseudo,
@@ -186,7 +190,8 @@ export async function publierEchoRep(
   contenu: string,
   placesOccupees: number,
   placesMax: number,
-  estProprietaire: boolean
+  estProprietaire: boolean,
+  echoContenu: string = ''
 ) {
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
   const existing = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
@@ -196,17 +201,20 @@ export async function publierEchoRep(
     throw new Error('Plus de places disponibles dans cet écho');
   }
 
-  await addDoc(repsRef, {
-    auteurId,
-    auteurPseudo,
-    contenu,
-    createdAt: serverTimestamp(),
-    modifie: false,
-    supprime: false,
-  });
-
-  if (premiereParticipation && !estProprietaire) {
-    await updateDoc(doc(db, 'echos', echoId), { placesOccupees: placesOccupees + 1 });
+  if (estProprietaire) {
+    // Le proprio publie directement sans validation
+    await addDoc(repsRef, {
+      auteurId,
+      auteurPseudo,
+      contenu,
+      createdAt: serverTimestamp(),
+      modifie: false,
+      supprime: false,
+    });
+  } else {
+    // Les autres passent par la validation du propriétaire
+    await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu);
+    throw new Error('VALIDATION_REQUISE');
   }
 }
 

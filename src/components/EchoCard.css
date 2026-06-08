@@ -405,3 +405,18 @@
   color: #e74c3c;
   margin: 0.25rem 0 0;
 }
+
+.btn-signaler {
+  background: none;
+  border: none;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: color 0.2s;
+  margin-top: 0.25rem;
+}
+
+.btn-signaler:hover { color: #e74c3c; }
+.btn-signaler:disabled { color: #27ae60; cursor: default; }

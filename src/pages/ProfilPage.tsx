@@ -238,7 +238,10 @@ export default function ProfilPage() {
       </div>
 
       {user?.email === 'loicspencer3@echotalk.com' && (
-        <Link to="/admin" className="btn-admin">⚙️ Administration EchoTalk</Link>
+        <>
+          <Link to="/admin" className="btn-admin">⚙️ Administration EchoTalk</Link>
+          <Link to="/moderation" className="btn-admin btn-moderation">🛡️ Modération EchoTalk</Link>
+        </>
       )}
 
       <button className="btn-deconnexion" onClick={deconnexion}>Se déconnecter</button>

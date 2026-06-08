@@ -101,9 +101,12 @@ export async function acquerirPack(
   quantite: 5 | 10 | 15,
   stockActuel: number
 ) {
+  const MAX_STOCK = 50;
+  if (stockActuel >= MAX_STOCK) throw new Error('Stock maximum atteint (50 jarres)');
+  const quantiteReelle = Math.min(quantite, MAX_STOCK - stockActuel);
   const champ = type === 'bleues' ? 'stockJarresBleues' : 'stockJarresRoses';
   await updateDoc(doc(db, 'users', userId), {
-    [champ]: stockActuel + quantite,
+    [champ]: stockActuel + quantiteReelle,
   });
 
   // Historique des acquisitions

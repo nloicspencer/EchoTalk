@@ -299,3 +299,14 @@
   margin: 0;
   font-style: italic;
 }
+
+.btn-moderation {
+  background: #fff5f5 !important;
+  color: #e74c3c !important;
+  border-color: #e74c3c !important;
+}
+
+.btn-moderation:hover {
+  background: #e74c3c !important;
+  color: white !important;
+}
