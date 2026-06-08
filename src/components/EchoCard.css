@@ -420,3 +420,16 @@
 
 .btn-signaler:hover { color: #e74c3c; }
 .btn-signaler:disabled { color: #27ae60; cursor: default; }
+
+.btn-signaler-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.btn-signaler-sm:hover { opacity: 1; }

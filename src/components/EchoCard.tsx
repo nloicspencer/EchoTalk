@@ -262,14 +262,23 @@ export default function EchoCard({ echo }: Props) {
                         <span className="echorep-date">
                           {rep.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        {profile?.uid === rep.auteurId && !rep.supprime && echo.estOuvert && (
-                          <div className="rep-actions">
-                            {peutModifierRep(rep.createdAt) && (
-                              <button className="btn-edit-sm" onClick={() => { setEditRepId(rep.id); setEditRepContenu(rep.contenu); }}>✏️</button>
-                            )}
-                            <button className="btn-delete-sm" onClick={() => handleSupprimerRep(rep.id, rep.auteurId)}>🗑️</button>
-                          </div>
-                        )}
+                        <div className="rep-actions">
+                          {profile?.uid === rep.auteurId && !rep.supprime && echo.estOuvert && (
+                            <>
+                              {peutModifierRep(rep.createdAt) && (
+                                <button className="btn-edit-sm" onClick={() => { setEditRepId(rep.id); setEditRepContenu(rep.contenu); }}>✏️</button>
+                              )}
+                              <button className="btn-delete-sm" onClick={() => handleSupprimerRep(rep.id, rep.auteurId)}>🗑️</button>
+                            </>
+                          )}
+                          {profile?.uid !== rep.auteurId && !rep.supprime && (
+                            <button
+                              className="btn-signaler-sm"
+                              onClick={() => handleSignaler('echorep', rep.contenu, rep.auteurId, rep.id)}
+                              title="Signaler cette EchoRep"
+                            >🚩</button>
+                          )}
+                        </div>
                       </div>
                     </>
                   )}

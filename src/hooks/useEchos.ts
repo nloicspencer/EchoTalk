@@ -111,9 +111,6 @@ export async function publierEcho(params: PublierEchoParams) {
     ? new Date(Date.now() + params.periodicitéJours * 24 * 60 * 60 * 1000)
     : null;
 
-  // Analyser le contenu automatiquement
-  await analyserEtSignaler('nouveau', params.auteurId, params.auteurPseudo, params.contenu, 'echo');
-
   const echoRef = await addDoc(echosCollection, {
     contenu: params.contenu,
     auteurId: params.auteurId,
@@ -138,6 +135,11 @@ export async function publierEcho(params: PublierEchoParams) {
       expiresAt,
     }),
   });
+
+  // Analyser le contenu avec le vrai ID
+  await analyserEtSignaler(echoRef.id, params.auteurId, params.auteurPseudo, params.contenu, 'echo');
+
+  return echoRef;
 }
 
 // ── MODIFIER ÉCHO ─────────────────────────────────────────

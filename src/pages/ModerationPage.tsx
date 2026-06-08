@@ -39,8 +39,7 @@ export default function ModerationPage() {
     const statut = onglet === 'en_attente' ? 'en_attente' : 'traite';
     const q = query(
       collection(db, 'signalements'),
-      where('statut', '==', statut),
-      orderBy('createdAt', 'desc')
+      where('statut', '==', statut)
     );
 
     const unsub = onSnapshot(q, async (snap) => {
