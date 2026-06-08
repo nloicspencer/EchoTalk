@@ -28,6 +28,7 @@ export interface Echo {
   supprime?: boolean;
   updatedAt?: Date;
   clotureManuellement?: boolean;
+  suppressionAt?: Date;
   jarresRoses?: number;
 }
 

@@ -36,7 +36,18 @@ export function useEchos() {
   useEffect(() => {
     const q = query(echosCollection, orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
-      setEchos(snap.docs.map((d) => convertEcho(d.id, d.data() as Record<string, unknown>)));
+      const maintenant = Date.now();
+      const heures24 = 24 * 60 * 60 * 1000;
+      const echosFiltres = snap.docs
+        .map((d) => convertEcho(d.id, d.data() as Record<string, unknown>))
+        .filter(e => {
+          // Masquer les échos supprimés depuis plus de 24h
+          if (e.supprime && e.suppressionAt) {
+            return maintenant - e.suppressionAt.getTime() < heures24;
+          }
+          return true;
+        });
+      setEchos(echosFiltres);
       setLoading(false);
     });
     return unsub;
@@ -81,12 +92,23 @@ export function useEchoReps(echoId: string) {
     const repsRef = collection(db, 'echos', echoId, 'echoreps');
     const q = query(repsRef, orderBy('createdAt', 'asc'));
     const unsub = onSnapshot(q, (snap) => {
-      setEchoReps(snap.docs.map(d => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt instanceof Timestamp ? d.data().createdAt.toDate() : new Date(),
-        updatedAt: d.data().updatedAt instanceof Timestamp ? d.data().updatedAt.toDate() : undefined,
-      })) as typeof echoReps);
+      const maintenant = Date.now();
+      const heures24 = 24 * 60 * 60 * 1000;
+      const reps = snap.docs
+        .map(d => ({
+          id: d.id,
+          ...d.data(),
+          createdAt: d.data().createdAt instanceof Timestamp ? d.data().createdAt.toDate() : new Date(),
+          updatedAt: d.data().updatedAt instanceof Timestamp ? d.data().updatedAt.toDate() : undefined,
+          suppressionAt: d.data().suppressionAt ? new Date(d.data().suppressionAt.seconds ? d.data().suppressionAt.seconds * 1000 : d.data().suppressionAt) : undefined,
+        }))
+        .filter(r => {
+          if (r.supprime && r.suppressionAt && r.contenu === 'EchoRep supprimée suite à un signalement.') {
+            return maintenant - r.suppressionAt.getTime() < heures24;
+          }
+          return true;
+        });
+      setEchoReps(reps as typeof echoReps);
     });
     return unsub;
   }, [echoId]);

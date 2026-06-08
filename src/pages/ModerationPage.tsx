@@ -94,6 +94,7 @@ export default function ModerationPage() {
     if (s.type === 'echorep' && s.echoRepId) {
       await updateDoc(doc(db, 'echos', s.echoId, 'echoreps', s.echoRepId), {
         supprime: true,
+        suppressionAt: new Date(),
         contenu: 'EchoRep supprimée suite à un signalement.',
       });
     } else {
