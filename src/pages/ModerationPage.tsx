@@ -33,17 +33,6 @@ export default function ModerationPage() {
   const [message, setMessage] = useState('');
   const [onglet, setOnglet] = useState<'en_attente' | 'traites'>('en_attente');
 
-  if (!user || !MODERATEURS.includes(user.email ?? '')) {
-    return (
-      <div className="moderation-page">
-        <div className="modo-header">
-          <h1>⚠️ Accès refusé</h1>
-          <p>Cette page est réservée aux modérateurs EchoTalk.</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     const q = query(
       collection(db, 'signalements'),
@@ -130,6 +119,17 @@ export default function ModerationPage() {
 
   const enAttente = signalements.filter(s => s.statut === 'en_attente');
   const traites = signalements.filter(s => s.statut !== 'en_attente');
+
+  if (!user || !MODERATEURS.includes(user.email ?? '')) {
+    return (
+      <div className="moderation-page">
+        <div className="modo-header">
+          <h1>⚠️ Accès refusé</h1>
+          <p>Cette page est réservée aux modérateurs EchoTalk.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="moderation-page">

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useStockJarres, acquerirPack } from '../hooks/useReactions';
+import ValidationEchoReps from '../components/ValidationEchoReps';
 import './ProfilPage.css';
 
 interface Stats {
@@ -127,6 +128,9 @@ export default function ProfilPage() {
           </div>
         </div>
       </div>
+
+      {/* Validation EchoReps en attente */}
+      <ValidationEchoReps proprietaireId={profile.uid} />
 
       {/* Écho Solidaire du proprio */}
       {echoSolidaireProprio && (

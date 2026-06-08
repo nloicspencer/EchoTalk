@@ -108,7 +108,14 @@ export default function EchoCard({ echo }: Props) {
         echo.placesOccupees ?? 0, echo.placesMax ?? 0, estProprietaire);
       setRepContenu(''); setShowRepForm(false);
     } catch (e: unknown) {
-      setErreur(e instanceof Error ? e.message : 'Erreur');
+      const msg = e instanceof Error ? e.message : 'Erreur';
+      if (msg === 'VALIDATION_REQUISE') {
+        setErreur('✅ Votre EchoRep est en attente de validation par le propriétaire.');
+        setRepContenu('');
+        setTimeout(() => { setShowRepForm(false); setErreur(''); }, 3000);
+      } else {
+        setErreur(msg);
+      }
     } finally { setLoading(false); }
   };
 
