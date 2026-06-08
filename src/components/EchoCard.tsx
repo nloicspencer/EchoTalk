@@ -136,6 +136,7 @@ export default function EchoCard({ echo }: Props) {
 
   const handleSignaler = async (type: 'echo' | 'echorep', contenu: string, auteurId: string, repId?: string) => {
     if (!profile || signalementFait) return;
+    if (!confirm('Signaler ce contenu à l'équipe de modération EchoTalk ?')) return;
     try {
       await signalerContenu(echo.id, profile.uid, auteurId, echo.auteurPseudo, contenu, type, repId);
       setSignalementFait(true);

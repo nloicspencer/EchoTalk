@@ -250,6 +250,8 @@ export async function modererEcho(
     masque: action === 'masquer',
     supprime: action === 'supprimer',
     raisonModeration: raison,
+    contenuOriginal: action === 'supprimer' ? true : false,
+    contenu: action === 'supprimer' ? 'Écho supprimé suite à un signalement.' : undefined,
   });
 
   await addDoc(collection(db, 'historique_moderation'), {

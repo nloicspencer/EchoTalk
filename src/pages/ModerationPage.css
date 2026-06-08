@@ -166,3 +166,93 @@
 .btn-suspendre-def:hover { opacity: 0.8; }
 
 .modo-traite { font-size: 0.82rem; color: #27ae60; font-weight: 600; }
+
+.modo-traite-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-archiver {
+  padding: 0.3rem 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.btn-archiver:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Modal suspension */
+.suspension-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.suspension-modal {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 100%;
+}
+
+.suspension-modal h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+.suspension-modal p { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 1rem; }
+
+.duree-choix p { margin-bottom: 0.5rem; }
+
+.duree-btn {
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.82rem;
+  margin-right: 0.4rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.duree-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.suspension-avertissement {
+  color: #e74c3c !important;
+  font-weight: 600;
+}
+
+.suspension-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.suspension-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.btn-confirmer {
+  background: #e74c3c !important;
+  color: white !important;
+  border-color: #e74c3c !important;
+  font-weight: 600 !important;
+}
