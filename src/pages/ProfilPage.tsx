@@ -39,6 +39,16 @@ export default function ProfilPage() {
   const stock = useStockJarres(profile?.uid ?? '');
   const { echos } = useEchos();
   const echoSolidaireProprio = echos.find(e => e.estSolidaire && e.auteurId === profile?.uid);
+  // Historique des 3 derniers échos solidaires terminés
+  const historiqueSolidaire = echos
+    .filter(e => !e.estSolidaire && e.auteurId === profile?.uid && e.solidaireTermineAt)
+    .sort((a, b) => {
+      const dateA = a.solidaireTermineAt instanceof Date ? a.solidaireTermineAt.getTime() : 0;
+      const dateB = b.solidaireTermineAt instanceof Date ? b.solidaireTermineAt.getTime() : 0;
+      return dateB - dateA;
+    })
+    .slice(0, 3);
+  const totalJarresRosesHistorique = historiqueSolidaire.reduce((sum, e) => sum + (e.jarresRoses || 0), 0);
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({
     echosTotal: 0, echosLibres: 0, echosOuverts: 0,
@@ -142,6 +152,32 @@ export default function ProfilPage() {
             <span className="solidaire-label">Jarres Roses reçues</span>
           </div>
           <p className="solidaire-note">Ce compteur se met à jour en temps réel.</p>
+        </div>
+      )}
+
+      {/* Historique Solidaire */}
+      {historiqueSolidaire.length > 0 && (
+        <div className="profil-section historique-solidaire">
+          <h3>📜 Historique Écho Solidaire</h3>
+          <p className="historique-note">
+            Vos {historiqueSolidaire.length} dernier{historiqueSolidaire.length > 1 ? 's' : ''} écho{historiqueSolidaire.length > 1 ? 's' : ''} solidaire{historiqueSolidaire.length > 1 ? 's' : ''} terminé{historiqueSolidaire.length > 1 ? 's' : ''}.
+            Total : <strong>🌸 {totalJarresRosesHistorique} jarres roses</strong>
+          </p>
+          <div className="historique-liste">
+            {historiqueSolidaire.map((echo, i) => (
+              <div key={echo.id} className="historique-item">
+                <div className="historique-contenu">{echo.contenu.slice(0, 80)}{echo.contenu.length > 80 ? '...' : ''}</div>
+                <div className="historique-stats">
+                  <span>🌸 {echo.jarresRoses || 0} jarres roses</span>
+                  <span className="historique-date">
+                    {echo.solidaireTermineAt instanceof Date
+                      ? echo.solidaireTermineAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+                      : ''}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

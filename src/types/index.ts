@@ -29,6 +29,9 @@ export interface Echo {
   updatedAt?: Date;
   clotureManuellement?: boolean;
   suppressionAt?: Date;
+  solidaireDepuis?: Date;
+  solidaireJusquau?: Date;
+  solidaireTermineAt?: Date;
   jarresRoses?: number;
 }
 

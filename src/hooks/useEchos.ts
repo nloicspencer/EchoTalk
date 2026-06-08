@@ -64,10 +64,24 @@ export function useEchoSolidaire() {
 
   useEffect(() => {
     const q = query(echosCollection, where('estSolidaire', '==', true), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
+    const unsub = onSnapshot(q, async (snap) => {
       if (!snap.empty) {
         const d = snap.docs[0];
-        setEchoSolidaire(convertEcho(d.id, d.data() as Record<string, unknown>));
+        const data = d.data();
+        // Vérifier expiration automatique (1 mois)
+        const jusquau = data.solidaireJusquau instanceof Timestamp
+          ? data.solidaireJusquau.toDate()
+          : data.solidaireJusquau ? new Date(data.solidaireJusquau) : null;
+        if (jusquau && new Date() > jusquau) {
+          // Expiration — sortir du solidaire automatiquement
+          await updateDoc(doc(db, 'echos', d.id), {
+            estSolidaire: false,
+            solidaireTermineAt: new Date(),
+          });
+          setEchoSolidaire(null);
+        } else {
+          setEchoSolidaire(convertEcho(d.id, data as Record<string, unknown>));
+        }
       } else {
         setEchoSolidaire(null);
       }

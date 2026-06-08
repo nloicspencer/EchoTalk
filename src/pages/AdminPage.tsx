@@ -101,8 +101,15 @@ export default function AdminPage() {
       if (echoSolidaireActuel) {
         await updateDoc(doc(db, 'echos', echoSolidaireActuel.id), { estSolidaire: false });
       }
-      // Définir le nouveau
-      await updateDoc(doc(db, 'echos', echoId), { estSolidaire: true });
+      // Définir le nouveau avec dates
+      const maintenant = new Date();
+      const dans1mois = new Date(maintenant);
+      dans1mois.setMonth(dans1mois.getMonth() + 1);
+      await updateDoc(doc(db, 'echos', echoId), {
+        estSolidaire: true,
+        solidaireDepuis: maintenant,
+        solidaireJusquau: dans1mois,
+      });
       setMessage('✅ Écho Solidaire mis à jour avec succès.');
       chargerDonnees();
     } catch {
