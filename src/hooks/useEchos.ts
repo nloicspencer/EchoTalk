@@ -43,7 +43,10 @@ export function useEchos() {
         .filter(e => {
           // Masquer les échos supprimés depuis plus de 24h
           if (e.supprime && e.suppressionAt) {
-            return maintenant - e.suppressionAt.getTime() < heures24;
+            const suppressionDate = e.suppressionAt instanceof Date ? e.suppressionAt : new Date(e.suppressionAt);
+            if (!isNaN(suppressionDate.getTime())) {
+              return maintenant - suppressionDate.getTime() < heures24;
+            }
           }
           return true;
         });
