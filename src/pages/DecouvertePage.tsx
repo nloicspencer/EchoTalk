@@ -18,37 +18,30 @@ export default function DecouvertePage() {
 
   const resultats = useMemo(() => {
     return echos.filter(echo => {
-      // Masquer les échos supprimés
       if (echo.supprime) return false;
 
-      // Recherche par mot-clé
       if (recherche.trim()) {
         const terme = recherche.toLowerCase();
-        const contenu = (echo.contenu || "").toLowerCase();
-        const pseudo = (echo.auteurPseudo || "").toLowerCase();
-        if (!contenu.includes(terme) &&
-            !pseudo.includes(terme)) {
-          return false;
-        }
+        const contenu = (echo.contenu || '').toLowerCase();
+        const pseudo = (echo.auteurPseudo || '').toLowerCase();
+        if (!contenu.includes(terme) && !pseudo.includes(terme)) return false;
       }
 
-      // Filtre type
       if (filtreType !== 'tous' && echo.type !== filtreType) return false;
-
-      // Filtre tonalité
       if (filtreTonalite !== 'tous' && echo.tonalite !== filtreTonalite) return false;
+      if (filtreStatut === 'actif' && echo.type === 'ouvert' && !echo.estOuvert) return false;
+      if (filtreStatut === 'cloture' && echo.type === 'ouvert' && echo.estOuvert) return false;
 
-      // Filtre temporalité
       if (filtreTemporalite !== 'tous') {
         const maintenant = Date.now();
-        const limites = { '48h': 48 * 60 * 60 * 1000, '7j': 7 * 24 * 60 * 60 * 1000, '14j': 14 * 24 * 60 * 60 * 1000 };
+        const limites: Record<string, number> = {
+          '48h': 48 * 60 * 60 * 1000,
+          '7j': 7 * 24 * 60 * 60 * 1000,
+          '14j': 14 * 24 * 60 * 60 * 1000,
+        };
         const limite = limites[filtreTemporalite];
         if (maintenant - echo.createdAt.getTime() > limite) return false;
       }
-
-      // Filtre statut (seulement pour les échos ouverts)
-      if (filtreStatut === 'actif' && echo.type === 'ouvert' && !echo.estOuvert) return false;
-      if (filtreStatut === 'cloture' && echo.type === 'ouvert' && echo.estOuvert) return false;
 
       return true;
     });
@@ -57,13 +50,11 @@ export default function DecouvertePage() {
   return (
     <div className="decouverte-page">
 
-      {/* En-tête */}
       <div className="decouverte-header">
         <h1>🔍 Découverte</h1>
         <p>Explore les échos de la communauté</p>
       </div>
 
-      {/* Barre de recherche */}
       <div className="recherche-bar">
         <span className="recherche-icon">🔍</span>
         <input
@@ -72,23 +63,16 @@ export default function DecouvertePage() {
           value={recherche}
           onChange={e => setRecherche(e.target.value)}
         />
-        {recherche && (
-          <button className="recherche-clear" onClick={() => setRecherche('')}>✕</button>
-        )}
+        {recherche && <button className="recherche-clear" onClick={() => setRecherche('')}>✕</button>}
       </div>
 
-      {/* Filtres */}
       <div className="filtres">
         {/* Type */}
         <div className="filtre-groupe">
           <span className="filtre-label">Type</span>
           <div className="filtre-pills">
             {(['tous', 'libre', 'ouvert'] as FiltreType[]).map(f => (
-              <button
-                key={f}
-                className={`filtre-pill ${filtreType === f ? 'active' : ''}`}
-                onClick={() => setFiltreType(f)}
-              >
+              <button key={f} className={`filtre-pill ${filtreType === f ? 'active' : ''}`} onClick={() => setFiltreType(f)}>
                 {f === 'tous' ? 'Tous' : f === 'libre' ? '🕊️ Libres' : '🔓 Ouverts'}
               </button>
             ))}
@@ -100,12 +84,25 @@ export default function DecouvertePage() {
           <span className="filtre-label">Tonalité</span>
           <div className="filtre-pills">
             {(['tous', 'soleil', 'pluie'] as FiltreTonalite[]).map(f => (
-              <button
-                key={f}
-                className={`filtre-pill ${filtreTonalite === f ? 'active' : ''}`}
-                onClick={() => setFiltreTonalite(f)}
-              >
+              <button key={f} className={`filtre-pill ${filtreTonalite === f ? 'active' : ''}`} onClick={() => setFiltreTonalite(f)}>
                 {f === 'tous' ? 'Tous' : f === 'soleil' ? '☀️ Soleil' : '🌧️ Pluie'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Temporalité */}
+        <div className="filtre-groupe">
+          <span className="filtre-label">Période</span>
+          <div className="filtre-pills">
+            {([
+              ['tous', 'Tous'],
+              ['48h', '- 48h'],
+              ['7j', '- 7 jours'],
+              ['14j', '- 14 jours'],
+            ] as [FiltreTemporalite, string][]).map(([val, label]) => (
+              <button key={val} className={`filtre-pill ${filtreTemporalite === val ? 'active' : ''}`} onClick={() => setFiltreTemporalite(val)}>
+                {label}
               </button>
             ))}
           </div>
@@ -117,11 +114,7 @@ export default function DecouvertePage() {
             <span className="filtre-label">Statut</span>
             <div className="filtre-pills">
               {(['tous', 'actif', 'cloture'] as FiltreStatut[]).map(f => (
-                <button
-                  key={f}
-                  className={`filtre-pill ${filtreStatut === f ? 'active' : ''}`}
-                  onClick={() => setFiltreStatut(f)}
-                >
+                <button key={f} className={`filtre-pill ${filtreStatut === f ? 'active' : ''}`} onClick={() => setFiltreStatut(f)}>
                   {f === 'tous' ? 'Tous' : f === 'actif' ? '🔓 Actifs' : '🔒 Clôturés'}
                 </button>
               ))}
@@ -130,7 +123,6 @@ export default function DecouvertePage() {
         )}
       </div>
 
-      {/* Résultats */}
       <div className="decouverte-resultats">
         {loading ? (
           <div className="decouverte-vide">Chargement...</div>
@@ -143,14 +135,11 @@ export default function DecouvertePage() {
           <>
             <p className="resultats-count">{resultats.length} écho{resultats.length !== 1 ? 's' : ''} trouvé{resultats.length !== 1 ? 's' : ''}</p>
             <div className="echos-liste">
-              {resultats.map(echo => (
-                <EchoCard key={echo.id} echo={echo} />
-              ))}
+              {resultats.map(echo => <EchoCard key={echo.id} echo={echo} />)}
             </div>
           </>
         )}
       </div>
-
     </div>
   );
 }

@@ -92,11 +92,28 @@ export default function ModerationPage() {
   const handleSupprimer = async (s: Signalement) => {
     if (!confirm('Supprimer définitivement ?')) return;
     if (s.type === 'echorep' && s.echoRepId) {
+      // Vérifier si c'est la seule EchoRep de cet auteur
+      const repsRef = collection(db, 'echos', s.echoId, 'echoreps');
+      const { getDocs: gd, query: q2, where: w2 } = await import('firebase/firestore');
+      const autresReps = await gd(q2(repsRef, w2('auteurId', '==', s.auteurContenuId), w2('supprime', '==', false)));
+      const etaitSeuleRep = autresReps.docs.filter(d => d.id !== s.echoRepId).length === 0;
+
       await updateDoc(doc(db, 'echos', s.echoId, 'echoreps', s.echoRepId), {
         supprime: true,
         suppressionAt: serverTimestamp(),
         contenu: 'EchoRep supprimée suite à un signalement.',
       });
+
+      // Libérer la place si c'était la seule EchoRep
+      if (etaitSeuleRep) {
+        const echoSnap = await getDoc(doc(db, 'echos', s.echoId));
+        if (echoSnap.exists()) {
+          const placesOccupees = echoSnap.data().placesOccupees || 0;
+          await updateDoc(doc(db, 'echos', s.echoId), {
+            placesOccupees: Math.max(0, placesOccupees - 1),
+          });
+        }
+      }
     } else {
       await modererEcho(s.echoId, 'supprimer', user!.uid, s.raison);
     }
