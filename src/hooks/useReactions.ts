@@ -84,7 +84,14 @@ export async function donnerJarreRose(
 ) {
   if (stockActuel <= 0) throw new Error('Stock de jarres roses épuisé. Acquérez un pack dans votre EchoProfil.');
 
-  // Pas d'anti-doublon — chaque jarre rose compte
+  // Enregistrer dans la collection reactions pour le décompte
+  await addDoc(collection(db, 'reactions'), {
+    echoId,
+    auteurId: userId,
+    type: 'jarreRose',
+    createdAt: serverTimestamp(),
+  });
+
   await updateDoc(doc(db, 'users', userId), {
     stockJarresRoses: stockActuel - 1,
   });
