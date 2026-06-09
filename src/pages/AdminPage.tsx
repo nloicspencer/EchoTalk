@@ -120,8 +120,11 @@ export default function AdminPage() {
 
   const retirerEchoSolidaire = async () => {
     if (!echoSolidaireActuel) return;
-    await updateDoc(doc(db, 'echos', echoSolidaireActuel.id), { estSolidaire: false });
-    setMessage('✅ Écho Solidaire retiré.');
+    await updateDoc(doc(db, 'echos', echoSolidaireActuel.id), {
+      estSolidaire: false,
+      solidaireTermineAt: new Date(),
+    });
+    setMessage('✅ Écho Solidaire retiré et archivé dans l'EchoProfil.');
     chargerDonnees();
     setTimeout(() => setMessage(''), 4000);
   };

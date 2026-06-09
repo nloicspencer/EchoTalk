@@ -16,6 +16,8 @@ interface Stats {
   echoRepsPubliees: number;
   jarresBleuesRecues: number;
   jarresRosesRecues: number;
+  jarresBleuesDonnees: number;
+  jarresRosesDonnees: number;
   echosAvecResonance: number;
   participantsTotal: number;
 }
@@ -55,6 +57,7 @@ export default function ProfilPage() {
     echosRejoints: 0, echoRepsPubliees: 0,
     jarresBleuesRecues: 0, jarresRosesRecues: 0,
     echosAvecResonance: 0, participantsTotal: 0,
+    jarresBleuesDonnees: 0, jarresRosesDonnees: 0,
   });
 
   useEffect(() => {
@@ -81,7 +84,16 @@ export default function ProfilPage() {
         const reps = await getDocs(query(repsRef, where('auteurId', '==', profile.uid)));
         if (!reps.empty) { echosRejoints++; echoRepsCount += reps.docs.filter(r => !r.data().supprime).length; }
       }
-      setStats({ echosTotal: snap.size, echosLibres: libres, echosOuverts: ouverts, echosRejoints, echoRepsPubliees: echoRepsCount, jarresBleuesRecues: jarresBleues, jarresRosesRecues: jarresRoses, echosAvecResonance: avecResonance, participantsTotal });
+      // Calculer jarres données
+      const reactionsSnap = await getDocs(query(collection(db, 'reactions'), where('auteurId', '==', profile.uid)));
+      let jarresBleuesDonnees = 0;
+      let jarresRosesDonnees = 0;
+      reactionsSnap.docs.forEach(d => {
+        if (d.data().type === 'jarreBleu') jarresBleuesDonnees++;
+        if (d.data().type === 'jarreRose') jarresRosesDonnees++;
+      });
+
+      setStats({ echosTotal: snap.size, echosLibres: libres, echosOuverts: ouverts, echosRejoints, echoRepsPubliees: echoRepsCount, jarresBleuesRecues: jarresBleues, jarresRosesRecues: jarresRoses, echosAvecResonance: avecResonance, participantsTotal, jarresBleuesDonnees, jarresRosesDonnees });
     });
     return unsubEchos;
   }, [profile?.uid]);
@@ -168,7 +180,12 @@ export default function ProfilPage() {
               <div key={echo.id} className="historique-item">
                 <div className="historique-contenu">{echo.contenu.slice(0, 80)}{echo.contenu.length > 80 ? '...' : ''}</div>
                 <div className="historique-stats">
-                  <span>🌸 {echo.jarresRoses || 0} jarres roses</span>
+                  <span className="historique-reactions">
+                    🫙 {echo.jarresBleues || 0}
+                    &nbsp;❤️ {echo.coeurs || 0}
+                    &nbsp;💔 {echo.coeursBrises || 0}
+                    &nbsp;🌸 {echo.jarresRoses || 0}
+                  </span>
                   <span className="historique-date">
                     {echo.solidaireTermineAt instanceof Date
                       ? echo.solidaireTermineAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
@@ -259,8 +276,22 @@ export default function ProfilPage() {
       <div className="profil-section">
         <h3>🌊 Résonance</h3>
         <div className="stats-grid">
-          <div className="stat-row"><span className="stat-label">🫙 Jarres Bleues reçues</span><span className="stat-val">{stats.jarresBleuesRecues}</span></div>
-          <div className="stat-row"><span className="stat-label">🌸 Jarres Roses reçues</span><span className="stat-val">{stats.jarresRosesRecues}</span></div>
+          <div className="stat-row">
+            <span className="stat-label">🫙 Jarres Bleues</span>
+            <span className="stat-val stat-double">
+              <span className="stat-donnees">données {stats.jarresBleuesDonnees}</span>
+              <span className="stat-sep">/</span>
+              <span className="stat-recues">reçues {stats.jarresBleuesRecues}</span>
+            </span>
+          </div>
+          <div className="stat-row">
+            <span className="stat-label">🌸 Jarres Roses</span>
+            <span className="stat-val stat-double">
+              <span className="stat-donnees">données {stats.jarresRosesDonnees}</span>
+              <span className="stat-sep">/</span>
+              <span className="stat-recues">reçues {stats.jarresRosesRecues}</span>
+            </span>
+          </div>
           <div className="stat-row"><span className="stat-label">Échos ayant résonné</span><span className="stat-val">{stats.echosAvecResonance}</span></div>
           <div className="stat-row"><span className="stat-label">Participants totaux</span><span className="stat-val">{stats.participantsTotal}</span></div>
         </div>

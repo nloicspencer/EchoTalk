@@ -360,3 +360,20 @@
   color: var(--text-muted) !important;
   font-weight: normal !important;
 }
+
+.stat-double {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem !important;
+}
+
+.stat-donnees { color: var(--accent); font-weight: 700; }
+.stat-sep { color: var(--text-muted); }
+.stat-recues { color: var(--text); font-weight: 700; }
+
+.historique-reactions {
+  font-size: 0.82rem;
+  color: var(--text);
+  font-weight: 600;
+}

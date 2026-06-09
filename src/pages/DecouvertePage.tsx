@@ -6,12 +6,14 @@ import './DecouvertePage.css';
 type FiltreType = 'tous' | 'libre' | 'ouvert';
 type FiltreTonalite = 'tous' | 'soleil' | 'pluie';
 type FiltreStatut = 'tous' | 'actif' | 'cloture';
+type FiltreTemporalite = 'tous' | '48h' | '7j' | '14j';
 
 export default function DecouvertePage() {
   const [recherche, setRecherche] = useState('');
   const [filtreType, setFiltreType] = useState<FiltreType>('tous');
   const [filtreTonalite, setFiltreTonalite] = useState<FiltreTonalite>('tous');
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('tous');
+  const [filtreTemporalite, setFiltreTemporalite] = useState<FiltreTemporalite>('tous');
   const { echos, loading } = useEchos();
 
   const resultats = useMemo(() => {
@@ -36,13 +38,21 @@ export default function DecouvertePage() {
       // Filtre tonalité
       if (filtreTonalite !== 'tous' && echo.tonalite !== filtreTonalite) return false;
 
+      // Filtre temporalité
+      if (filtreTemporalite !== 'tous') {
+        const maintenant = Date.now();
+        const limites = { '48h': 48 * 60 * 60 * 1000, '7j': 7 * 24 * 60 * 60 * 1000, '14j': 14 * 24 * 60 * 60 * 1000 };
+        const limite = limites[filtreTemporalite];
+        if (maintenant - echo.createdAt.getTime() > limite) return false;
+      }
+
       // Filtre statut (seulement pour les échos ouverts)
       if (filtreStatut === 'actif' && echo.type === 'ouvert' && !echo.estOuvert) return false;
       if (filtreStatut === 'cloture' && echo.type === 'ouvert' && echo.estOuvert) return false;
 
       return true;
     });
-  }, [echos, recherche, filtreType, filtreTonalite, filtreStatut]);
+  }, [echos, recherche, filtreType, filtreTonalite, filtreStatut, filtreTemporalite]);
 
   return (
     <div className="decouverte-page">
