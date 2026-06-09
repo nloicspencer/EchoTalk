@@ -250,7 +250,7 @@ export async function modererEcho(
     masque: action === 'masquer',
     supprime: action === 'supprimer',
     raisonModeration: raison,
-    suppressionAt: action === 'supprimer' ? new Date() : null,
+    suppressionAt: action === 'supprimer' ? serverTimestamp() : null,
     contenu: action === 'supprimer' ? 'Écho supprimé suite à un signalement.' : undefined,
   });
 

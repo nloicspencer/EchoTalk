@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import {
   collection, onSnapshot, query, where,
-  updateDoc, doc, getDoc, Timestamp
+  updateDoc, doc, getDoc, Timestamp, serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { modererEcho } from '../hooks/useModeration';
@@ -94,7 +94,7 @@ export default function ModerationPage() {
     if (s.type === 'echorep' && s.echoRepId) {
       await updateDoc(doc(db, 'echos', s.echoId, 'echoreps', s.echoRepId), {
         supprime: true,
-        suppressionAt: new Date(),
+        suppressionAt: serverTimestamp(),
         contenu: 'EchoRep supprimée suite à un signalement.',
       });
     } else {
