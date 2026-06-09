@@ -124,7 +124,7 @@ export default function AdminPage() {
       estSolidaire: false,
       solidaireTermineAt: new Date(),
     });
-    setMessage('✅ Écho Solidaire retiré et archivé dans l'EchoProfil.');
+    setMessage("✅ Écho Solidaire retiré et archivé dans l'EchoProfil.");
     chargerDonnees();
     setTimeout(() => setMessage(''), 4000);
   };
