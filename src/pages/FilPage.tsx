@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import EchoCard from '../components/EchoCard';
 import PublierEcho from '../components/PublierEcho';
 import EchoSolidaireModal from '../components/EchoSolidaireModal';
+import JarreIcon from '../components/JarreIcon';
 import { CATEGORIES } from '../types';
 import './FilPage.css';
 
@@ -18,10 +19,7 @@ export default function FilPage() {
   const totalJarres = echos.reduce((sum, e) => sum + (e.jarresBleues || 0), 0);
 
   const toggleCategorie = (id: string) => {
-    if (id === 'tous') {
-      setCategoriesActives([]);
-      return;
-    }
+    if (id === 'tous') { setCategoriesActives([]); return; }
     setCategoriesActives(prev =>
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
@@ -39,38 +37,41 @@ export default function FilPage() {
 
       {/* En-tête */}
       <div className="fil-header">
-        <div className="fil-header-top">
-          <span className="fil-logo-icon">🫙</span>
-          <h1 className="fil-app-name">EchoTalk</h1>
-        </div>
-        {profile && (
-          <div className="fil-bienvenue">
-            <span className="fil-pseudo">🫙 {profile.pseudo}</span>
-            <span className="fil-slogan">Ton espace. Ta voix. Ton écho.</span>
-          </div>
-        )}
+        <JarreIcon color="blue" size="m" />
+        <span className="fil-header-logo">Echo<span>Talk</span></span>
       </div>
 
-      {/* Puits */}
-      <div className="puits">
-        <span className="puits-icon">🫙</span>
+      {/* Bandeau utilisateur */}
+      {profile && (
+        <div className="fil-user-banner">
+          <div className="fil-user-pseudo">
+            <JarreIcon color="blue" size="s" />
+            {profile.pseudo}
+          </div>
+          <div className="fil-user-tagline">Ton espace. Ta voix. Ton écho.</div>
+        </div>
+      )}
+
+      {/* Compteur communauté */}
+      <div className="fil-community-counter">
+        <JarreIcon color="blue" size="m" />
         <span><strong>{totalJarres}</strong> jarres partagées cette semaine par la communauté</span>
       </div>
 
       {/* Catégories + Solidaire */}
-      <div className="fil-actions">
+      <div className="fil-filters">
         <button
-          className={`btn-action ${showCategories ? 'active' : ''}`}
+          className={`fil-filter-btn ${showCategories ? 'active' : ''}`}
           onClick={() => setShowCategories(!showCategories)}
         >
-          🎯 Catégories {categoriesActives.length > 0 && <span className="cat-badge">{categoriesActives.length}</span>}
+          🎯 Catégories {categoriesActives.length > 0 && <span className="et-badge et-badge-lavande">{categoriesActives.length}</span>}
         </button>
-        <button className="btn-action btn-solidaire" onClick={() => setShowSolidaire(true)}>
+        <button className="fil-filter-btn solidaire" onClick={() => setShowSolidaire(true)}>
           ❤️ Écho Solidaire
         </button>
       </div>
 
-      {/* Panneau catégories — sélection multiple */}
+      {/* Panneau catégories */}
       {showCategories && (
         <div className="categories-panel">
           <div className="categories-grid">
@@ -110,15 +111,15 @@ export default function FilPage() {
         </div>
       )}
 
-      {/* Publication */}
+      {/* Zone de publication */}
       {profile && <PublierEcho profile={profile} />}
 
       {/* Fil des échos */}
-      <div className="echos-liste">
+      <div className="fil-list">
         {loading ? (
           <div className="loading">Chargement des échos...</div>
         ) : echosFiltres.length === 0 && categoriesActives.length > 0 ? (
-          <div className="vide">Les catégories seront actives lors du lancement. 🌊<br />Les échos seront classés avant la mise en ligne.</div>
+          <div className="vide">Aucun écho dans cette catégorie. 🌊</div>
         ) : (
           echosFiltres.map((echo) => (
             <EchoCard key={echo.id} echo={echo} />

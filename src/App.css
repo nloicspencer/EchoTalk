@@ -1,43 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&display=swap');
+
 :root {
-  --bg: #f8f7f5;
-  --surface: #ffffff;
-  --border: #e8e5e0;
-  --text: #1a1a1a;
-  --text-muted: #888;
-  --accent: #6b5ce7;
-  --accent-light: #f0eeff;
+  --et-lavande:        #7A6F9E;
+  --et-lavande-light:  #EDE9F7;
+  --et-lavande-xlight: #F7F5FC;
+  --et-rose:           #D4537E;
+  --et-rose-light:     #FBEAF0;
+  --et-rose-xlight:    #FEF7FA;
+  --et-blue:           #5BA8D4;
+  --et-blue-light:     #E6F1FB;
+  --et-encre:          #2C2A3A;
+  --et-bg:             #F4F2FA;
+  --et-surface:        #FFFFFF;
+  --et-surface-2:      #F7F5FC;
+  --et-text-1:         #1E1B2E;
+  --et-text-2:         #4A4560;
+  --et-text-3:         #8E8AAA;
+  --et-border:         rgba(122, 111, 158, 0.15);
+  --et-border-hover:   rgba(122, 111, 158, 0.30);
+  --et-radius-sm:      8px;
+  --et-radius-md:      12px;
+  --et-radius-lg:      16px;
+  --et-shadow-sm:      0 1px 3px rgba(44, 42, 58, 0.06);
+  --et-shadow-md:      0 2px 8px rgba(44, 42, 58, 0.08);
+  --et-font-ui:        'Inter', system-ui, sans-serif;
+  --et-font-echo:      'Lora', Georgia, serif;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
+  font-family: var(--et-font-ui);
+  background-color: var(--et-bg);
+  color: var(--et-text-1);
+  line-height: 1.6;
+  min-height: 100dvh;
 }
 
-.app-main {
-  padding-bottom: 60px;
+h1, h2, h3, h4 {
+  font-family: var(--et-font-ui);
+  font-weight: 500;
+  color: var(--et-text-1);
+  line-height: 1.25;
 }
 
-.app-loading {
-  display: flex;
-  flex-direction: column;
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+
+p {
+  color: var(--et-text-2);
+  line-height: 1.7;
+}
+
+a {
+  color: var(--et-lavande);
+  text-decoration: none;
+}
+
+a:hover { text-decoration: underline; }
+
+#root {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--et-border-hover);
+  border-radius: 4px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--et-lavande);
+  outline-offset: 2px;
+  border-radius: var(--et-radius-sm);
+}
+
+/* Utilitaires globaux */
+.et-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.et-badge-lavande { background: var(--et-lavande-light); color: var(--et-lavande); }
+.et-badge-rose    { background: var(--et-rose-light);    color: var(--et-rose); }
+.et-badge-blue    { background: var(--et-blue-light);    color: #185FA5; }
+.et-badge-neutral {
+  background: var(--et-surface-2);
+  color: var(--et-text-2);
+  border: 0.5px solid var(--et-border);
+}
+
+.et-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  font-size: 2rem;
-  color: var(--accent);
-  gap: 0.5rem;
+  gap: 6px;
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: var(--et-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
 }
 
-.app-loading p {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text);
+.et-btn:active { transform: scale(0.98); }
+
+.et-btn-primary  { background: var(--et-lavande); color: #fff; }
+.et-btn-primary:hover { opacity: 0.88; }
+
+.et-btn-secondary {
+  background: transparent;
+  color: var(--et-lavande);
+  border: 1.5px solid var(--et-lavande-light);
 }
+.et-btn-secondary:hover { background: var(--et-lavande-xlight); }
+
+.et-btn-ghost {
+  background: transparent;
+  color: var(--et-text-3);
+  border: 0.5px solid var(--et-border);
+}
+.et-btn-ghost:hover { background: var(--et-surface-2); }
+
+.et-input {
+  width: 100%;
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  color: var(--et-text-1);
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  padding: 10px 14px;
+  transition: border-color 0.15s;
+}
+
+.et-input:focus {
+  outline: none;
+  border-color: var(--et-lavande);
+}
+
+.et-input::placeholder { color: var(--et-text-3); }

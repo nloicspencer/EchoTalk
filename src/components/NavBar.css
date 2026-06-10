@@ -3,34 +3,44 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  z-index: 100;
+  background: var(--et-surface);
+  border-top: 0.5px solid var(--et-border);
   display: flex;
-  z-index: 50;
+  justify-content: space-around;
+  align-items: stretch;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  max-width: 680px;
+  margin: 0 auto;
 }
 
-.nav-item {
+.navbar-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
+  gap: 3px;
+  padding: 4px 8px;
+  font-family: var(--et-font-ui);
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--et-text-3);
+  cursor: pointer;
+  border: none;
+  background: transparent;
   text-decoration: none;
-  color: var(--text-muted);
-  transition: color 0.2s;
-  font-size: 0.7rem;
+  transition: color 0.15s;
+  letter-spacing: 0.02em;
 }
 
-.nav-item.active {
-  color: var(--accent);
-}
+.navbar-item:hover { color: var(--et-text-2); }
+.navbar-item.active { color: var(--et-lavande); }
 
-.nav-icon {
-  font-size: 1.3rem;
-}
-
-.nav-label {
-  font-size: 0.65rem;
+.navbar-item-icon {
+  font-size: 1.375rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
 }

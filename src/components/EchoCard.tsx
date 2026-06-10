@@ -9,6 +9,7 @@ import { useStockJarres, donnerJarreBleu, donnerJarreRose, donnerCoeur } from '.
 import { signalerContenu } from '../hooks/useModeration';
 import { useAuth } from '../hooks/useAuth';
 import './EchoCard.css';
+import JarreIcon from './JarreIcon';
 
 interface Props { echo: Echo; }
 
@@ -149,28 +150,39 @@ export default function EchoCard({ echo }: Props) {
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
-  return (
-    <div className={`echo-card ${echo.tonalite ?? ''} ${echo.estSolidaire ? 'solidaire' : ''} ${estSupprime ? 'supprime' : ''}`}>
+  const tonaliteClass = echo.tonalite === 'soleil' ? 'tonalite-soleil' : 'tonalite-pluie';
 
-      <div className="echo-header">
-        <span className="echo-pseudo">{echo.auteurPseudo}</span>
-        <div className="echo-tags">
-          {!estSupprime && <span className="tag">{echo.tonalite === 'soleil' ? '☀️' : '🌧️'}</span>}
-          <span className="tag">{echo.type === 'libre' ? '🕊️ Libre' : '🔓 Ouvert'}</span>
-          {echo.estSolidaire && <span className="tag solidaire-tag">💛 Solidaire</span>}
+  return (
+    <div className={`echo-card ${tonaliteClass} ${echo.estSolidaire ? 'solidaire' : ''} ${estSupprime ? 'supprime' : ''}`}>
+
+      <div className="echo-card-top">
+        <div className="echo-card-meta">
+          <span className="echo-card-pseudo">{echo.auteurPseudo}</span>
+          {echo.type === 'ouvert' && !estSupprime && (
+            <div className="echo-card-ouvert-info">
+              <span>👥 {echo.placesOccupees ?? 0}/{echo.placesMax}</span>
+              {tempsRestant() && <span>⏱ {tempsRestant()}</span>}
+              <span className={`et-badge ${echo.estOuvert ? 'et-badge-lavande' : 'et-badge-neutral'}`}>
+                {echo.estOuvert ? '🔓 Ouvert' : '🔒 Fermé'}
+              </span>
+              <span className="echo-card-time">↩️ {reouverturesRestantes} réouverture{reouverturesRestantes !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+        <div className="echo-card-badges">
+          {!estSupprime && (
+            <span className="et-badge et-badge-neutral">
+              {echo.tonalite === 'soleil' ? '☀️' : '🌧️'}
+            </span>
+          )}
+          <span className="et-badge et-badge-neutral">
+            {echo.type === 'libre' ? '🕊️ Libre' : '🔓 Ouvert'}
+          </span>
+          {echo.estSolidaire && (
+            <span className="et-badge et-badge-rose">💛 Solidaire</span>
+          )}
         </div>
       </div>
-
-      {echo.type === 'ouvert' && !estSupprime && (
-        <div className="echo-ouvert-info">
-          <span>👥 {echo.placesOccupees ?? 0}/{echo.placesMax} places</span>
-          {tempsRestant() && <span>⏱ {tempsRestant()}</span>}
-          <span className={`statut ${echo.estOuvert ? 'ouvert' : 'ferme'}`}>
-            {echo.estOuvert ? '🔓 Ouvert' : '🔒 Fermé'}
-          </span>
-          <span className="reouvertures">↩️ {reouverturesRestantes} réouverture{reouverturesRestantes !== 1 ? 's' : ''} restante{reouverturesRestantes !== 1 ? 's' : ''}</span>
-        </div>
-      )}
 
       {editEcho ? (
         <div className="edit-echo-form">
@@ -181,44 +193,51 @@ export default function EchoCard({ echo }: Props) {
           </div>
         </div>
       ) : (
-        <p className={`echo-contenu ${estSupprime ? 'contenu-supprime' : ''}`}>{echo.contenu}</p>
+        <p className={`echo-card-text ${estSupprime ? 'contenu-supprime' : ''}`}>{echo.contenu}</p>
       )}
 
       {echo.modifie && !estSupprime && <span className="mention-modifie">✏️ Écho modifié</span>}
 
       {estProprietaire && !estSupprime && !editEcho && (
         <div className="echo-auteur-actions">
-          {peutModifierEcho() && <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>✏️ Modifier</button>}
-          {peutSupprimerEcho() && <button className="btn-delete" onClick={handleSupprimerEcho}>🗑️ Supprimer</button>}
+          {peutModifierEcho() && (
+            <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>✏️ Modifier</button>
+          )}
+          {peutSupprimerEcho() && (
+            <button className="btn-delete" onClick={handleSupprimerEcho}>🗑️ Supprimer</button>
+          )}
         </div>
       )}
 
-      {/* Réactions */}
       {!estSupprime && (
-        <div className="echo-reactions">
+        <div className="echo-card-reactions">
           {echo.estSolidaire ? (
             <button
-              className={`reaction solidaire-reaction ${stock.jarresRoses <= 0 ? 'reaction-disabled' : ''}`}
+              className={`echo-reaction-btn active-rose ${stock.jarresRoses <= 0 ? 'reaction-disabled' : ''}`}
               onClick={handleJarreRose}
-              title={stock.jarresRoses <= 0 ? 'Stock de jarres roses épuisé' : `Stock : ${stock.jarresRoses} 🌸`}
+              title={stock.jarresRoses <= 0 ? 'Stock épuisé' : `Stock : ${stock.jarresRoses} 🌸`}
             >
-              🫙 <span>{echo.jarresRoses || 0}</span>
+              <JarreIcon color="rose" size="s" /> <span>{echo.jarresRoses || 0}</span>
             </button>
           ) : (
             <>
               <button
-                className={`reaction ${stock.jarresBleues <= 0 ? 'reaction-disabled' : ''}`}
+                className={`echo-reaction-btn ${stock.jarresBleues <= 0 ? 'reaction-disabled' : ''}`}
                 onClick={handleJarreBleu}
-                title={stock.jarresBleues <= 0 ? 'Stock de jarres bleues épuisé' : `Stock : ${stock.jarresBleues} 🫙`}
+                title={stock.jarresBleues <= 0 ? 'Stock épuisé' : `Stock : ${stock.jarresBleues}`}
               >
-                🫙 <span>{echo.jarresBleues || 0}</span>
+                <JarreIcon color="blue" size="s" /> <span>{echo.jarresBleues || 0}</span>
               </button>
-              <button className="reaction" onClick={() => handleCoeur('coeurs')}>❤️ <span>{echo.coeurs || 0}</span></button>
-              <button className="reaction" onClick={() => handleCoeur('coeursBrises')}>💔 <span>{echo.coeursBrises || 0}</span></button>
+              <button className="echo-reaction-btn" onClick={() => handleCoeur('coeurs')}>
+                ❤️ <span>{echo.coeurs || 0}</span>
+              </button>
+              <button className="echo-reaction-btn" onClick={() => handleCoeur('coeursBrises')}>
+                💔 <span>{echo.coeursBrises || 0}</span>
+              </button>
             </>
           )}
           {echo.type === 'ouvert' && echoReps.length > 0 && (
-            <button className="reaction masquer-btn" onClick={() => setMasquerReps(!masquerReps)}>
+            <button className="echo-reaction-btn" onClick={() => setMasquerReps(!masquerReps)}>
               {masquerReps ? '👁 Voir' : '🙈 Masquer'}
             </button>
           )}
@@ -273,11 +292,7 @@ export default function EchoCard({ echo }: Props) {
                             </>
                           )}
                           {profile?.uid !== rep.auteurId && !rep.supprime && (
-                            <button
-                              className="btn-signaler-sm"
-                              onClick={() => handleSignaler('echorep', rep.contenu, rep.auteurId, rep.id)}
-                              title="Signaler cette EchoRep"
-                            >🚩</button>
+                            <button className="btn-signaler-sm" onClick={() => handleSignaler('echorep', rep.contenu, rep.auteurId, rep.id)} title="Signaler">🚩</button>
                           )}
                         </div>
                       </div>
@@ -317,19 +332,20 @@ export default function EchoCard({ echo }: Props) {
         </div>
       )}
 
-      {!estSupprime && !estProprietaire && (
-        <button
-          className="btn-signaler"
-          onClick={() => handleSignaler('echo', echo.contenu, echo.auteurId)}
-          disabled={signalementFait}
-        >
-          {signalementFait ? '✅ Signalé' : '🚩 Signaler'}
-        </button>
-      )}
-
-      <span className="echo-date">
-        {echo.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-      </span>
+      <div className="echo-card-footer">
+        {!estSupprime && !estProprietaire ? (
+          <button
+            className="echo-card-signal"
+            onClick={() => handleSignaler('echo', echo.contenu, echo.auteurId)}
+            disabled={signalementFait}
+          >
+            🚩 {signalementFait ? 'Signalé' : 'Signaler'}
+          </button>
+        ) : <span />}
+        <span className="echo-card-date">
+          {echo.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
     </div>
   );
 }
