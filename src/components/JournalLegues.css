@@ -1,0 +1,232 @@
+.journal-legues-bandeau {
+  margin: 0 16px 12px;
+  background: linear-gradient(135deg, rgba(123,94,167,0.18) 0%, rgba(74,46,122,0.22) 100%);
+  border-radius: var(--et-radius-md);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.jl-bandeau-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+  box-sizing: border-box;
+}
+
+.jl-bandeau-btn:hover { background: rgba(123,94,167,0.08); }
+
+.jl-bandeau-gauche {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+
+.jl-bandeau-emoji { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+
+.jl-bandeau-texte {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.jl-bandeau-titre {
+  font-family: var(--et-font-ui);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #1A0F2E;
+  white-space: nowrap;
+}
+
+.jl-bandeau-sub {
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: #6B5090;
+  white-space: nowrap;
+}
+
+.jl-pastille {
+  width: 10px; height: 10px;
+  background: var(--et-rose);
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.6);
+}
+
+.jl-chevron { color: var(--et-accent); font-size: 1rem; flex-shrink: 0; }
+
+.jl-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 14px 14px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.jl-item {
+  background: rgba(255,255,255,0.7);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.jl-item:hover { background: rgba(255,255,255,0.9); }
+
+.jl-apercu {
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--et-text-1);
+  line-height: 1.65;
+  margin: 0 0 8px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  white-space: pre-wrap;
+}
+
+.jl-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jl-date {
+  font-family: var(--et-font-ui);
+  font-size: 0.6875rem;
+  color: var(--et-text-3);
+  white-space: nowrap;
+}
+
+.jl-lire {
+  font-family: var(--et-font-ui);
+  font-size: 0.75rem;
+  color: var(--et-accent);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Modal */
+.jl-overlay {
+  position: fixed; inset: 0;
+  background: rgba(42,31,61,0.5);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 1rem;
+  box-sizing: border-box;
+}
+
+.jl-modal {
+  background: rgba(245,240,252,0.97);
+  backdrop-filter: blur(20px);
+  border-radius: var(--et-radius-lg);
+  padding: 1.5rem;
+  max-width: 520px; width: 100%;
+  border: 0.5px solid var(--et-border);
+  box-shadow: var(--et-shadow-md);
+  position: relative;
+  max-height: 85dvh; overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.jl-modal-close {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(123,94,167,0.1);
+  border: 0.5px solid var(--et-border);
+  border-radius: 50%; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--et-text-3); font-size: 0.75rem;
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+.jl-modal-close:hover { background: rgba(123,94,167,0.2); }
+
+.jl-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem; padding-right: 2rem;
+  gap: 8px;
+}
+.jl-modal-header span:first-child { font-family: var(--et-font-ui); font-size: 0.875rem; font-weight: 500; color: var(--et-accent); white-space: nowrap; }
+.jl-modal-date { font-family: var(--et-font-ui); font-size: 0.75rem; color: var(--et-text-3); white-space: nowrap; }
+
+.jl-modal-recit {
+  margin-bottom: 1.25rem; padding: 1rem;
+  background: rgba(123,94,167,0.05);
+  border-radius: var(--et-radius-sm);
+  border-left: 3px solid var(--et-accent);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.jl-modal-recit p {
+  font-family: var(--et-font-echo); font-style: italic; font-size: 0.9375rem;
+  color: var(--et-text-1); line-height: 1.8; margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.jl-modal-lecon {
+  padding: 1rem; background: rgba(196,154,82,0.08);
+  border-radius: var(--et-radius-sm);
+  border-left: 3px solid var(--et-accent-2);
+  margin-bottom: 1.25rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.jl-lecon-label {
+  font-family: var(--et-font-ui); font-size: 0.6875rem; font-weight: 500;
+  color: #8B6420; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+}
+.jl-modal-lecon p {
+  font-family: var(--et-font-echo); font-style: italic; font-size: 0.9rem;
+  color: var(--et-text-1); line-height: 1.75; margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.jl-modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+.jl-btn-signaler {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; font-family: var(--et-font-ui);
+  font-size: 0.75rem; color: var(--et-text-3); cursor: pointer; padding: 0;
+  transition: color 0.12s; white-space: nowrap;
+}
+.jl-btn-signaler:hover:not(:disabled) { color: var(--et-rose); }
+.jl-btn-signaler.signale { color: var(--et-rose); opacity: 0.6; cursor: default; }
+
+.jl-btn-fermer {
+  padding: 7px 20px; background: var(--et-accent); color: white; border: none;
+  border-radius: var(--et-radius-sm); font-family: var(--et-font-ui);
+  font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.jl-btn-fermer:hover { opacity: 0.88; }

@@ -1,46 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@300;400;500&display=swap');
 
 :root {
-  --et-lavande:        #7A6F9E;
-  --et-lavande-light:  #EDE9F7;
-  --et-lavande-xlight: #F7F5FC;
-  --et-rose:           #D4537E;
-  --et-rose-light:     #FBEAF0;
-  --et-rose-xlight:    #FEF7FA;
-  --et-blue:           #5BA8D4;
-  --et-blue-light:     #E6F1FB;
-  --et-encre:          #2C2A3A;
-  --et-bg:             #F4F2FA;
-  --et-surface:        #FFFFFF;
-  --et-surface-2:      #F7F5FC;
-  --et-text-1:         #1E1B2E;
-  --et-text-2:         #4A4560;
-  --et-text-3:         #8E8AAA;
-  --et-border:         rgba(122, 111, 158, 0.15);
-  --et-border-hover:   rgba(122, 111, 158, 0.30);
+  /* ── Thème M — Mauve dégradé ── */
+  --et-accent:         #7B5EA7;
+  --et-accent-deep:    #4A2E7A;
+  --et-accent-2:       #C49A52;
+  --et-rose:           #C4547E;
+  --et-rose-light:     #F5E0EA;
+  --et-rose-xlight:    #FBF0F4;
+
+  --et-bg:             #EDE8F5;
+  --et-bg-2:           #E8E0F2;
+  --et-surface:        rgba(255,255,255,0.82);
+  --et-surface-2:      rgba(255,255,255,0.55);
+  --et-surface-3:      rgba(123,94,167,0.08);
+
+  --et-text-1:         #2A1F3D;
+  --et-text-2:         #4A3A6A;
+  --et-text-3:         #8A7AAA;
+
+  --et-border:         rgba(123, 94, 167, 0.14);
+  --et-border-hover:   rgba(123, 94, 167, 0.28);
+
   --et-radius-sm:      8px;
   --et-radius-md:      12px;
   --et-radius-lg:      16px;
-  --et-shadow-sm:      0 1px 3px rgba(44, 42, 58, 0.06);
-  --et-shadow-md:      0 2px 8px rgba(44, 42, 58, 0.08);
+
+  --et-shadow-sm:      0 1px 4px rgba(42, 31, 61, 0.07);
+  --et-shadow-md:      0 2px 10px rgba(42, 31, 61, 0.10);
+
   --et-font-ui:        'Inter', system-ui, sans-serif;
   --et-font-echo:      'Lora', Georgia, serif;
+
+  /* Compatibilité */
+  --et-lavande:        #7B5EA7;
+  --et-lavande-light:  rgba(123,94,167,0.14);
+  --et-lavande-xlight: rgba(123,94,167,0.07);
+  --et-blue:           #5BA8D4;
+  --et-blue-light:     #E6F1FB;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
-}
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
 
 body {
   font-family: var(--et-font-ui);
-  background-color: var(--et-bg);
+  background: linear-gradient(160deg, #EDE8F5 0%, #F2EEF8 40%, #E8E0F2 100%);
+  background-attachment: fixed;
   color: var(--et-text-1);
   line-height: 1.6;
   min-height: 100dvh;
@@ -53,20 +60,8 @@ h1, h2, h3, h4 {
   line-height: 1.25;
 }
 
-h1 { font-size: 1.5rem; }
-h2 { font-size: 1.25rem; }
-h3 { font-size: 1.05rem; }
-
-p {
-  color: var(--et-text-2);
-  line-height: 1.7;
-}
-
-a {
-  color: var(--et-lavande);
-  text-decoration: none;
-}
-
+p { color: var(--et-text-2); line-height: 1.7; }
+a { color: var(--et-accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 #root {
@@ -77,18 +72,15 @@ a:hover { text-decoration: underline; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--et-border-hover);
-  border-radius: 4px;
-}
+::-webkit-scrollbar-thumb { background: var(--et-border-hover); border-radius: 4px; }
 
 :focus-visible {
-  outline: 2px solid var(--et-lavande);
+  outline: 2px solid var(--et-accent);
   outline-offset: 2px;
   border-radius: var(--et-radius-sm);
 }
 
-/* Utilitaires globaux */
+/* ── Badges globaux ── */
 .et-badge {
   display: inline-flex;
   align-items: center;
@@ -100,15 +92,16 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 
-.et-badge-lavande { background: var(--et-lavande-light); color: var(--et-lavande); }
-.et-badge-rose    { background: var(--et-rose-light);    color: var(--et-rose); }
-.et-badge-blue    { background: var(--et-blue-light);    color: #185FA5; }
+.et-badge-lavande { background: rgba(123,94,167,0.14); color: var(--et-accent-deep); }
+.et-badge-rose    { background: var(--et-rose-light); color: var(--et-rose); }
+.et-badge-blue    { background: var(--et-blue-light); color: #185FA5; }
 .et-badge-neutral {
   background: var(--et-surface-2);
   color: var(--et-text-2);
   border: 0.5px solid var(--et-border);
 }
 
+/* ── Boutons globaux ── */
 .et-btn {
   display: inline-flex;
   align-items: center;
@@ -122,21 +115,17 @@ a:hover { text-decoration: underline; }
   border: none;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
-  white-space: nowrap;
 }
 
 .et-btn:active { transform: scale(0.98); }
-
-.et-btn-primary  { background: var(--et-lavande); color: #fff; }
+.et-btn-primary { background: var(--et-accent); color: #fff; }
 .et-btn-primary:hover { opacity: 0.88; }
-
 .et-btn-secondary {
   background: transparent;
-  color: var(--et-lavande);
-  border: 1.5px solid var(--et-lavande-light);
+  color: var(--et-accent);
+  border: 1px solid var(--et-border-hover);
 }
-.et-btn-secondary:hover { background: var(--et-lavande-xlight); }
-
+.et-btn-secondary:hover { background: var(--et-surface-3); }
 .et-btn-ghost {
   background: transparent;
   color: var(--et-text-3);
@@ -144,6 +133,7 @@ a:hover { text-decoration: underline; }
 }
 .et-btn-ghost:hover { background: var(--et-surface-2); }
 
+/* ── Input global ── */
 .et-input {
   width: 100%;
   font-family: var(--et-font-ui);
@@ -155,10 +145,5 @@ a:hover { text-decoration: underline; }
   padding: 10px 14px;
   transition: border-color 0.15s;
 }
-
-.et-input:focus {
-  outline: none;
-  border-color: var(--et-lavande);
-}
-
+.et-input:focus { outline: none; border-color: var(--et-accent); }
 .et-input::placeholder { color: var(--et-text-3); }

@@ -2,6 +2,7 @@ import { Echo } from '../types';
 import { donnerJarreRose } from '../hooks/useReactions';
 import { useStockJarres } from '../hooks/useReactions';
 import { useAuth } from '../hooks/useAuth';
+import JarreIcon from './JarreIcon';
 import './EchoSolidaireModal.css';
 
 interface Props {
@@ -26,8 +27,9 @@ export default function EchoSolidaireModal({ echo, onClose }: Props) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>✕</button>
+
         <div className="modal-header">
-          <span className="modal-icon">💛</span>
+          <JarreIcon color="rose" size="l" />
           <h2>Écho Solidaire du mois</h2>
         </div>
 
@@ -36,14 +38,14 @@ export default function EchoSolidaireModal({ echo, onClose }: Props) {
             <p className="modal-pseudo">{echo.auteurPseudo}</p>
             <p className="modal-contenu">{echo.contenu}</p>
 
-            {/* Réactions existantes — lecture seule */}
             <div className="modal-reactions-existantes">
-              <span className="reaction-inactive">🫙 {echo.jarresBleues || 0}</span>
+              <span className="reaction-inactive">
+                <JarreIcon color="blue" size="s" /> {echo.jarresBleues || 0}
+              </span>
               <span className="reaction-inactive">❤️ {echo.coeurs || 0}</span>
               <span className="reaction-inactive">💔 {echo.coeursBrises || 0}</span>
             </div>
 
-            {/* Seule réaction active : jarre rose */}
             <div className="modal-reaction">
               <p className="modal-note">
                 Soutenez cet écho avec une Jarre Rose.
@@ -57,7 +59,8 @@ export default function EchoSolidaireModal({ echo, onClose }: Props) {
                 onClick={handleJarreRose}
                 disabled={stock.jarresRoses <= 0}
               >
-                🫙 Offrir une Jarre Rose · {echo.jarresRoses || 0}
+                <JarreIcon color="rose" size="s" />
+                Offrir une Jarre Rose · {echo.jarresRoses || 0}
               </button>
             </div>
           </>

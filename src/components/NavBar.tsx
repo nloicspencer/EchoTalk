@@ -2,10 +2,10 @@ import { Link, useLocation } from 'react-router-dom';
 import './NavBar.css';
 
 const ONGLETS = [
-  { path: '/', label: 'Fil', icon: '🏠' },
-  { path: '/decouverte', label: 'Découverte', icon: '🔍' },
-  { path: '/profil', label: 'EchoProfil', icon: '👤' },
-  { path: '/identite', label: 'Identité', icon: '💡' },
+  { path: '/', label: 'Fil', icon: 'ti-home' },
+  { path: '/decouverte', label: 'Découverte', icon: 'ti-compass' },
+  { path: '/profil', label: 'EchoProfil', icon: 'ti-user-circle' },
+  { path: '/identite', label: 'Identité', icon: 'ti-feather' },
 ];
 
 export default function NavBar() {
@@ -19,7 +19,9 @@ export default function NavBar() {
           to={o.path}
           className={`nav-item ${pathname === o.path ? 'active' : ''}`}
         >
-          <span className="nav-icon">{o.icon}</span>
+          <span className="nav-icon">
+            <i className={`ti ${o.icon}`} aria-hidden="true" />
+          </span>
           <span className="nav-label">{o.label}</span>
         </Link>
       ))}

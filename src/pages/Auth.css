@@ -1,37 +1,52 @@
 .auth-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
   padding: 1rem;
 }
 
 .auth-card {
-  background: var(--surface);
-  border-radius: 20px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(12px);
+  border-radius: var(--et-radius-lg);
   padding: 2.5rem 2rem;
   width: 100%;
   max-width: 420px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--et-border);
+  box-shadow: var(--et-shadow-md);
 }
 
-.auth-logo {
-  text-align: center;
-  margin-bottom: 2rem;
+.auth-logo { text-align: center; margin-bottom: 2rem; }
+.auth-logo-icon { display: block; margin: 0 auto 0.75rem; }
+
+.auth-logo h1 {
+  font-family: var(--et-font-echo);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--et-text-1);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
 }
 
-.auth-logo-icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
-.auth-logo h1 { font-size: 1.8rem; font-weight: 700; color: var(--text); margin: 0 0 0.5rem; }
-.auth-tagline { color: var(--text-muted); font-size: 0.9rem; margin: 0; line-height: 1.4; }
+.auth-logo h1 em { font-style: italic; color: var(--et-accent); }
+
+.auth-tagline {
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  color: var(--et-text-3);
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+}
 
 .auth-tabs {
   display: flex;
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 4px;
+  background: rgba(123,94,167,0.08);
+  border-radius: var(--et-radius-sm);
+  padding: 3px;
   margin-bottom: 1.5rem;
-  gap: 4px;
+  gap: 3px;
 }
 
 .auth-tabs button {
@@ -39,98 +54,152 @@
   padding: 0.6rem;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-text-3);
+  transition: all 0.15s;
 }
 
 .auth-tabs button.active {
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 600;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  background: var(--et-surface);
+  color: var(--et-accent);
+  font-weight: 500;
+  box-shadow: var(--et-shadow-sm);
 }
 
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.auth-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
+.auth-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.auth-row { display: flex; gap: 0.5rem; }
 .auth-row input { flex: 1; }
 
 .auth-label-small {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-size: 0.75rem;
+  color: var(--et-text-3);
   margin-bottom: -0.25rem;
+  font-family: var(--et-font-ui);
 }
+
+/* Civilité */
+.auth-civilite-row { display: flex; flex-direction: column; gap: 4px; }
+
+.auth-civilite-group {
+  display: flex;
+  gap: 6px;
+}
+
+.auth-civilite-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: rgba(255,255,255,0.5);
+  color: var(--et-text-2);
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.auth-civilite-btn:hover { border-color: var(--et-accent); color: var(--et-accent); }
+.auth-civilite-btn.active { background: var(--et-accent); color: white; border-color: var(--et-accent); }
 
 .auth-form input[type="text"],
 .auth-form input[type="email"],
 .auth-form input[type="password"],
 .auth-form input[type="date"] {
   padding: 0.85rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.95rem;
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: rgba(255,255,255,0.6);
+  color: var(--et-text-1);
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s;
   width: 100%;
 }
 
-.auth-form input:focus { border-color: var(--accent); }
+.auth-form input:focus { border-color: var(--et-accent); }
 
 .auth-checkbox {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
   cursor: pointer;
-  font-size: 0.88rem;
-  color: var(--text);
-  line-height: 1.4;
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-text-2);
+  line-height: 1.5;
 }
 
 .auth-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
-  cursor: pointer;
-  accent-color: var(--accent);
-  flex-shrink: 0;
+  width: 16px; height: 16px; margin-top: 2px;
+  cursor: pointer; accent-color: var(--et-accent); flex-shrink: 0;
 }
 
-.auth-erreur { color: #e74c3c; font-size: 0.85rem; margin: 0; }
+.auth-erreur {
+  color: var(--et-rose);
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  margin: 0;
+}
+
+.auth-erreur-bloc {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--et-radius-sm);
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  border: 0.5px solid;
+}
+
+.auth-erreur-bloc i { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.auth-erreur-bloc p { margin: 0; }
+
+.auth-erreur-bloc.normal {
+  background: var(--et-rose-xlight);
+  border-color: rgba(196,84,126,0.3);
+  color: var(--et-rose);
+}
+
+.auth-erreur-bloc.suspension {
+  background: rgba(196,154,82,0.1);
+  border-color: rgba(196,154,82,0.35);
+  color: #8B6420;
+}
+
+.auth-erreur-bloc.ban {
+  background: rgba(44,42,58,0.08);
+  border-color: rgba(44,42,58,0.2);
+  color: var(--et-text-1);
+}
 
 .auth-submit {
-  padding: 0.9rem;
-  background: var(--accent);
+  padding: 0.875rem;
+  background: var(--et-accent);
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: var(--et-radius-sm);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity 0.15s;
   margin-top: 0.25rem;
   width: 100%;
 }
 
-.auth-submit:hover:not(:disabled) { opacity: 0.9; }
+.auth-submit:hover:not(:disabled) { opacity: 0.88; }
 .auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Onboarding */
 .onboarding-page {
-  min-height: 100vh;
-  background: var(--bg);
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -145,90 +214,102 @@
   gap: 0.75rem;
 }
 
-.onboarding-carte {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1.5rem;
+.onboarding-header { text-align: center; margin-bottom: 0.5rem; }
+.onboarding-header span { display: block; margin-bottom: 0.25rem; }
+
+.onboarding-header h2 {
+  font-family: var(--et-font-echo);
+  font-size: 1.5rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--et-accent);
+  margin: 0 0 0.5rem;
 }
 
-.onboarding-icon { font-size: 1.8rem; display: block; margin-bottom: 0.5rem; }
+.onboarding-carte {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  padding: 1.25rem 1.5rem;
+}
+
+.onboarding-icon { font-size: 1.5rem; display: block; margin-bottom: 0.5rem; }
 
 .onboarding-carte h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
+  font-family: var(--et-font-ui);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--et-text-1);
   margin: 0 0 0.5rem;
 }
 
 .onboarding-carte p {
-  color: var(--text-muted);
-  font-size: 0.92rem;
-  line-height: 1.6;
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  color: var(--et-text-2);
+  font-size: 0.9rem;
+  line-height: 1.65;
   margin: 0;
 }
 
 .btn-rejoindre {
-  padding: 1rem;
-  background: var(--accent);
+  padding: 0.9rem;
+  background: var(--et-accent);
   color: white;
   border: none;
-  border-radius: 14px;
-  font-size: 1rem;
-  font-weight: 700;
+  border-radius: var(--et-radius-md);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity 0.15s;
   margin-top: 0.5rem;
 }
 
-.btn-rejoindre:hover { opacity: 0.9; }
+.btn-rejoindre:hover { opacity: 0.88; }
 
-/* Pseudo attribué */
-.pseudo-card {
-  text-align: center;
-}
-
-.pseudo-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
+.pseudo-card { text-align: center; }
+.pseudo-icon { display: block; margin: 0 auto 1rem; }
 
 .pseudo-card h2 {
+  font-family: var(--et-font-echo);
   font-size: 1.3rem;
-  color: var(--text);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--et-text-1);
   margin: 0 0 1.5rem;
 }
 
 .pseudo-label {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  color: var(--et-text-3);
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
   margin: 0 0 0.5rem;
 }
 
 .pseudo-nom {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--accent);
+  font-family: var(--et-font-echo);
+  font-size: 1.6rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--et-accent);
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background: var(--accent-light);
-  border-radius: 12px;
+  background: rgba(123,94,167,0.1);
+  border-radius: var(--et-radius-md);
 }
 
 .pseudo-note {
-  color: var(--text-muted);
-  font-size: 0.82rem;
+  color: var(--et-text-3);
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
   line-height: 1.6;
   margin: 0 0 1.5rem;
 }
 
-.input-password {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-password input {
-  width: 100%;
-  padding-right: 3rem !important;
-}
+.input-password { position: relative; display: flex; align-items: center; }
+.input-password input { width: 100%; padding-right: 3rem !important; }
 
 .toggle-pwd {
   position: absolute;
@@ -239,22 +320,5 @@
   font-size: 1rem;
   padding: 0;
   line-height: 1;
-}
-
-.onboarding-header {
-  text-align: center;
-  margin-bottom: 0.5rem;
-}
-
-.onboarding-header span {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.onboarding-header h2 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text);
-  margin: 0 0 1rem;
+  color: var(--et-text-3);
 }

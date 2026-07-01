@@ -24,29 +24,18 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
 
   useEffect(() => {
     if (!proprietaireId) return;
-
-    const q = query(
-      collection(db, 'echoreps_attente'),
-      where('statut', '==', 'en_attente')
-    );
-
+    const q = query(collection(db, 'echoreps_attente'), where('statut', '==', 'en_attente'));
     const unsub = onSnapshot(q, async (snap) => {
       const items: RepEnAttente[] = [];
       const echodata: typeof echoData = {};
-
       for (const d of snap.docs) {
         const data = d.data();
-        // Vérifier que c'est bien un écho du proprio
         try {
           const echoRef = await getDoc(doc(db, 'echos', data.echoId));
           if (echoRef.exists() && echoRef.data().auteurId === proprietaireId) {
             items.push({
-              id: d.id,
-              echoId: data.echoId,
-              echoContenu: data.echoContenu || '',
-              auteurId: data.auteurId,
-              auteurPseudo: data.auteurPseudo,
-              contenu: data.contenu,
+              id: d.id, echoId: data.echoId, echoContenu: data.echoContenu || '',
+              auteurId: data.auteurId, auteurPseudo: data.auteurPseudo, contenu: data.contenu,
               createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
               expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : new Date(),
             });
@@ -58,11 +47,9 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
           }
         } catch {}
       }
-
       setEnAttente(items);
       setEchoData(echodata);
     });
-
     return unsub;
   }, [proprietaireId]);
 
@@ -77,19 +64,12 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
   const handleAccepter = async (rep: RepEnAttente) => {
     const echo = echoData[rep.echoId];
     if (!echo) return;
-
     await updateDoc(doc(db, 'echoreps_attente', rep.id), { statut: 'accepte' });
     await addDoc(collection(db, 'echos', rep.echoId, 'echoreps'), {
-      auteurId: rep.auteurId,
-      auteurPseudo: rep.auteurPseudo,
-      contenu: rep.contenu,
-      createdAt: serverTimestamp(),
-      modifie: false,
-      supprime: false,
+      auteurId: rep.auteurId, auteurPseudo: rep.auteurPseudo, contenu: rep.contenu,
+      createdAt: serverTimestamp(), modifie: false, supprime: false,
     });
-    await updateDoc(doc(db, 'echos', rep.echoId), {
-      placesOccupees: echo.placesOccupees + 1,
-    });
+    await updateDoc(doc(db, 'echos', rep.echoId), { placesOccupees: echo.placesOccupees + 1 });
   };
 
   const handleRefuser = async (rep: RepEnAttente) => {
@@ -100,25 +80,30 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
 
   return (
     <div className="validation-section">
-      <h3>📬 EchoReps en attente de validation</h3>
+      <h3>EchoReps en attente de validation</h3>
       <p className="validation-note">
         {enAttente.length} EchoRep{enAttente.length > 1 ? 's' : ''} en attente.
         Sans réponse, elles seront acceptées automatiquement à l'expiration.
       </p>
-
       <div className="validation-liste">
         {enAttente.map(rep => (
           <div key={rep.id} className="validation-item">
             <div className="validation-echo-titre">
-              📝 Écho : "{(echoData[rep.echoId]?.contenu || rep.echoContenu).slice(0, 60)}..."
+              Écho : "{(echoData[rep.echoId]?.contenu || rep.echoContenu).slice(0, 60)}..."
             </div>
             <div className="validation-auteur">{rep.auteurPseudo}</div>
             <p className="validation-contenu">{rep.contenu}</p>
             <div className="validation-footer">
-              <span className="validation-timer">⏱ {tempsRestant(rep.expiresAt)}</span>
+              <span className="validation-timer">
+                <i className="ti ti-clock" aria-hidden="true" /> {tempsRestant(rep.expiresAt)}
+              </span>
               <div className="validation-actions">
-                <button className="btn-refuser" onClick={() => handleRefuser(rep)}>❌ Refuser</button>
-                <button className="btn-accepter" onClick={() => handleAccepter(rep)}>✅ Accepter</button>
+                <button className="btn-refuser" onClick={() => handleRefuser(rep)}>
+                  <i className="ti ti-x" aria-hidden="true" /> Refuser
+                </button>
+                <button className="btn-accepter" onClick={() => handleAccepter(rep)}>
+                  <i className="ti ti-check" aria-hidden="true" /> Accepter
+                </button>
               </div>
             </div>
           </div>

@@ -1,0 +1,152 @@
+.echolegue-section {
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-left: 3px solid var(--et-accent);
+  border-radius: var(--et-radius-md);
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+  backdrop-filter: blur(8px);
+}
+
+.el-header { margin-bottom: 1rem; }
+
+.el-header-toggle {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 0.12s;
+}
+.el-header-toggle:hover { opacity: 0.8; }
+.el-header-toggle > i { margin-top: 2px; color: var(--et-text-3); flex-shrink: 0; }
+.el-header-left { flex: 1; min-width: 0; }
+
+.el-titre {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--et-font-ui); font-size: 0.6875rem; font-weight: 500;
+  color: var(--et-text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+}
+
+.el-subtitle { font-family: var(--et-font-echo); font-style: italic; font-size: 0.8125rem; color: var(--et-text-3); margin: 0; }
+.el-message { font-family: var(--et-font-echo); font-style: italic; font-size: 0.8125rem; color: var(--et-accent); margin: 0 0 0.75rem; }
+
+.el-btn-ouvrir {
+  width: 100%; padding: 10px;
+  border: 0.5px dashed var(--et-border-hover);
+  border-radius: var(--et-radius-sm);
+  background: transparent; color: var(--et-accent);
+  font-family: var(--et-font-ui); font-size: 0.875rem;
+  cursor: pointer; transition: background 0.15s; text-align: center;
+}
+.el-btn-ouvrir:hover { background: rgba(123,94,167,0.06); }
+
+.el-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.el-champ { display: flex; flex-direction: column; gap: 4px; }
+.el-label { font-family: var(--et-font-ui); font-size: 0.75rem; font-weight: 500; color: var(--et-text-2); }
+
+.el-textarea {
+  width: 100%; padding: 10px 12px;
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: rgba(255,255,255,0.6);
+  font-family: var(--et-font-echo); font-style: italic; font-size: 0.875rem;
+  color: var(--et-text-1); resize: none; outline: none;
+  transition: border-color 0.15s; line-height: 1.65;
+}
+.el-textarea:focus { border-color: var(--et-accent); }
+.el-textarea::placeholder { color: var(--et-text-3); }
+
+.el-compteur { font-family: var(--et-font-ui); font-size: 0.6875rem; color: var(--et-text-3); text-align: right; }
+.el-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.el-btn-annuler {
+  padding: 8px 16px; border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm); background: transparent;
+  color: var(--et-text-2); font-family: var(--et-font-ui); font-size: 0.875rem;
+  cursor: pointer; transition: background 0.12s;
+}
+.el-btn-annuler:hover { background: var(--et-surface-2); }
+
+.el-btn-publier {
+  padding: 8px 20px; background: var(--et-accent); color: white; border: none;
+  border-radius: var(--et-radius-sm); font-family: var(--et-font-ui);
+  font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+}
+.el-btn-publier:hover:not(:disabled) { opacity: 0.88; }
+.el-btn-publier:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Mes Écholègues */
+.el-mes-legues { margin-top: 1rem; border-top: 0.5px solid var(--et-border); padding-top: 0.875rem; }
+
+.el-mes-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-family: var(--et-font-ui); font-size: 0.8125rem; font-weight: 500;
+  color: var(--et-text-2); margin-bottom: 0.5rem; transition: color 0.12s;
+}
+.el-mes-toggle:hover { color: var(--et-accent); }
+
+.el-mes-liste { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.el-mes-item {
+  background: rgba(123,94,167,0.05);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm); padding: 10px 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.el-mes-item-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px; flex-wrap: wrap; gap: 6px;
+}
+
+.el-mes-item-dates { display: flex; align-items: center; gap: 6px; }
+
+.el-mes-date { font-family: var(--et-font-ui); font-size: 0.6875rem; color: var(--et-text-3); }
+.el-mes-expire { font-family: var(--et-font-ui); font-size: 0.6875rem; color: var(--et-accent-2); }
+
+.el-statut {
+  font-family: var(--et-font-ui); font-size: 0.6875rem; font-weight: 500;
+  padding: 2px 8px; border-radius: 20px;
+}
+.el-statut-publie { background: rgba(123,94,167,0.1); color: var(--et-accent); }
+.el-statut-selectionne { background: rgba(196,154,82,0.15); color: #8B6420; }
+.el-statut-en_attente_moderation { background: rgba(196,154,82,0.1); color: #8B6420; }
+.el-statut-supprime { background: var(--et-rose-light); color: var(--et-rose); }
+
+.el-mes-recit {
+  font-family: var(--et-font-echo); font-style: italic;
+  font-size: 0.875rem; color: var(--et-text-2); margin: 0 0 0.5rem; line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+
+/* Lire plus / Réduire (copié d'AdminPage.css) */
+.btn-lire-plus {
+  background: none; border: none; padding: 0; margin: -4px 0 6px;
+  font-family: var(--et-font-ui); font-size: 0.6875rem; font-weight: 500;
+  color: var(--et-accent); cursor: pointer; text-decoration: underline;
+}
+.btn-lire-plus:hover { opacity: 0.8; }
+
+/* Cross-fade lors du basculement Lire plus / Réduire */
+@keyframes texteCrossfade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.texte-crossfade {
+  animation: texteCrossfade 0.25s ease-in;
+}

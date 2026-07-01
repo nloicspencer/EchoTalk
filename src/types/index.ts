@@ -43,6 +43,7 @@ export interface UserProfile {
   jarresBleuesRecues: number;
   jarresBleuesPartagees: number;
   coeursRecus: number;
+  role?: 'admin' | 'moderateur'; // absent = membre standard
 }
 
 export interface EchoRep {

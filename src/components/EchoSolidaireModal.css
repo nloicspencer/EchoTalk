@@ -1,113 +1,139 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(42, 31, 61, 0.5);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 200;
   padding: 1rem;
 }
 
 .modal-content {
-  background: var(--surface);
-  border-radius: 20px;
+  background: rgba(245, 240, 252, 0.96);
+  backdrop-filter: blur(20px);
+  border-radius: var(--et-radius-lg);
   padding: 2rem;
-  max-width: 480px;
+  max-width: 440px;
   width: 100%;
   position: relative;
+  border: 0.5px solid rgba(123,94,167,0.2);
+  box-shadow: 0 8px 32px rgba(42, 31, 61, 0.2);
 }
 
 .modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.2rem;
+  top: 14px;
+  right: 14px;
+  background: rgba(123,94,167,0.1);
+  border: 0.5px solid var(--et-border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--et-text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
 }
+
+.modal-close:hover { background: rgba(123,94,167,0.2); color: var(--et-accent); }
 
 .modal-header {
   text-align: center;
   margin-bottom: 1.5rem;
-}
-
-.modal-icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .modal-header h2 {
-  font-size: 1.3rem;
-  color: var(--text);
+  font-family: var(--et-font-echo);
+  font-size: 1.2rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--et-text-1);
   margin: 0;
 }
 
 .modal-pseudo {
-  font-weight: 700;
-  color: var(--text);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--et-accent);
   margin: 0 0 0.75rem;
+  font-family: var(--et-font-ui);
 }
 
 .modal-contenu {
-  color: var(--text);
-  line-height: 1.6;
-  margin: 0 0 1.5rem;
-}
-
-.modal-reaction {
-  text-align: center;
-}
-
-.modal-note {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin: 0 0 1rem;
-}
-
-.btn-jarre-rose {
-  padding: 0.85rem 2rem;
-  background: linear-gradient(135deg, #e91e8c, #ff6b9d);
-  color: white;
-  border: none;
-  border-radius: 30px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btn-jarre-rose:hover {
-  opacity: 0.9;
-}
-
-.modal-vide {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 1rem 0;
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 0.9375rem;
+  color: var(--et-text-1);
+  line-height: 1.75;
+  margin: 0 0 1.25rem;
+  padding: 12px 16px;
+  background: rgba(123,94,167,0.07);
+  border-radius: var(--et-radius-sm);
+  border-left: 3px solid var(--et-rose);
 }
 
 .modal-reactions-existantes {
   display: flex;
-  gap: 1rem;
+  gap: 12px;
   justify-content: center;
-  margin: 0.75rem 0;
-  padding: 0.75rem;
-  background: var(--bg);
-  border-radius: 10px;
+  margin: 0 0 1.25rem;
+  padding: 10px 14px;
+  background: rgba(123,94,167,0.07);
+  border-radius: var(--et-radius-sm);
+  border: 0.5px solid var(--et-border);
 }
 
 .reaction-inactive {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  opacity: 0.6;
-  cursor: default;
+  font-size: 0.875rem;
+  color: var(--et-text-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.btn-jarre-rose.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.modal-reaction { text-align: center; }
+
+.modal-note {
+  font-family: var(--et-font-ui);
+  color: var(--et-text-3);
+  font-size: 0.8125rem;
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.btn-jarre-rose {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: var(--et-rose);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--et-font-ui);
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-jarre-rose:hover { opacity: 0.88; }
+.btn-jarre-rose:active { transform: scale(0.97); }
+.btn-jarre-rose.disabled { opacity: 0.4; cursor: not-allowed; }
+
+.modal-vide {
+  text-align: center;
+  color: var(--et-text-3);
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  padding: 1rem 0;
 }

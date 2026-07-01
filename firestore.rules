@@ -1,0 +1,175 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estConnecte() {
+      return request.auth != null;
+    }
+
+    function estProprietaire(userId) {
+      return estConnecte() && request.auth.uid == userId;
+    }
+
+    function estModerateurOuAdmin() {
+      return estConnecte()
+        && 'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderateur'];
+    }
+
+    function estAdmin() {
+      return estConnecte()
+        && 'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /users/{userId} {
+      allow read: if estProprietaire(userId) || estModerateurOuAdmin();
+      allow create: if estProprietaire(userId)
+        && (!('role' in request.resource.data) || request.resource.data.role == null);
+      allow update: if (estProprietaire(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+        || estAdmin();
+      allow delete: if estAdmin();
+    }
+
+    match /echos/{echoId} {
+      function seulsChampsReactionOuPlaces() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['jarresBleues', 'coeurs', 'coeursBrises', 'jarresRoses', 'placesOccupees']);
+      }
+      function modifieLeContenu() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['contenu'])
+          && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['supprime'])
+               && request.resource.data.supprime == true);
+      }
+      function dansLaFenetreDeModification() {
+        return resource.data.createdAt is timestamp
+          && request.time < resource.data.createdAt + duration.value(24, 'h');
+      }
+      function reouvertureValide() {
+        // Si reouverturesRestantes change, ce doit être une vraie réouverture :
+        // l'écho passe de fermé (estOuvert=false) à ouvert (estOuvert=true),
+        // le compteur décroît d'exactement 1, et reste positif ou nul.
+        let changeReouvertures = request.resource.data.diff(resource.data).affectedKeys().hasAny(['reouverturesRestantes']);
+        return !changeReouvertures || (
+          resource.data.estOuvert == false
+          && request.resource.data.estOuvert == true
+          && resource.data.reouverturesRestantes > 0
+          && request.resource.data.reouverturesRestantes == resource.data.reouverturesRestantes - 1
+        );
+      }
+
+      allow read: if estConnecte();
+      allow create: if estConnecte()
+        && request.resource.data.auteurId == request.auth.uid;
+      allow update: if estConnecte()
+        && (
+          (
+            resource.data.auteurId == request.auth.uid
+            && (!modifieLeContenu() || dansLaFenetreDeModification())
+            && reouvertureValide()
+          )
+          || estModerateurOuAdmin()
+          || seulsChampsReactionOuPlaces()
+        );
+      allow delete: if estConnecte()
+        && (resource.data.auteurId == request.auth.uid || estModerateurOuAdmin());
+
+      match /echoreps/{repId} {
+        allow read: if estConnecte();
+        allow create: if estConnecte()
+          && (
+            request.resource.data.auteurId == request.auth.uid
+            || estModerateurOuAdmin()
+            || get(/databases/$(database)/documents/echos/$(echoId)).data.auteurId == request.auth.uid
+          );
+        allow update, delete: if estConnecte()
+          && (
+            resource.data.auteurId == request.auth.uid
+            || estModerateurOuAdmin()
+            || get(/databases/$(database)/documents/echos/$(echoId)).data.auteurId == request.auth.uid
+          );
+      }
+    }
+
+    match /echolegues/{id} {
+      allow read: if estConnecte();
+      allow create: if estConnecte()
+        && request.resource.data.auteurId == request.auth.uid;
+      allow update: if estConnecte()
+        && (resource.data.auteurId == request.auth.uid || estModerateurOuAdmin());
+      allow delete: if estConnecte()
+        && (resource.data.auteurId == request.auth.uid || estModerateurOuAdmin());
+    }
+
+    match /echos_bouteille/{id} {
+      allow read: if estConnecte()
+        && (request.auth.uid == resource.data.expediteurId
+            || request.auth.uid == resource.data.destinataireId
+            || estModerateurOuAdmin());
+      allow create: if estConnecte()
+        && request.resource.data.expediteurId == request.auth.uid;
+      allow update: if estConnecte()
+        && (request.auth.uid == resource.data.destinataireId
+            || request.auth.uid == resource.data.expediteurId
+            || estModerateurOuAdmin());
+      allow delete: if estModerateurOuAdmin();
+    }
+
+    match /echoreps_attente/{id} {
+      function estProprietaireEchoConcerne() {
+        return estConnecte()
+          && get(/databases/$(database)/documents/echos/$(resource.data.echoId)).data.auteurId == request.auth.uid;
+      }
+      allow read: if estConnecte();
+      allow create: if estConnecte()
+        && request.resource.data.auteurId == request.auth.uid;
+      allow update: if estConnecte()
+        && (estProprietaireEchoConcerne() || estModerateurOuAdmin());
+      allow delete: if estModerateurOuAdmin();
+    }
+
+    match /signalements/{id} {
+      allow read: if estModerateurOuAdmin();
+      allow create: if estConnecte();
+      allow update, delete: if estModerateurOuAdmin();
+    }
+
+    match /historique_moderation/{id} {
+      allow read: if estModerateurOuAdmin();
+      allow create: if estModerateurOuAdmin();
+      allow update, delete: if false;
+    }
+
+    match /packs/{id} {
+      allow read: if estConnecte()
+        && (resource.data.userId == request.auth.uid || estAdmin());
+      allow create: if estConnecte()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /pseudos/{pseudo} {
+      allow read: if true;
+      allow create: if estConnecte()
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /reactions/{id} {
+      allow read: if estConnecte() && resource.data.auteurId == request.auth.uid;
+      allow create: if estConnecte()
+        && request.resource.data.auteurId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /stats/{id} {
+      allow read, write: if estAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,3 +1,5 @@
+.fil-page { padding-top: 0; }
+
 .fil-header {
   display: flex;
   align-items: center;
@@ -6,31 +8,32 @@
 }
 
 .fil-header-logo {
-  font-size: 1.375rem;
-  font-weight: 500;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 400;
   color: var(--et-text-1);
   letter-spacing: -0.02em;
 }
 
 .fil-header-logo span {
-  color: var(--et-lavande);
   font-style: italic;
-  font-family: var(--et-font-echo);
+  color: var(--et-accent);
 }
 
 .fil-user-banner {
   margin: 0 16px 12px;
   padding: 14px 16px;
-  background: var(--et-lavande-xlight);
+  background: var(--et-surface);
   border: 0.5px solid var(--et-border);
-  border-left: 3px solid var(--et-lavande);
-  border-radius: var(--et-radius-md);
+  border-left: 3px solid var(--et-accent);
+  border-radius: 0 var(--et-radius-md) var(--et-radius-md) 0;
+  backdrop-filter: blur(8px);
 }
 
 .fil-user-pseudo {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--et-lavande);
+  color: var(--et-accent);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -44,22 +47,45 @@
   color: var(--et-text-3);
 }
 
+/* Puits communauté */
 .fil-community-counter {
   margin: 0 16px 12px;
-  padding: 12px 16px;
-  background: var(--et-surface);
-  border: 0.5px solid var(--et-border);
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #C4B4E0, #B0A0D0);
   border-radius: var(--et-radius-md);
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.875rem;
-  color: var(--et-text-2);
+  gap: 14px;
 }
 
-.fil-community-counter strong {
-  color: var(--et-text-1);
+.fil-community-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fil-community-nombre {
+  font-family: var(--et-font-ui);
+  font-size: 1.375rem;
   font-weight: 500;
+  color: #1A0F2E;
+  line-height: 1;
+}
+
+.fil-community-label {
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  color: #4A2E7A;
+}
+
+.fil-community-sub {
+  width: 100%;
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 0.75rem;
+  color: #6B5090;
+  margin-top: 1px;
 }
 
 .fil-filters {
@@ -84,54 +110,97 @@
   justify-content: center;
   gap: 8px;
   transition: background 0.15s;
+  backdrop-filter: blur(8px);
 }
 
-.fil-filter-btn:hover { background: var(--et-surface-2); }
+.fil-filter-btn:hover { background: var(--et-surface-3); }
 
 .fil-filter-btn.solidaire {
   background: var(--et-rose-xlight);
-  border-color: rgba(212, 83, 126, 0.2);
+  border-color: rgba(196, 84, 126, 0.2);
   color: var(--et-rose);
 }
-
 .fil-filter-btn.solidaire:hover { background: var(--et-rose-light); }
 
-.fil-compose {
-  margin: 0 16px 16px;
-  padding: 12px 16px;
+.categories-panel {
+  margin: 0 16px 12px;
   background: var(--et-surface);
   border: 0.5px solid var(--et-border);
   border-radius: var(--et-radius-md);
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  padding: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.categories-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+
+.cat-pill {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 0.5px solid var(--et-border);
+  background: var(--et-surface-2);
+  font-size: 0.8125rem;
+  color: var(--et-text-2);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all 0.15s;
+  font-family: var(--et-font-ui);
 }
 
-.fil-compose:hover { border-color: var(--et-border-hover); }
+.cat-pill:hover { background: var(--et-surface-3); }
+.cat-pill.active { background: var(--et-accent); color: #fff; border-color: var(--et-accent); }
 
-.fil-compose-plus {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--et-lavande-light);
-  color: var(--et-lavande);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.fil-compose-placeholder {
-  font-size: 0.875rem;
+.cat-reset {
+  font-size: 0.75rem;
   color: var(--et-text-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
 }
 
-.fil-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0 16px;
+.categories-actives { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 16px 12px; }
+
+.cat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: rgba(123,94,167,0.14);
+  color: var(--et-accent-deep);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.cat-tag button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--et-accent);
+  font-size: 0.75rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.fil-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 16px; }
+
+.loading, .vide {
+  text-align: center;
+  padding: 2rem;
+  color: var(--et-text-3);
+  font-size: 0.875rem;
+  font-family: var(--et-font-echo);
+  font-style: italic;
+}
+
+/* Micro-animation sur le compteur du puits communauté */
+@keyframes compteurPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+.compteur-pop {
+  display: inline-block;
+  animation: compteurPop 0.35s ease-out;
 }

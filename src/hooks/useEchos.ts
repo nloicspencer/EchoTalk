@@ -1,18 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-  onSnapshot,
-  query,
-  orderBy,
-  where,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  Timestamp,
-  collection,
-  getDocs,
-  writeBatch,
+  onSnapshot, query, orderBy, where,
+  addDoc, updateDoc, deleteDoc, doc,
+  serverTimestamp, Timestamp, collection, getDocs, writeBatch,
 } from 'firebase/firestore';
 import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
@@ -20,11 +10,11 @@ import { Echo, EchoType, Tonalite } from '../types';
 
 function convertEcho(id: string, data: Record<string, unknown>): Echo {
   return {
-    ...data,
-    id,
+    ...data, id,
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
     expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : undefined,
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
+    suppressionAt: data.suppressionAt instanceof Timestamp ? data.suppressionAt.toDate() : undefined,
     reouverturesRestantes: data.reouverturesRestantes !== undefined ? data.reouverturesRestantes : 3,
   } as Echo;
 }
@@ -41,7 +31,7 @@ export function useEchos() {
       const echosFiltres = snap.docs
         .map((d) => convertEcho(d.id, d.data() as Record<string, unknown>))
         .filter(e => {
-          // Masquer les échos supprimés depuis plus de 24h
+          if (e.masque) return false;
           if (e.supprime && e.suppressionAt) {
             const suppressionDate = e.suppressionAt instanceof Date ? e.suppressionAt : new Date(e.suppressionAt);
             if (!isNaN(suppressionDate.getTime())) {
@@ -61,47 +51,32 @@ export function useEchos() {
 
 export function useEchoSolidaire() {
   const [echoSolidaire, setEchoSolidaire] = useState<Echo | null>(null);
-
   useEffect(() => {
     const q = query(echosCollection, where('estSolidaire', '==', true), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, async (snap) => {
       if (!snap.empty) {
         const d = snap.docs[0];
         const data = d.data();
-        // Vérifier expiration automatique (1 mois)
         const jusquau = data.solidaireJusquau instanceof Timestamp
           ? data.solidaireJusquau.toDate()
           : data.solidaireJusquau ? new Date(data.solidaireJusquau) : null;
         if (jusquau && new Date() > jusquau) {
-          // Expiration — sortir du solidaire automatiquement
-          await updateDoc(doc(db, 'echos', d.id), {
-            estSolidaire: false,
-            solidaireTermineAt: new Date(),
-          });
+          await updateDoc(doc(db, 'echos', d.id), { estSolidaire: false, solidaireTermineAt: new Date() });
           setEchoSolidaire(null);
         } else {
           setEchoSolidaire(convertEcho(d.id, data as Record<string, unknown>));
         }
-      } else {
-        setEchoSolidaire(null);
-      }
+      } else { setEchoSolidaire(null); }
     });
     return unsub;
   }, []);
-
   return echoSolidaire;
 }
 
 export function useEchoReps(echoId: string) {
   const [echoReps, setEchoReps] = useState<Array<{
-    id: string;
-    auteurId: string;
-    auteurPseudo: string;
-    contenu: string;
-    createdAt: Date;
-    updatedAt?: Date;
-    supprime?: boolean;
-    modifie?: boolean;
+    id: string; auteurId: string; auteurPseudo: string; contenu: string;
+    createdAt: Date; updatedAt?: Date; supprime?: boolean; modifie?: boolean; masque?: boolean;
   }>>([]);
 
   useEffect(() => {
@@ -113,13 +88,16 @@ export function useEchoReps(echoId: string) {
       const heures24 = 24 * 60 * 60 * 1000;
       const reps = snap.docs
         .map(d => ({
-          id: d.id,
-          ...d.data(),
+          id: d.id, ...d.data(),
           createdAt: d.data().createdAt instanceof Timestamp ? d.data().createdAt.toDate() : new Date(),
           updatedAt: d.data().updatedAt instanceof Timestamp ? d.data().updatedAt.toDate() : undefined,
-          suppressionAt: d.data().suppressionAt ? new Date(d.data().suppressionAt.seconds ? d.data().suppressionAt.seconds * 1000 : d.data().suppressionAt) : undefined,
+          suppressionAt: d.data().suppressionAt
+            ? new Date(d.data().suppressionAt.seconds ? d.data().suppressionAt.seconds * 1000 : d.data().suppressionAt)
+            : undefined,
         }))
         .filter(r => {
+          // Masquée par modération → invisible
+          if (r.masque) return false;
           if (r.supprime && r.suppressionAt && r.contenu === 'EchoRep supprimée suite à un signalement.') {
             return maintenant - r.suppressionAt.getTime() < heures24;
           }
@@ -133,185 +111,106 @@ export function useEchoReps(echoId: string) {
   return echoReps;
 }
 
-// ── PUBLIER ──────────────────────────────────────────────
-
 interface PublierEchoParams {
-  contenu: string;
-  auteurId: string;
-  auteurPseudo: string;
-  tonalite: Tonalite;
-  type: EchoType;
-  placesMax?: 3 | 6 | 8;
-  periodicitéJours?: 2 | 6 | 10;
+  contenu: string; auteurId: string; auteurPseudo: string;
+  tonalite: Tonalite; type: EchoType; placesMax?: 3 | 6 | 8; periodicitéJours?: 2 | 6 | 10;
 }
 
 export async function publierEcho(params: PublierEchoParams) {
   const expiresAt = params.periodicitéJours
-    ? new Date(Date.now() + params.periodicitéJours * 24 * 60 * 60 * 1000)
-    : null;
-
+    ? new Date(Date.now() + params.periodicitéJours * 24 * 60 * 60 * 1000) : null;
   const echoRef = await addDoc(echosCollection, {
-    contenu: params.contenu,
-    auteurId: params.auteurId,
-    auteurPseudo: params.auteurPseudo,
-    tonalite: params.tonalite,
-    type: params.type,
-    categorie: 'general',
-    createdAt: serverTimestamp(),
-    jarresBleues: 0,
-    coeurs: 0,
-    coeursBrises: 0,
-    estSolidaire: false,
-    modifie: false,
-    supprime: false,
+    contenu: params.contenu, auteurId: params.auteurId, auteurPseudo: params.auteurPseudo,
+    tonalite: params.tonalite, type: params.type, categorie: 'general',
+    createdAt: serverTimestamp(), jarresBleues: 0, coeurs: 0, coeursBrises: 0,
+    estSolidaire: false, modifie: false, supprime: false, masque: false,
     ...(params.type === 'ouvert' && {
-      placesMax: params.placesMax ?? 6,
-      placesOccupees: 0,
-      periodicitéJours: params.periodicitéJours ?? 6,
-      ouvertureCount: 1,
-      reouverturesRestantes: 3,
-      estOuvert: true,
-      expiresAt,
+      placesMax: params.placesMax ?? 6, placesOccupees: 0,
+      periodicitéJours: params.periodicitéJours ?? 6, ouvertureCount: 1,
+      reouverturesRestantes: 3, estOuvert: true, expiresAt,
     }),
   });
-
-  // Analyser le contenu avec le vrai ID
   await analyserEtSignaler(echoRef.id, params.auteurId, params.auteurPseudo, params.contenu, 'echo');
-
   return echoRef;
 }
 
-// ── MODIFIER ÉCHO ─────────────────────────────────────────
-
 export async function modifierEcho(echoId: string, nouveauContenu: string, createdAt: Date) {
-  const diff = Date.now() - createdAt.getTime();
-  const heures24 = 24 * 60 * 60 * 1000;
-  if (diff > heures24) throw new Error('Le délai de modification de 24h est dépassé.');
-  await updateDoc(doc(db, 'echos', echoId), {
-    contenu: nouveauContenu,
-    modifie: true,
-    updatedAt: serverTimestamp(),
-  });
+  if (Date.now() - createdAt.getTime() > 24 * 60 * 60 * 1000) throw new Error('Le délai de modification de 24h est dépassé.');
+  await updateDoc(doc(db, 'echos', echoId), { contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp() });
 }
-
-// ── SUPPRIMER ÉCHO ────────────────────────────────────────
 
 export async function supprimerEcho(echo: Echo) {
   const echoRef = doc(db, 'echos', echo.id);
-
   if (echo.type === 'ouvert') {
-    // Compter les EchoRep non supprimées
     const repsRef = collection(db, 'echos', echo.id, 'echoreps');
     const reps = await getDocs(repsRef);
     const nbReps = reps.docs.filter(d => !d.data().supprime).length;
-
-    // Supprimer toutes les EchoRep
     const batch = writeBatch(db);
     reps.docs.forEach(d => batch.delete(d.ref));
-
-    // Marquer l'écho comme supprimé (pas delete, pour garder la trace)
     batch.update(echoRef, {
       supprime: true,
-      contenu: `Écho Ouvert supprimé par son auteur — ${nbReps} EchoRep${nbReps !== 1 ? 's' : ''} avaient été partagées`,
+      contenu: `Écho Ouvert supprimé par son auteur — ${nbReps} EchoRep${nbReps !== 1 ? 's' : ''} ${nbReps !== 1 ? 'avaient été partagés' : 'avait été partagé'}`,
       estOuvert: false,
+      suppressionAt: serverTimestamp(),
     });
     await batch.commit();
-  } else {
-    // Écho Libre → suppression directe
-    await deleteDoc(echoRef);
-  }
+  } else { await deleteDoc(echoRef); }
 }
 
-// ── ECHOREP ───────────────────────────────────────────────
-
 export async function publierEchoRep(
-  echoId: string,
-  auteurId: string,
-  auteurPseudo: string,
-  contenu: string,
-  placesOccupees: number,
-  placesMax: number,
-  estProprietaire: boolean,
-  echoContenu: string = ''
+  echoId: string, auteurId: string, auteurPseudo: string, contenu: string,
+  placesOccupees: number, placesMax: number, estProprietaire: boolean, echoContenu: string = ''
 ) {
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
   const existing = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
-  const premiereParticipation = existing.empty;
-
-  if (premiereParticipation && !estProprietaire && placesOccupees >= placesMax) {
+  if (existing.empty && !estProprietaire && placesOccupees >= placesMax) {
     throw new Error('Plus de places disponibles dans cet écho');
   }
-
   if (estProprietaire) {
-    // Le proprio publie directement sans validation
-    await addDoc(repsRef, {
-      auteurId,
-      auteurPseudo,
-      contenu,
-      createdAt: serverTimestamp(),
-      modifie: false,
-      supprime: false,
-    });
+    await addDoc(repsRef, { auteurId, auteurPseudo, contenu, createdAt: serverTimestamp(), modifie: false, supprime: false });
   } else {
-    // Les autres passent par la validation du propriétaire
     await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu);
     throw new Error('VALIDATION_REQUISE');
   }
 }
 
 export async function modifierEchoRep(echoId: string, repId: string, nouveauContenu: string, createdAt: Date) {
-  const diff = Date.now() - createdAt.getTime();
-  const minutes60 = 60 * 60 * 1000;
-  if (diff > minutes60) throw new Error('Le délai de modification de 60 minutes est dépassé.');
-  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
-    contenu: nouveauContenu,
-    modifie: true,
-    updatedAt: serverTimestamp(),
-  });
+  if (Date.now() - createdAt.getTime() > 60 * 60 * 1000) throw new Error('Le délai de modification de 60 minutes est dépassé.');
+  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), { contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp() });
 }
 
-export async function supprimerEchoRep(
-  echoId: string,
-  repId: string,
-  auteurId: string,
-  placesOccupees: number,
-  estProprietaire: boolean
-) {
+export async function supprimerEchoRep(echoId: string, repId: string, auteurId: string, placesOccupees: number, estProprietaire: boolean) {
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
-
-  // Vérifier si c'est la seule EchoRep de cet auteur
   const autresReps = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
   const seulementCetteRep = autresReps.docs.length === 1;
-
-  // Marquer comme supprimée
-  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
-    supprime: true,
-    contenu: 'EchoRep supprimée par son auteur.',
-  });
-
-  // Libérer la place si c'était la seule participation
+  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), { supprime: true, contenu: 'EchoRep supprimée par son auteur.' });
   if (seulementCetteRep && !estProprietaire) {
-    await updateDoc(doc(db, 'echos', echoId), {
-      placesOccupees: Math.max(0, placesOccupees - 1),
-    });
+    await updateDoc(doc(db, 'echos', echoId), { placesOccupees: Math.max(0, placesOccupees - 1) });
   }
 }
 
-// ── AUTRES ───────────────────────────────────────────────
-
-export async function toggleEchoOuvert(echoId: string, estOuvert: boolean, reouverturesRestantes: number) {
+export async function toggleEchoOuvert(
+  echoId: string, estOuvert: boolean, reouverturesRestantes: number, nouvellePeriodicite?: 2 | 6 | 10
+) {
   if (estOuvert) {
-    await updateDoc(doc(db, 'echos', echoId), {
-      estOuvert: false,
-      clotureManuellement: true,
-    });
+    await updateDoc(doc(db, 'echos', echoId), { estOuvert: false, clotureManuellement: true });
     return;
   }
   if (reouverturesRestantes <= 0) throw new Error('Plus de réouvertures disponibles pour cet écho');
+  const periodicitéJours = nouvellePeriodicite ?? 6;
+  const expiresAt = new Date(Date.now() + periodicitéJours * 24 * 60 * 60 * 1000);
   await updateDoc(doc(db, 'echos', echoId), {
-    estOuvert: true,
-    reouverturesRestantes: reouverturesRestantes - 1,
-    clotureManuellement: false,
+    estOuvert: true, reouverturesRestantes: reouverturesRestantes - 1,
+    clotureManuellement: false, fermeAutomatiquement: false,
+    periodicitéJours, expiresAt,
+  });
+}
+
+// Constate qu'un écho ouvert a dépassé sa date d'expiration et le ferme
+// automatiquement en base (sans consommer de réouverture, sans alerter l'auteur).
+export async function fermerEchoExpire(echoId: string) {
+  await updateDoc(doc(db, 'echos', echoId), {
+    estOuvert: false, clotureManuellement: false, fermeAutomatiquement: true,
   });
 }
 

@@ -4,79 +4,75 @@
   padding: 1.5rem 1rem 5rem;
 }
 
-.decouverte-header {
-  margin-bottom: 1.25rem;
-}
+.decouverte-header { margin-bottom: 1.25rem; }
 
 .decouverte-header h1 {
+  font-family: var(--et-font-ui);
   font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--text);
+  font-weight: 500;
+  color: var(--et-text-1);
   margin: 0 0 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .decouverte-header p {
-  color: var(--text-muted);
-  font-size: 0.88rem;
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  color: var(--et-text-3);
+  font-size: 0.875rem;
   margin: 0;
 }
 
-/* Barre de recherche */
 .recherche-bar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s;
+  backdrop-filter: blur(8px);
 }
 
-.recherche-bar:focus-within {
-  border-color: var(--accent);
-}
+.recherche-bar:focus-within { border-color: var(--et-accent); }
 
-.recherche-icon {
-  font-size: 1rem;
-  flex-shrink: 0;
-}
+.recherche-icon { font-size: 1rem; flex-shrink: 0; color: var(--et-text-3); }
 
 .recherche-bar input {
   flex: 1;
   border: none;
   background: transparent;
-  color: var(--text);
-  font-size: 0.95rem;
+  color: var(--et-text-1);
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
   outline: none;
-  font-family: inherit;
 }
 
-.recherche-bar input::placeholder {
-  color: var(--text-muted);
-}
+.recherche-bar input::placeholder { color: var(--et-text-3); }
 
 .recherche-clear {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--et-text-3);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   padding: 0;
-  flex-shrink: 0;
 }
 
-/* Filtres */
 .filtres {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
   padding: 1rem;
   margin-bottom: 1rem;
+  backdrop-filter: blur(8px);
 }
 
 .filtre-groupe {
@@ -87,68 +83,41 @@
 }
 
 .filtre-label {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  font-weight: 600;
+  font-size: 0.6875rem;
+  color: var(--et-text-3);
+  font-weight: 500;
+  font-family: var(--et-font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
   min-width: 60px;
 }
 
-.filtre-pills {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
+.filtre-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 
 .filtre-pill {
-  padding: 0.35rem 0.85rem;
-  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border: 0.5px solid var(--et-border);
   border-radius: 20px;
-  background: var(--bg);
-  color: var(--text-muted);
-  font-size: 0.82rem;
+  background: rgba(255,255,255,0.5);
+  color: var(--et-text-2);
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 
-.filtre-pill:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.filtre-pill:hover { border-color: var(--et-accent); color: var(--et-accent); }
+.filtre-pill.active { background: var(--et-accent); color: white; border-color: var(--et-accent); }
 
-.filtre-pill.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-/* Résultats */
 .resultats-count {
-  font-size: 0.82rem;
-  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-text-3);
   margin: 0 0 0.75rem;
 }
 
-.echos-liste {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
+.echos-liste { display: flex; flex-direction: column; gap: 0.75rem; }
 
-.decouverte-vide {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: var(--text-muted);
-}
-
-.decouverte-vide span {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 0.75rem;
-}
-
-.decouverte-vide p {
-  font-size: 0.9rem;
-  margin: 0;
-}
+.decouverte-vide { text-align: center; padding: 3rem 1rem; color: var(--et-text-3); }
+.decouverte-vide span { font-size: 2rem; display: block; margin-bottom: 0.75rem; }
+.decouverte-vide p { font-size: 0.875rem; font-family: var(--et-font-echo); font-style: italic; margin: 0; }

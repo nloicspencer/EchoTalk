@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Echo } from '../types';
 import {
   useEchoReps, publierEchoRep,
   toggleEchoOuvert, modifierEcho, supprimerEcho,
-  modifierEchoRep, supprimerEchoRep,
+  modifierEchoRep, supprimerEchoRep, fermerEchoExpire,
 } from '../hooks/useEchos';
 import { useStockJarres, donnerJarreBleu, donnerJarreRose, donnerCoeur } from '../hooks/useReactions';
 import { signalerContenu } from '../hooks/useModeration';
@@ -11,9 +11,9 @@ import { useAuth } from '../hooks/useAuth';
 import './EchoCard.css';
 import JarreIcon from './JarreIcon';
 
-interface Props { echo: Echo; }
+interface Props { echo: Echo; delayIndex?: number; }
 
-export default function EchoCard({ echo }: Props) {
+export default function EchoCard({ echo, delayIndex = 0 }: Props) {
   const [masquerReps, setMasquerReps] = useState(false);
   const [showRepForm, setShowRepForm] = useState(false);
   const [repContenu, setRepContenu] = useState('');
@@ -25,6 +25,14 @@ export default function EchoCard({ echo }: Props) {
   const [editRepContenu, setEditRepContenu] = useState('');
   const [reactionErreur, setReactionErreur] = useState('');
   const [signalementFait, setSignalementFait] = useState(false);
+  const [showReouvrirChoix, setShowReouvrirChoix] = useState(false);
+  const [popAnim, setPopAnim] = useState<{ jarresBleues: boolean; coeurs: boolean; coeursBrises: boolean; jarresRoses: boolean }>({
+    jarresBleues: false, coeurs: false, coeursBrises: false, jarresRoses: false,
+  });
+  const valeursPrecedentes = useRef({
+    jarresBleues: echo.jarresBleues ?? 0, coeurs: echo.coeurs ?? 0,
+    coeursBrises: echo.coeursBrises ?? 0, jarresRoses: echo.jarresRoses ?? 0,
+  });
 
   const echoReps = useEchoReps(echo.id);
   const { profile } = useAuth();
@@ -36,12 +44,46 @@ export default function EchoCard({ echo }: Props) {
   const placesDispo = placesRestantes > 0;
   const reouverturesRestantes = echo.reouverturesRestantes ?? 0;
   const estSupprime = echo.supprime ?? false;
+  const estExpire = echo.type === 'ouvert' && !!echo.expiresAt && echo.expiresAt.getTime() <= Date.now();
+  const estReellementOuvert = (echo.estOuvert ?? false) && !estExpire;
+
+  // Constate l'expiration et ferme automatiquement l'écho en base (une seule fois).
+  useEffect(() => {
+    if (echo.type === 'ouvert' && estExpire && echo.estOuvert) {
+      fermerEchoExpire(echo.id).catch(() => {});
+    }
+  }, [echo.id, echo.type, estExpire, echo.estOuvert]);
+
+  // Anime brièvement chaque compteur de réaction quand sa valeur change.
+  useEffect(() => {
+    const valeursActuelles = {
+      jarresBleues: echo.jarresBleues ?? 0, coeurs: echo.coeurs ?? 0,
+      coeursBrises: echo.coeursBrises ?? 0, jarresRoses: echo.jarresRoses ?? 0,
+    };
+    const champsChanges = (Object.keys(valeursActuelles) as Array<keyof typeof valeursActuelles>)
+      .filter(cle => valeursActuelles[cle] !== valeursPrecedentes.current[cle]);
+    if (champsChanges.length === 0) return;
+    valeursPrecedentes.current = valeursActuelles;
+    setPopAnim(prev => {
+      const next = { ...prev };
+      champsChanges.forEach(cle => { next[cle] = true; });
+      return next;
+    });
+    const timer = setTimeout(() => {
+      setPopAnim(prev => {
+        const next = { ...prev };
+        champsChanges.forEach(cle => { next[cle] = false; });
+        return next;
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [echo.jarresBleues, echo.coeurs, echo.coeursBrises, echo.jarresRoses]);
 
   const peutModifierEcho = () => !echo.createdAt ? false : Date.now() - echo.createdAt.getTime() < 24 * 60 * 60 * 1000;
   const peutModifierRep = (createdAt: Date) => Date.now() - createdAt.getTime() < 60 * 60 * 1000;
   const peutSupprimerEcho = () => echo.type === 'libre' ? true : (echo.estOuvert === true && !estSupprime);
 
-  const peutAjouterRep = echo.type === 'ouvert' && (echo.estOuvert ?? false) && !estSupprime && (
+  const peutAjouterRep = echo.type === 'ouvert' && estReellementOuvert && !estSupprime && (
     estProprietaire || aDejaParticipe || placesDispo
   );
 
@@ -114,9 +156,7 @@ export default function EchoCard({ echo }: Props) {
         setErreur('✅ Votre EchoRep est en attente de validation par le propriétaire.');
         setRepContenu('');
         setTimeout(() => { setShowRepForm(false); setErreur(''); }, 3000);
-      } else {
-        setErreur(msg);
-      }
+      } else { setErreur(msg); }
     } finally { setLoading(false); }
   };
 
@@ -129,7 +169,7 @@ export default function EchoCard({ echo }: Props) {
   };
 
   const handleSupprimerRep = async (repId: string, auteurId: string) => {
-    if (!confirm('Supprimer cette EchoRep ?')) return;
+    if (!confirm('Supprimer cet EchoRep ?')) return;
     try {
       await supprimerEchoRep(echo.id, repId, auteurId, echo.placesOccupees ?? 0, estProprietaire);
     } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
@@ -146,26 +186,52 @@ export default function EchoCard({ echo }: Props) {
   };
 
   const handleToggleOuvert = async () => {
-    try { await toggleEchoOuvert(echo.id, echo.estOuvert ?? true, reouverturesRestantes); }
-    catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
+    if (estReellementOuvert) {
+      try { await toggleEchoOuvert(echo.id, true, reouverturesRestantes); }
+      catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
+      return;
+    }
+    setShowReouvrirChoix(true);
+  };
+
+  const handleConfirmerReouverture = async (duree: 2 | 6 | 10) => {
+    try {
+      await toggleEchoOuvert(echo.id, false, reouverturesRestantes, duree);
+      setShowReouvrirChoix(false);
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
 
   const tonaliteClass = echo.tonalite === 'soleil' ? 'tonalite-soleil' : 'tonalite-pluie';
 
   return (
-    <div className={`echo-card ${tonaliteClass} ${echo.estSolidaire ? 'solidaire' : ''} ${estSupprime ? 'supprime' : ''}`}>
+    <div
+      className={`echo-card ${tonaliteClass} ${echo.estSolidaire ? 'solidaire' : ''} ${estSupprime ? 'supprime' : ''}`}
+      style={{ animationDelay: `${Math.min(delayIndex, 12) * 0.05}s` }}
+    >
 
       <div className="echo-card-top">
         <div className="echo-card-meta">
           <span className="echo-card-pseudo">{echo.auteurPseudo}</span>
           {echo.type === 'ouvert' && !estSupprime && (
             <div className="echo-card-ouvert-info">
-              <span>👥 {echo.placesOccupees ?? 0}/{echo.placesMax}</span>
-              {tempsRestant() && <span>⏱ {tempsRestant()}</span>}
-              <span className={`et-badge ${echo.estOuvert ? 'et-badge-lavande' : 'et-badge-neutral'}`}>
-                {echo.estOuvert ? '🔓 Ouvert' : '🔒 Fermé'}
+              <span>
+                <i className="ti ti-users" aria-hidden="true" style={{fontSize:'12px'}} />
+                {' '}{echo.placesOccupees ?? 0}/{echo.placesMax}
               </span>
-              <span className="echo-card-time">↩️ {reouverturesRestantes} réouverture{reouverturesRestantes !== 1 ? 's' : ''}</span>
+              {tempsRestant() && (
+                <span>
+                  <i className="ti ti-clock" aria-hidden="true" style={{fontSize:'12px'}} />
+                  {' '}{tempsRestant()}
+                </span>
+              )}
+              <span className={`et-badge ${estReellementOuvert ? 'et-badge-lavande' : 'et-badge-neutral'}`}>
+                <i className={`ti ${estReellementOuvert ? 'ti-lock-open' : 'ti-lock'}`} aria-hidden="true" style={{fontSize:'11px'}} />
+                {' '}{estReellementOuvert ? 'Ouvert' : 'Fermé'}
+              </span>
+              <span className="echo-card-time">
+                <i className="ti ti-refresh" aria-hidden="true" style={{fontSize:'11px'}} />
+                {' '}{reouverturesRestantes} réouverture{reouverturesRestantes !== 1 ? 's' : ''}
+              </span>
             </div>
           )}
         </div>
@@ -179,7 +245,9 @@ export default function EchoCard({ echo }: Props) {
             {echo.type === 'libre' ? '🕊️ Libre' : '🔓 Ouvert'}
           </span>
           {echo.estSolidaire && (
-            <span className="et-badge et-badge-rose">💛 Solidaire</span>
+            <span className="et-badge et-badge-rose">
+              <JarreIcon color="rose" size="s" /> Solidaire
+            </span>
           )}
         </div>
       </div>
@@ -196,15 +264,23 @@ export default function EchoCard({ echo }: Props) {
         <p className={`echo-card-text ${estSupprime ? 'contenu-supprime' : ''}`}>{echo.contenu}</p>
       )}
 
-      {echo.modifie && !estSupprime && <span className="mention-modifie">✏️ Écho modifié</span>}
+      {echo.modifie && !estSupprime && (
+        <span className="mention-modifie">
+          <i className="ti ti-pencil" aria-hidden="true" style={{fontSize:'11px'}} /> Écho modifié
+        </span>
+      )}
 
       {estProprietaire && !estSupprime && !editEcho && (
         <div className="echo-auteur-actions">
           {peutModifierEcho() && (
-            <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>✏️ Modifier</button>
+            <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>
+              <i className="ti ti-pencil" aria-hidden="true" /> Modifier
+            </button>
           )}
           {peutSupprimerEcho() && (
-            <button className="btn-delete" onClick={handleSupprimerEcho}>🗑️ Supprimer</button>
+            <button className="btn-delete" onClick={handleSupprimerEcho}>
+              <i className="ti ti-trash" aria-hidden="true" /> Supprimer
+            </button>
           )}
         </div>
       )}
@@ -213,32 +289,33 @@ export default function EchoCard({ echo }: Props) {
         <div className="echo-card-reactions">
           {echo.estSolidaire ? (
             <button
-              className={`echo-reaction-btn active-rose ${stock.jarresRoses <= 0 ? 'reaction-disabled' : ''}`}
+              className={`echo-reaction-btn active-rose ${stock.jarresRoses <= 0 ? 'reaction-disabled' : ''} ${popAnim.jarresRoses ? 'jarre-pop' : ''}`}
               onClick={handleJarreRose}
-              title={stock.jarresRoses <= 0 ? 'Stock épuisé' : `Stock : ${stock.jarresRoses} 🌸`}
+              title={stock.jarresRoses <= 0 ? 'Stock épuisé' : `Stock : ${stock.jarresRoses}`}
             >
-              <JarreIcon color="rose" size="s" /> <span>{echo.jarresRoses || 0}</span>
+              <JarreIcon color="rose" size="s" /> <span className={popAnim.jarresRoses ? 'compteur-pop' : ''}>{echo.jarresRoses || 0}</span>
             </button>
           ) : (
             <>
               <button
-                className={`echo-reaction-btn ${stock.jarresBleues <= 0 ? 'reaction-disabled' : ''}`}
+                className={`echo-reaction-btn ${stock.jarresBleues <= 0 ? 'reaction-disabled' : ''} ${popAnim.jarresBleues ? 'jarre-pop' : ''}`}
                 onClick={handleJarreBleu}
                 title={stock.jarresBleues <= 0 ? 'Stock épuisé' : `Stock : ${stock.jarresBleues}`}
               >
-                <JarreIcon color="blue" size="s" /> <span>{echo.jarresBleues || 0}</span>
+                <JarreIcon color="blue" size="s" /> <span className={popAnim.jarresBleues ? 'compteur-pop' : ''}>{echo.jarresBleues || 0}</span>
               </button>
-              <button className="echo-reaction-btn" onClick={() => handleCoeur('coeurs')}>
-                ❤️ <span>{echo.coeurs || 0}</span>
+              <button className={`echo-reaction-btn ${popAnim.coeurs ? 'jarre-pop' : ''}`} onClick={() => handleCoeur('coeurs')}>
+                ❤️ <span className={popAnim.coeurs ? 'compteur-pop' : ''}>{echo.coeurs || 0}</span>
               </button>
-              <button className="echo-reaction-btn" onClick={() => handleCoeur('coeursBrises')}>
-                💔 <span>{echo.coeursBrises || 0}</span>
+              <button className={`echo-reaction-btn ${popAnim.coeursBrises ? 'jarre-pop' : ''}`} onClick={() => handleCoeur('coeursBrises')}>
+                💔 <span className={popAnim.coeursBrises ? 'compteur-pop' : ''}>{echo.coeursBrises || 0}</span>
               </button>
             </>
           )}
           {echo.type === 'ouvert' && echoReps.length > 0 && (
             <button className="echo-reaction-btn" onClick={() => setMasquerReps(!masquerReps)}>
-              {masquerReps ? '👁 Voir' : '🙈 Masquer'}
+              <i className={`ti ${masquerReps ? 'ti-eye' : 'ti-eye-off'}`} aria-hidden="true" />
+              {' '}{masquerReps ? 'Voir' : 'Masquer'}
             </button>
           )}
         </div>
@@ -247,16 +324,30 @@ export default function EchoCard({ echo }: Props) {
       {reactionErreur && <p className="reaction-erreur">{reactionErreur}</p>}
 
       {estProprietaire && echo.type === 'ouvert' && !estSupprime && (
-        <button
-          className={`btn-toggle-ouvert ${echo.estOuvert ? 'btn-fermer' : 'btn-rouvrir'}`}
-          onClick={handleToggleOuvert}
-          disabled={!echo.estOuvert && reouverturesRestantes <= 0}
-        >
-          {echo.estOuvert ? '🔒 Fermer cet écho'
-            : reouverturesRestantes > 0
-              ? `🔓 Rouvrir (${reouverturesRestantes} restante${reouverturesRestantes !== 1 ? 's' : ''})`
-              : '🚫 Plus de réouvertures disponibles'}
-        </button>
+        showReouvrirChoix ? (
+          <div className="reouvrir-choix">
+            <p className="reouvrir-choix-titre">Pour combien de temps rouvrir cet écho ?</p>
+            <div className="reouvrir-choix-options">
+              <button onClick={() => handleConfirmerReouverture(2)}>2 jours</button>
+              <button onClick={() => handleConfirmerReouverture(6)}>6 jours</button>
+              <button onClick={() => handleConfirmerReouverture(10)}>10 jours</button>
+            </div>
+            <button className="reouvrir-choix-annuler" onClick={() => setShowReouvrirChoix(false)}>Annuler</button>
+          </div>
+        ) : (
+          <button
+            className={`btn-toggle-ouvert ${estReellementOuvert ? 'btn-fermer' : 'btn-rouvrir'}`}
+            onClick={handleToggleOuvert}
+            disabled={!estReellementOuvert && reouverturesRestantes <= 0}
+          >
+            {estReellementOuvert
+              ? <><i className="ti ti-lock" aria-hidden="true" /> Fermer cet écho</>
+              : reouverturesRestantes > 0
+                ? <><i className="ti ti-lock-open" aria-hidden="true" /> Rouvrir ({reouverturesRestantes} restante{reouverturesRestantes !== 1 ? 's' : ''})</>
+                : <><i className="ti ti-ban" aria-hidden="true" /> Plus de réouvertures disponibles</>
+            }
+          </button>
+        )
       )}
 
       {echo.type === 'ouvert' && !masquerReps && (
@@ -277,22 +368,32 @@ export default function EchoCard({ echo }: Props) {
                     <>
                       {!rep.supprime && <span className="echorep-pseudo">{rep.auteurPseudo}</span>}
                       <p className="echorep-contenu">{rep.contenu}</p>
-                      {rep.modifie && !rep.supprime && <span className="mention-modifie">✏️ Modifié</span>}
+                      {rep.modifie && !rep.supprime && (
+                        <span className="mention-modifie">
+                          <i className="ti ti-pencil" aria-hidden="true" style={{fontSize:'11px'}} /> Modifié
+                        </span>
+                      )}
                       <div className="rep-footer">
                         <span className="echorep-date">
                           {rep.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <div className="rep-actions">
-                          {profile?.uid === rep.auteurId && !rep.supprime && echo.estOuvert && (
+                          {profile?.uid === rep.auteurId && !rep.supprime && estReellementOuvert && (
                             <>
                               {peutModifierRep(rep.createdAt) && (
-                                <button className="btn-edit-sm" onClick={() => { setEditRepId(rep.id); setEditRepContenu(rep.contenu); }}>✏️</button>
+                                <button className="btn-edit-sm" onClick={() => { setEditRepId(rep.id); setEditRepContenu(rep.contenu); }}>
+                                  <i className="ti ti-pencil" aria-hidden="true" />
+                                </button>
                               )}
-                              <button className="btn-delete-sm" onClick={() => handleSupprimerRep(rep.id, rep.auteurId)}>🗑️</button>
+                              <button className="btn-delete-sm" onClick={() => handleSupprimerRep(rep.id, rep.auteurId)}>
+                                <i className="ti ti-trash" aria-hidden="true" />
+                              </button>
                             </>
                           )}
                           {profile?.uid !== rep.auteurId && !rep.supprime && (
-                            <button className="btn-signaler-sm" onClick={() => handleSignaler('echorep', rep.contenu, rep.auteurId, rep.id)} title="Signaler">🚩</button>
+                            <button className="btn-signaler-sm" onClick={() => handleSignaler('echorep', rep.contenu, rep.auteurId, rep.id)} title="Signaler">
+                              <i className="ti ti-flag" aria-hidden="true" />
+                            </button>
                           )}
                         </div>
                       </div>
@@ -307,8 +408,9 @@ export default function EchoCard({ echo }: Props) {
             <div className="echorep-form">
               {!showRepForm ? (
                 <button className="btn-add-rep" onClick={() => setShowRepForm(true)}>
-                  💬 {estProprietaire ? 'Répondre à votre écho'
-                    : aDejaParticipe ? 'Ajouter une EchoRep'
+                  <i className="ti ti-message" aria-hidden="true" />
+                  {' '}{estProprietaire ? 'Répondre à votre écho'
+                    : aDejaParticipe ? 'Ajouter un EchoRep'
                     : `Rejoindre cet écho (${placesRestantes} place${placesRestantes !== 1 ? 's' : ''} restante${placesRestantes !== 1 ? 's' : ''})`}
                 </button>
               ) : (
@@ -326,8 +428,10 @@ export default function EchoCard({ echo }: Props) {
             </div>
           )}
 
-          {!peutAjouterRep && echo.estOuvert && !estProprietaire && !aDejaParticipe && !placesDispo && (
-            <p className="places-pleines">🔒 Cet écho est complet</p>
+          {!peutAjouterRep && estReellementOuvert && !estProprietaire && !aDejaParticipe && !placesDispo && (
+            <p className="places-pleines">
+              <i className="ti ti-lock" aria-hidden="true" /> Cet écho est complet
+            </p>
           )}
         </div>
       )}
@@ -339,7 +443,8 @@ export default function EchoCard({ echo }: Props) {
             onClick={() => handleSignaler('echo', echo.contenu, echo.auteurId)}
             disabled={signalementFait}
           >
-            🚩 {signalementFait ? 'Signalé' : 'Signaler'}
+            <i className={`ti ${signalementFait ? 'ti-check' : 'ti-flag'}`} aria-hidden="true" />
+            {' '}{signalementFait ? 'Signalé' : 'Signaler'}
           </button>
         ) : <span />}
         <span className="echo-card-date">

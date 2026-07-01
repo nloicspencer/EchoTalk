@@ -10,11 +10,13 @@ import ModerationPage from './pages/ModerationPage';
 import DecouvertePage from './pages/DecouvertePage';
 import OnboardingPage from './pages/OnboardingPage';
 import NavBar from './components/NavBar';
+import SuspensionBanner from './SuspensionBanner';
 import './App.css';
 
 function AppLayout() {
   return (
     <>
+      <SuspensionBanner />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<FilPage />} />
@@ -32,7 +34,7 @@ function AppLayout() {
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, messageDeconnexion } = useAuth();
   const [onboardingInfo, setOnboardingInfo] = useState<{ pseudo: string } | null>(null);
 
   if (loading) {
@@ -46,6 +48,9 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {/* Banner visible même sur la page de connexion après déconnexion forcée */}
+      {!user && messageDeconnexion && <SuspensionBanner />}
+
       {!user ? (
         <AuthPage onInscriptionComplete={(pseudo) => setOnboardingInfo({ pseudo })} />
       ) : onboardingInfo ? (
