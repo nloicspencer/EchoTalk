@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { Echo } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
-  useEchoReps, publierEchoRep,
-  toggleEchoOuvert, modifierEcho, supprimerEcho,
-  modifierEchoRep, supprimerEchoRep, fermerEchoExpire,
+    fermerEchoExpire,
+    modifierEcho,
+    modifierEchoRep,
+    publierEchoRep,
+    supprimerEcho,
+    supprimerEchoRep,
+    toggleEchoOuvert,
+    useEchoReps,
 } from '../hooks/useEchos';
-import { useStockJarres, donnerJarreBleu, donnerJarreRose, donnerCoeur } from '../hooks/useReactions';
 import { signalerContenu } from '../hooks/useModeration';
-import { useAuth } from '../hooks/useAuth';
+import { donnerCoeur, donnerJarreBleu, donnerJarreRose, useStockJarres } from '../hooks/useReactions';
+import { Echo } from '../types';
 import './EchoCard.css';
 import JarreIcon from './JarreIcon';
 

@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useAuth } from './hooks/useAuth';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './pages/AuthPage';
 import FilPage from './pages/FilPage';
 import ProfilPage from './pages/ProfilPage';
@@ -33,7 +33,7 @@ function AppLayout() {
   );
 }
 
-export default function App() {
+function AppContent() {
   const { user, loading, messageDeconnexion } = useAuth();
   const [onboardingInfo, setOnboardingInfo] = useState<{ pseudo: string } | null>(null);
 
@@ -62,5 +62,13 @@ export default function App() {
         <AppLayout />
       )}
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

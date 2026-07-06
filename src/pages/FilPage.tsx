@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { useEchos, useEchoSolidaire } from '../hooks/useEchos';
-import { useAuth } from '../hooks/useAuth';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import EchoCard from '../components/EchoCard';
-import PublierEcho from '../components/PublierEcho';
 import EchoSolidaireModal from '../components/EchoSolidaireModal';
-import JournalLegues from '../components/JournalLegues';
 import JarreIcon from '../components/JarreIcon';
+import JournalLegues from '../components/JournalLegues';
+import PublierEcho from '../components/PublierEcho';
+import { useAuth } from '../context/AuthContext';
+import { useEchos, useEchoSolidaire } from '../hooks/useEchos';
 import { CATEGORIES } from '../types';
 import './FilPage.css';
 

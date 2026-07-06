@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { publierEcholegue, usesMesEcholegues } from '../hooks/useEcholegue';
+import { useAuth } from '../context/AuthContext';
+import { publierEcholegue, usesMesEcholegues, getSemaineISO } from '../hooks/useEcholegue';
 import './EcholegueForm.css';
 
 const EXPIRATION_JOURS = 15;
@@ -39,6 +39,7 @@ export default function EcholegueForm() {
   if (!profile) return null;
 
   const maintenant = new Date();
+  const semaineCourante = getSemaineISO();
   const leguesVisibles = mesLegues.filter(l => {
     const diff = maintenant.getTime() - l.createdAt.getTime();
     return diff < EXPIRATION_JOURS * 24 * 60 * 60 * 1000;
@@ -126,23 +127,39 @@ export default function EcholegueForm() {
               </button>
               {listeVisible && (
                 <div className="el-mes-liste">
-                  {leguesVisibles.map(l => (
-                    <div key={l.id} className={`el-mes-item ${l.statut}`}>
-                      <div className="el-mes-item-header">
-                        <div className="el-mes-item-dates">
-                          <span className="el-mes-date">{formatDate(l.createdAt)}</span>
-                          <span className="el-mes-expire">· {joursRestants(l.createdAt)}j restants</span>
+                  {leguesVisibles.map(l => {
+                    // Fix — "statut" ne contient jamais la valeur 'selectionne' (le champ
+                    // reste 'publie' même quand le lègue est sélectionné pour le Journal).
+                    // Le vrai indicateur de sélection est la présence de la semaine
+                    // courante dans historiqueSelections.
+                    const estSelectionnePourCetteSemaine = l.statut === 'publie'
+                      && l.historiqueSelections.some(h => h.semaine === semaineCourante);
+                    const badgeClasse = l.statut === 'supprime'
+                      ? 'supprime'
+                      : l.statut === 'en_attente_moderation'
+                      ? 'en_attente_moderation'
+                      : estSelectionnePourCetteSemaine
+                      ? 'selectionne'
+                      : 'publie';
+
+                    return (
+                      <div key={l.id} className={`el-mes-item ${badgeClasse}`}>
+                        <div className="el-mes-item-header">
+                          <div className="el-mes-item-dates">
+                            <span className="el-mes-date">{formatDate(l.createdAt)}</span>
+                            <span className="el-mes-expire">· {joursRestants(l.createdAt)}j restants</span>
+                          </div>
+                          <span className={`el-statut el-statut-${badgeClasse}`}>
+                            {l.statut === 'supprime' ? '❌ Supprimé'
+                              : l.statut === 'en_attente_moderation' ? '⏳ En validation'
+                              : estSelectionnePourCetteSemaine ? '✨ Sélectionné'
+                              : '📚 En bibliothèque'}
+                          </span>
                         </div>
-                        <span className={`el-statut el-statut-${l.statut}`}>
-                          {l.statut === 'publie' ? '📚 En bibliothèque'
-                            : l.statut === 'selectionne' ? '✨ Sélectionné'
-                            : l.statut === 'en_attente_moderation' ? '⏳ En validation'
-                            : '❌ Supprimé'}
-                        </span>
+                        <TexteTronque texte={l.recit} limite={APERCU_RECIT} className="el-mes-recit" />
                       </div>
-                      <TexteTronque texte={l.recit} limite={APERCU_RECIT} className="el-mes-recit" />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

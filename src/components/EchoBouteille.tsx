@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import {
-  envoyerEchoBouteille, useBouteillesRecues,
-  marquerBouteilleVue, signalerEchoBouteille
+    envoyerEchoBouteille,
+    marquerBouteilleVue, signalerEchoBouteille,
+    useBouteillesRecues
 } from '../hooks/useEchoBouteille';
 import './EchoBouteille.css';
 

@@ -73,11 +73,21 @@ export function useEchoSolidaire() {
   return echoSolidaire;
 }
 
+interface EchoRepBrute {
+  id: string;
+  auteurId: string;
+  auteurPseudo: string;
+  contenu: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  supprime?: boolean;
+  modifie?: boolean;
+  masque?: boolean;
+  suppressionAt?: Date;
+}
+
 export function useEchoReps(echoId: string) {
-  const [echoReps, setEchoReps] = useState<Array<{
-    id: string; auteurId: string; auteurPseudo: string; contenu: string;
-    createdAt: Date; updatedAt?: Date; supprime?: boolean; modifie?: boolean; masque?: boolean;
-  }>>([]);
+  const [echoReps, setEchoReps] = useState<EchoRepBrute[]>([]);
 
   useEffect(() => {
     if (!echoId) return;
@@ -86,15 +96,28 @@ export function useEchoReps(echoId: string) {
     const unsub = onSnapshot(q, (snap) => {
       const maintenant = Date.now();
       const heures24 = 24 * 60 * 60 * 1000;
-      const reps = snap.docs
-        .map(d => ({
-          id: d.id, ...d.data(),
-          createdAt: d.data().createdAt instanceof Timestamp ? d.data().createdAt.toDate() : new Date(),
-          updatedAt: d.data().updatedAt instanceof Timestamp ? d.data().updatedAt.toDate() : undefined,
-          suppressionAt: d.data().suppressionAt
-            ? new Date(d.data().suppressionAt.seconds ? d.data().suppressionAt.seconds * 1000 : d.data().suppressionAt)
-            : undefined,
-        }))
+      const reps: EchoRepBrute[] = snap.docs
+        .map((d): EchoRepBrute => {
+          const data = d.data() as Record<string, unknown>;
+          return {
+            id: d.id,
+            auteurId: data.auteurId as string,
+            auteurPseudo: data.auteurPseudo as string,
+            contenu: data.contenu as string,
+            supprime: data.supprime as boolean | undefined,
+            modifie: data.modifie as boolean | undefined,
+            masque: data.masque as boolean | undefined,
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+            updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
+            suppressionAt: data.suppressionAt
+              ? new Date(
+                  (data.suppressionAt as { seconds?: number }).seconds
+                    ? (data.suppressionAt as { seconds: number }).seconds * 1000
+                    : (data.suppressionAt as string | number | Date)
+                )
+              : undefined,
+          };
+        })
         .filter(r => {
           // Masquée par modération → invisible
           if (r.masque) return false;
@@ -103,7 +126,7 @@ export function useEchoReps(echoId: string) {
           }
           return true;
         });
-      setEchoReps(reps as typeof echoReps);
+      setEchoReps(reps);
     });
     return unsub;
   }, [echoId]);

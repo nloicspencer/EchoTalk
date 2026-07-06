@@ -1,15 +1,15 @@
-import { useEffect, useState, useRef } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useEchos } from '../hooks/useEchos';
+import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
-import { useStockJarres, acquerirPack } from '../hooks/useReactions';
-import ValidationEchoReps from '../components/ValidationEchoReps';
-import EchoCard from '../components/EchoCard';
 import EchoBouteille from '../components/EchoBouteille';
+import EchoCard from '../components/EchoCard';
 import EcholegueForm from '../components/EcholegueForm';
 import JarreIcon from '../components/JarreIcon';
+import ValidationEchoReps from '../components/ValidationEchoReps';
+import { useAuth } from '../context/AuthContext';
+import { useEchos } from '../hooks/useEchos';
+import { acquerirPack, useStockJarres } from '../hooks/useReactions';
+import { db } from '../services/firebase';
 import './ProfilPage.css';
 
 interface Stats {

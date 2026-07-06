@@ -33,6 +33,9 @@ export interface Echo {
   solidaireJusquau?: Date;
   solidaireTermineAt?: Date;
   jarresRoses?: number;
+  // Modération
+  masque?: boolean;
+  raisonModeration?: string;
 }
 
 export interface UserProfile {
@@ -44,6 +47,9 @@ export interface UserProfile {
   jarresBleuesPartagees: number;
   coeursRecus: number;
   role?: 'admin' | 'moderateur'; // absent = membre standard
+  // Stock de jarres (packs, Écho Solidaire)
+  stockJarresBleues: number;
+  stockJarresRoses: number;
 }
 
 export interface EchoRep {

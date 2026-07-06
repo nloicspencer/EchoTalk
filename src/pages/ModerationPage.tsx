@@ -1,12 +1,20 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
 import {
-  collection, onSnapshot, query, where, orderBy,
-  updateDoc, doc, getDoc, Timestamp, serverTimestamp, getDocs
+    collection,
+    doc, getDoc,
+    getDocs,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    Timestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { supprimerEchoBouteille, validerEchoBouteille } from '../hooks/useEchoBouteille';
+import { masquerEchoRep, modererCompte, modererEcho, recupererEchoRep } from '../hooks/useModeration';
 import { db } from '../services/firebase';
-import { modererEcho, modererCompte, masquerEchoRep, recupererEchoRep } from '../hooks/useModeration';
-import { validerEchoBouteille, supprimerEchoBouteille } from '../hooks/useEchoBouteille';
 import './ModerationPage.css';
 
 const DUREES_SUSPENSION = [

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useJournalLegues, signalerEcholegue, getSemaineISO, Echolegue } from '../hooks/useEcholegue';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { Echolegue, getSemaineISO, signalerEcholegue, useJournalLegues } from '../hooks/useEcholegue';
 import './JournalLegues.css';
 
 function getStorageKey(): string {

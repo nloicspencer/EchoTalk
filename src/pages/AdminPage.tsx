@@ -1,9 +1,9 @@
+import { collection, doc, getDocs, Timestamp, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
-import { db } from '../services/firebase';
-import { useAuth } from '../hooks/useAuth';
 import JarreIcon from '../components/JarreIcon';
-import { useBibliotheque, selectionnerEcholegue, retirerDuJournal, getSemaineISO, Echolegue } from '../hooks/useEcholegue';
+import { useAuth } from '../context/AuthContext';
+import { Echolegue, getSemaineISO, retirerDuJournal, selectionnerEcholegue, useBibliotheque } from '../hooks/useEcholegue';
+import { db } from '../services/firebase';
 import './AdminPage.css';
 
 const ADMINS = ['loicspencer3@echotalk.com'];

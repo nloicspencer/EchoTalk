@@ -1,9 +1,8 @@
+import { useAuth } from '../context/AuthContext';
+import { donnerJarreRose, useStockJarres } from '../hooks/useReactions';
 import { Echo } from '../types';
-import { donnerJarreRose } from '../hooks/useReactions';
-import { useStockJarres } from '../hooks/useReactions';
-import { useAuth } from '../hooks/useAuth';
-import JarreIcon from './JarreIcon';
 import './EchoSolidaireModal.css';
+import JarreIcon from './JarreIcon';
 
 interface Props {
   echo: Echo | null;

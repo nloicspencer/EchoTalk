@@ -57,14 +57,16 @@ export async function envoyerEchoBouteille(
   return 'envoyee';
 }
 
-// Fix — lire le champ uid dans le document, pas d.id
+// Fix v70 — lire depuis la collection publique "annuaire" (uid + banni)
+// au lieu de "users" (protégé), pour que le tirage aléatoire fonctionne
+// pour tous les comptes et pas seulement pour un admin/modérateur.
 async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
-  const snap = await getDocs(collection(db, 'users'));
+  const snap = await getDocs(collection(db, 'annuaire'));
   const autresUsers = snap.docs
     .filter(d => {
       const data = d.data();
       const uid = data.uid || d.id;
-      return uid !== expediteurId && !data.suspension?.banni;
+      return uid !== expediteurId && !data.banni;
     })
     .map(d => d.data().uid || d.id);
   if (autresUsers.length === 0) return null;

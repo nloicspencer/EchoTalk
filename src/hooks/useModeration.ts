@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   collection, addDoc, serverTimestamp, updateDoc, doc,
   onSnapshot, query, orderBy, where, getDocs, getDoc, Timestamp
@@ -90,7 +91,6 @@ export async function validerEchoRep(
 }
 
 export function useEchoRepsEnAttente(proprietaireId: string) {
-  const { useState, useEffect } = require('react');
   const [enAttente, setEnAttente] = useState<EchoRepEnAttente[]>([]);
   useEffect(() => {
     if (!proprietaireId) return;
@@ -117,6 +117,10 @@ export function useEchoRepsEnAttente(proprietaireId: string) {
 }
 
 // ── Modérer un écho ──────────────────────────────────────
+// Fix v72 — quand un écho est supprimé par modération, ses EchoReps
+// sont désormais masquées en cascade (réversible via recupererEchoRep),
+// pour éviter qu'elles restent visibles sous un écho marqué "supprimé
+// suite à un signalement".
 export async function modererEcho(
   echoId: string, action: 'masquer' | 'supprimer', moderateurId: string, raison: string
 ) {
@@ -127,6 +131,15 @@ export async function modererEcho(
       supprime: true, masque: false, raisonModeration: raison,
       suppressionAt: serverTimestamp(), contenu: 'Écho supprimé suite à un signalement.',
     });
+
+    const repsSnap = await getDocs(collection(db, 'echos', echoId, 'echoreps'));
+    await Promise.all(repsSnap.docs.map((repDoc) =>
+      updateDoc(doc(db, 'echos', echoId, 'echoreps', repDoc.id), {
+        masque: true,
+        raisonModeration: 'Écho parent supprimé suite à un signalement',
+        masqueAt: serverTimestamp(),
+      })
+    ));
   }
   await addDoc(collection(db, 'historique_moderation'), {
     echoId, action, raison, moderateurId, createdAt: serverTimestamp(),
@@ -159,15 +172,18 @@ export async function modererCompte(
 ) {
   if (action === 'lever_suspension') {
     await updateDoc(doc(db, 'users', userId), { suspension: null });
+    await updateDoc(doc(db, 'annuaire', userId), { banni: false });
   } else if (action === 'suspendre_temp' && dureeHeures) {
     const jusqu = new Date(Date.now() + dureeHeures * 60 * 60 * 1000);
     await updateDoc(doc(db, 'users', userId), {
       suspension: { type: 'temp', raison, moderateurId, date: new Date(), jusqu, banni: false },
     });
+    await updateDoc(doc(db, 'annuaire', userId), { banni: false });
   } else if (action === 'suspendre_def') {
     await updateDoc(doc(db, 'users', userId), {
       suspension: { type: 'def', raison, moderateurId, date: new Date(), jusqu: null, banni: true },
     });
+    await updateDoc(doc(db, 'annuaire', userId), { banni: true });
   }
   await addDoc(collection(db, 'historique_moderation'), {
     userId, action, raison, moderateurId, dureeHeures: dureeHeures || null, createdAt: serverTimestamp(),
@@ -175,8 +191,10 @@ export async function modererCompte(
 }
 
 // ── Vérifier suspension/bannissement ────────────────────
+// Fix — ajout du champ "raison" (optionnel) au type, absent auparavant
+// alors qu'il est bien écrit par modererCompte() et lu plus bas.
 export function verifierSuspension(suspension: {
-  type: string; jusqu: Date | { seconds: number } | null; banni: boolean;
+  type: string; jusqu: Date | { seconds: number } | null; banni: boolean; raison?: string;
 } | null | undefined): { suspendu: boolean; banni: boolean; message: string } {
   if (!suspension) return { suspendu: false, banni: false, message: '' };
 
