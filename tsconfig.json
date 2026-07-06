@@ -20,6 +20,7 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"],
+ "include": ["src"],
+"exclude": ["src/app", "src/screens", "src/navigation", "src/firebase", "node_modules"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
