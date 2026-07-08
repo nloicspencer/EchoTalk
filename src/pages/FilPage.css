@@ -88,14 +88,17 @@
   margin-top: 1px;
 }
 
+/* Passage de grid (2 colonnes fixes) à flex : s'adapte automatiquement
+   au nombre de boutons réellement affichés (1 ou 2 selon les feature flags),
+   sans jamais laisser un bouton unique calé à gauche sur une demi-largeur. */
 .fil-filters {
   margin: 0 16px 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
 }
 
 .fil-filter-btn {
+  flex: 1;
   padding: 11px 14px;
   border-radius: var(--et-radius-md);
   border: 0.5px solid var(--et-border);

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useEchos } from '../hooks/useEchos';
 import EchoCard from '../components/EchoCard';
+import { FEATURES } from '../config/features';
 import './DecouvertePage.css';
 
 type FiltreType = 'tous' | 'libre' | 'ouvert';
@@ -27,10 +28,10 @@ export default function DecouvertePage() {
         if (!contenu.includes(terme) && !pseudo.includes(terme)) return false;
       }
 
-      if (filtreType !== 'tous' && echo.type !== filtreType) return false;
+      if (FEATURES.ECHO_OUVERT && filtreType !== 'tous' && echo.type !== filtreType) return false;
       if (filtreTonalite !== 'tous' && echo.tonalite !== filtreTonalite) return false;
-      if (filtreStatut === 'actif' && echo.type === 'ouvert' && !echo.estOuvert) return false;
-      if (filtreStatut === 'cloture' && echo.type === 'ouvert' && echo.estOuvert) return false;
+      if (FEATURES.ECHO_OUVERT && filtreStatut === 'actif' && echo.type === 'ouvert' && !echo.estOuvert) return false;
+      if (FEATURES.ECHO_OUVERT && filtreStatut === 'cloture' && echo.type === 'ouvert' && echo.estOuvert) return false;
 
       if (filtreTemporalite !== 'tous') {
         const maintenant = Date.now();
@@ -67,17 +68,19 @@ export default function DecouvertePage() {
       </div>
 
       <div className="filtres">
-        {/* Type */}
-        <div className="filtre-groupe">
-          <span className="filtre-label">Type</span>
-          <div className="filtre-pills">
-            {(['tous', 'libre', 'ouvert'] as FiltreType[]).map(f => (
-              <button key={f} className={`filtre-pill ${filtreType === f ? 'active' : ''}`} onClick={() => setFiltreType(f)}>
-                {f === 'tous' ? 'Tous' : f === 'libre' ? '🕊️ Libres' : '🔓 Ouverts'}
-              </button>
-            ))}
+        {/* Type — n'existe que si Écho Ouvert est actif (sinon tous les échos sont Libres) */}
+        {FEATURES.ECHO_OUVERT && (
+          <div className="filtre-groupe">
+            <span className="filtre-label">Type</span>
+            <div className="filtre-pills">
+              {(['tous', 'libre', 'ouvert'] as FiltreType[]).map(f => (
+                <button key={f} className={`filtre-pill ${filtreType === f ? 'active' : ''}`} onClick={() => setFiltreType(f)}>
+                  {f === 'tous' ? 'Tous' : f === 'libre' ? '🕊️ Libres' : '🔓 Ouverts'}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tonalité */}
         <div className="filtre-groupe">
@@ -108,8 +111,8 @@ export default function DecouvertePage() {
           </div>
         </div>
 
-        {/* Statut — seulement si filtre Ouverts actif */}
-        {filtreType === 'ouvert' && (
+        {/* Statut — seulement si Écho Ouvert est actif et le filtre Ouverts est sélectionné */}
+        {FEATURES.ECHO_OUVERT && filtreType === 'ouvert' && (
           <div className="filtre-groupe">
             <span className="filtre-label">Statut</span>
             <div className="filtre-pills">

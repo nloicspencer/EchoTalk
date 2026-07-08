@@ -7,6 +7,7 @@ import PublierEcho from '../components/PublierEcho';
 import { useAuth } from '../context/AuthContext';
 import { useEchos, useEchoSolidaire } from '../hooks/useEchos';
 import { CATEGORIES } from '../types';
+import { FEATURES } from '../config/features';
 import './FilPage.css';
 
 export default function FilPage() {
@@ -89,7 +90,7 @@ export default function FilPage() {
       </div>
 
       {/* Journal des Lègues — entre puits et filtres */}
-      <JournalLegues />
+      {FEATURES.ECHOLEGUE && <JournalLegues />}
 
       {/* Filtres */}
       <div className="fil-filters">
@@ -99,9 +100,11 @@ export default function FilPage() {
         >
           🎯 Catégories {categoriesActives.length > 0 && <span className="et-badge et-badge-lavande">{categoriesActives.length}</span>}
         </button>
-        <button className="fil-filter-btn solidaire" onClick={() => setShowSolidaire(true)}>
-          <JarreIcon color="rose" size="s" /> Écho Solidaire
-        </button>
+        {FEATURES.ECHO_SOLIDAIRE && (
+          <button className="fil-filter-btn solidaire" onClick={() => setShowSolidaire(true)}>
+            <JarreIcon color="rose" size="s" /> Écho Solidaire
+          </button>
+        )}
       </div>
 
       {showCategories && (
@@ -143,7 +146,7 @@ export default function FilPage() {
         )}
       </div>
 
-      {showSolidaire && (
+      {FEATURES.ECHO_SOLIDAIRE && showSolidaire && (
         <EchoSolidaireModal echo={echoSolidaire} onClose={() => setShowSolidaire(false)} />
       )}
     </div>

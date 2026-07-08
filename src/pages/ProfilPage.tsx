@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEchos } from '../hooks/useEchos';
 import { acquerirPack, useStockJarres } from '../hooks/useReactions';
 import { db } from '../services/firebase';
+import { FEATURES } from '../config/features';
 import './ProfilPage.css';
 
 interface Stats {
@@ -37,14 +38,18 @@ export default function ProfilPage() {
   const { profile, user, deconnexion } = useAuth();
   const stock = useStockJarres(profile?.uid ?? '');
   const { echos } = useEchos();
-  const echoSolidaireProprio = echos.find(e => e.estSolidaire && e.auteurId === profile?.uid);
-  const historiqueSolidaire = echos
-    .filter(e => !e.estSolidaire && e.auteurId === profile?.uid && e.solidaireTermineAt)
-    .sort((a, b) => {
-      const dateA = a.solidaireTermineAt instanceof Date ? a.solidaireTermineAt.getTime() : 0;
-      const dateB = b.solidaireTermineAt instanceof Date ? b.solidaireTermineAt.getTime() : 0;
-      return dateB - dateA;
-    }).slice(0, 3);
+  const echoSolidaireProprio = FEATURES.ECHO_SOLIDAIRE
+    ? echos.find(e => e.estSolidaire && e.auteurId === profile?.uid)
+    : undefined;
+  const historiqueSolidaire = FEATURES.ECHO_SOLIDAIRE
+    ? echos
+        .filter(e => !e.estSolidaire && e.auteurId === profile?.uid && e.solidaireTermineAt)
+        .sort((a, b) => {
+          const dateA = a.solidaireTermineAt instanceof Date ? a.solidaireTermineAt.getTime() : 0;
+          const dateB = b.solidaireTermineAt instanceof Date ? b.solidaireTermineAt.getTime() : 0;
+          return dateB - dateA;
+        }).slice(0, 3)
+    : [];
   const totalJarresRosesHistorique = historiqueSolidaire.reduce((sum, e) => sum + (e.jarresRoses || 0), 0);
   const mesEchos = echos
     .filter(e => e.auteurId === profile?.uid && !e.supprime)
@@ -112,21 +117,23 @@ export default function ProfilPage() {
     });
     unsubs.push(unsubMesEchos);
 
-    // Participation
-    const qTousEchos = query(collection(db, 'echos'), where('type', '==', 'ouvert'));
-    const unsubParticipation = onSnapshot(qTousEchos, async (snap) => {
-      let echosRejoints = 0, echoRepsPubliees = 0;
-      const echosAutres = snap.docs.filter(d => d.data().auteurId !== profile.uid && !d.data().supprime);
-      for (const echoDoc of echosAutres) {
-        const repsRef = collection(db, 'echos', echoDoc.id, 'echoreps');
-        const qMesReps = query(repsRef, where('auteurId', '==', profile.uid));
-        const repsSnap = await getDocs(qMesReps);
-        const repsActives = repsSnap.docs.filter(r => !r.data().supprime);
-        if (repsActives.length > 0) { echosRejoints++; echoRepsPubliees += repsActives.length; }
-      }
-      setStats(prev => ({ ...prev, echosRejoints, echoRepsPubliees }));
-    });
-    unsubs.push(unsubParticipation);
+    // Participation — uniquement pertinent tant qu'Écho Ouvert est actif
+    if (FEATURES.ECHO_OUVERT) {
+      const qTousEchos = query(collection(db, 'echos'), where('type', '==', 'ouvert'));
+      const unsubParticipation = onSnapshot(qTousEchos, async (snap) => {
+        let echosRejoints = 0, echoRepsPubliees = 0;
+        const echosAutres = snap.docs.filter(d => d.data().auteurId !== profile.uid && !d.data().supprime);
+        for (const echoDoc of echosAutres) {
+          const repsRef = collection(db, 'echos', echoDoc.id, 'echoreps');
+          const qMesReps = query(repsRef, where('auteurId', '==', profile.uid));
+          const repsSnap = await getDocs(qMesReps);
+          const repsActives = repsSnap.docs.filter(r => !r.data().supprime);
+          if (repsActives.length > 0) { echosRejoints++; echoRepsPubliees += repsActives.length; }
+        }
+        setStats(prev => ({ ...prev, echosRejoints, echoRepsPubliees }));
+      });
+      unsubs.push(unsubParticipation);
+    }
 
     // Réactions données
     const qReactions = query(collection(db, 'reactions'), where('auteurId', '==', profile.uid));
@@ -162,13 +169,15 @@ export default function ProfilPage() {
     });
     unsubs.push(unsubBouteillesRec);
 
-    // Écholègues publiés
-    const qLegues = query(collection(db, 'echolegues'), where('auteurId', '==', profile.uid));
-    const unsubLegues = onSnapshot(qLegues, (snap) => {
-      const actifs = snap.docs.filter(d => d.data().statut !== 'supprime');
-      setStats(prev => ({ ...prev, leguesPublies: actifs.length }));
-    });
-    unsubs.push(unsubLegues);
+    // Écholègues publiés — uniquement pertinent tant qu'Écholègue est actif
+    if (FEATURES.ECHOLEGUE) {
+      const qLegues = query(collection(db, 'echolegues'), where('auteurId', '==', profile.uid));
+      const unsubLegues = onSnapshot(qLegues, (snap) => {
+        const actifs = snap.docs.filter(d => d.data().statut !== 'supprime');
+        setStats(prev => ({ ...prev, leguesPublies: actifs.length }));
+      });
+      unsubs.push(unsubLegues);
+    }
 
     return () => unsubs.forEach(u => u());
   }, [profile?.uid]);
@@ -218,14 +227,16 @@ export default function ProfilPage() {
             <JarreIcon color="blue" size="l" />
             <div><span className={`stock-nombre ${stockAnim.bleues ? 'compteur-pop' : ''}`}>{stock.jarresBleues}</span><span className="stock-label">Jarres bleues</span></div>
           </div>
-          <div className="stock-item stock-rose">
-            <JarreIcon color="rose" size="l" />
-            <div><span className={`stock-nombre ${stockAnim.roses ? 'compteur-pop' : ''}`}>{stock.jarresRoses}</span><span className="stock-label">Jarres roses</span></div>
-          </div>
+          {FEATURES.ECHO_SOLIDAIRE && (
+            <div className="stock-item stock-rose">
+              <JarreIcon color="rose" size="l" />
+              <div><span className={`stock-nombre ${stockAnim.roses ? 'compteur-pop' : ''}`}>{stock.jarresRoses}</span><span className="stock-label">Jarres roses</span></div>
+            </div>
+          )}
         </div>
       </div>
 
-      <ValidationEchoReps proprietaireId={profile.uid} />
+      {FEATURES.ECHO_OUVERT && <ValidationEchoReps proprietaireId={profile.uid} />}
 
       {echoSolidaireProprio && (
         <div className="profil-section echo-solidaire-proprio">
@@ -286,21 +297,23 @@ export default function ProfilPage() {
         </div>
       </div>
 
-      <div className="profil-section">
-        <h3>Acquérir des jarres roses</h3>
-        <p className="pack-note">Les jarres roses soutiennent l'Écho Solidaire du mois.</p>
-        <div className="packs-liste">
-          {PACKS.map(pack => (
-            <button key={pack.quantite} className="pack-btn pack-rose"
-              onClick={() => handleAcquerirPack('roses', pack.quantite)}
-              disabled={loadingPack === `roses-${pack.quantite}`}>
-              <span className="pack-quantite">+{pack.quantite}</span>
-              <span className="pack-label">jarres roses</span>
-              <span className="pack-gratuit">Gratuit</span>
-            </button>
-          ))}
+      {FEATURES.ECHO_SOLIDAIRE && (
+        <div className="profil-section">
+          <h3>Acquérir des jarres roses</h3>
+          <p className="pack-note">Les jarres roses soutiennent l'Écho Solidaire du mois.</p>
+          <div className="packs-liste">
+            {PACKS.map(pack => (
+              <button key={pack.quantite} className="pack-btn pack-rose"
+                onClick={() => handleAcquerirPack('roses', pack.quantite)}
+                disabled={loadingPack === `roses-${pack.quantite}`}>
+                <span className="pack-quantite">+{pack.quantite}</span>
+                <span className="pack-label">jarres roses</span>
+                <span className="pack-gratuit">Gratuit</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {mesEchos.length > 0 && (
         <div className="profil-section mes-echos-section">
@@ -316,8 +329,8 @@ export default function ProfilPage() {
         </div>
       )}
 
-      <EchoBouteille />
-      <EcholegueForm />
+      {FEATURES.ECHO_BOUTEILLE && <EchoBouteille />}
+      {FEATURES.ECHOLEGUE && <EcholegueForm />}
 
       {badges.length > 0 && (
         <div className="profil-section">
@@ -338,24 +351,30 @@ export default function ProfilPage() {
         <div className="stats-grid">
           <div className="stat-row"><span className="stat-label">Échos publiés</span><span className="stat-val">{stats.echosTotal}</span></div>
           <div className="stat-row"><span className="stat-label">🕊️ Échos Libres</span><span className="stat-val">{stats.echosLibres}</span></div>
-          <div className="stat-row"><span className="stat-label">🔓 Échos Ouverts</span><span className="stat-val">{stats.echosOuverts}</span></div>
+          {FEATURES.ECHO_OUVERT && (
+            <div className="stat-row"><span className="stat-label">🔓 Échos Ouverts</span><span className="stat-val">{stats.echosOuverts}</span></div>
+          )}
         </div>
       </div>
 
-      <div className="profil-section">
-        <h3>Participation</h3>
-        <div className="stats-grid">
-          <div className="stat-row"><span className="stat-label">Échos Ouverts rejoints</span><span className="stat-val">{stats.echosRejoints}</span></div>
-          <div className="stat-row"><span className="stat-label">ÉchoReps publiées</span><span className="stat-val">{stats.echoRepsPubliees}</span></div>
+      {FEATURES.ECHO_OUVERT && (
+        <div className="profil-section">
+          <h3>Participation</h3>
+          <div className="stats-grid">
+            <div className="stat-row"><span className="stat-label">Échos Ouverts rejoints</span><span className="stat-val">{stats.echosRejoints}</span></div>
+            <div className="stat-row"><span className="stat-label">ÉchoReps publiées</span><span className="stat-val">{stats.echoRepsPubliees}</span></div>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="profil-section">
         <h3>Transmission</h3>
         <div className="stats-grid">
           <div className="stat-row"><span className="stat-label">Écho-Bouteilles envoyées</span><span className="stat-val">{stats.bouteillesEnvoyees}</span></div>
           <div className="stat-row"><span className="stat-label">Écho-Bouteilles reçues</span><span className="stat-val">{stats.bouteillesRecues}</span></div>
-          <div className="stat-row"><span className="stat-label">Écholègues publiés</span><span className="stat-val">{stats.leguesPublies}</span></div>
+          {FEATURES.ECHOLEGUE && (
+            <div className="stat-row"><span className="stat-label">Écholègues publiés</span><span className="stat-val">{stats.leguesPublies}</span></div>
+          )}
         </div>
       </div>
 
@@ -370,16 +389,20 @@ export default function ProfilPage() {
               <span className="stat-recues">reçues {stats.jarresBleuesRecues}</span>
             </span>
           </div>
-          <div className="stat-row">
-            <span className="stat-label">Jarres Roses</span>
-            <span className="stat-val stat-double">
-              <span className="stat-donnees">données {stats.jarresRosesDonnees}</span>
-              <span className="stat-sep">/</span>
-              <span className="stat-recues">reçues {stats.jarresRosesRecues}</span>
-            </span>
-          </div>
+          {FEATURES.ECHO_SOLIDAIRE && (
+            <div className="stat-row">
+              <span className="stat-label">Jarres Roses</span>
+              <span className="stat-val stat-double">
+                <span className="stat-donnees">données {stats.jarresRosesDonnees}</span>
+                <span className="stat-sep">/</span>
+                <span className="stat-recues">reçues {stats.jarresRosesRecues}</span>
+              </span>
+            </div>
+          )}
           <div className="stat-row"><span className="stat-label">Échos ayant résonné</span><span className="stat-val">{stats.echosAvecResonance}</span></div>
-          <div className="stat-row"><span className="stat-label">Participants totaux</span><span className="stat-val">{stats.participantsTotal}</span></div>
+          {FEATURES.ECHO_OUVERT && (
+            <div className="stat-row"><span className="stat-label">Participants totaux</span><span className="stat-val">{stats.participantsTotal}</span></div>
+          )}
         </div>
       </div>
 

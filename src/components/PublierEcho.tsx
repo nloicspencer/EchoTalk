@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { publierEcho } from '../hooks/useEchos';
 import { UserProfile, EchoType, Tonalite } from '../types';
+import { FEATURES } from '../config/features';
 import './PublierEcho.css';
 
 interface Props {
@@ -20,13 +21,17 @@ export default function PublierEcho({ profile }: Props) {
     if (!contenu.trim()) return;
     setLoading(true);
     try {
+      // Sécurité : même si le state `type` avait pu glisser vers 'ouvert' par un
+      // ancien état résiduel, on retombe toujours sur 'libre' tant que le flag
+      // ECHO_OUVERT est désactivé.
+      const typeEffectif: EchoType = FEATURES.ECHO_OUVERT ? type : 'libre';
       await publierEcho({
         contenu,
         auteurId: profile.uid,
         auteurPseudo: profile.pseudo,
         tonalite,
-        type,
-        ...(type === 'ouvert' && { placesMax, periodicitéJours: periodicite }),
+        type: typeEffectif,
+        ...(typeEffectif === 'ouvert' && { placesMax, periodicitéJours: periodicite }),
       });
       setContenu('');
       setOuvert(false);
@@ -61,17 +66,19 @@ export default function PublierEcho({ profile }: Props) {
             </div>
           </div>
 
-          {/* Type */}
-          <div className="option-row">
-            <label>Type</label>
-            <div className="toggle-group">
-              <button className={type === 'libre' ? 'active' : ''} onClick={() => setType('libre')}>🕊️ Libre</button>
-              <button className={type === 'ouvert' ? 'active' : ''} onClick={() => setType('ouvert')}>🔓 Ouvert</button>
+          {/* Type — le choix Libre/Ouvert n'existe que si ECHO_OUVERT est activé */}
+          {FEATURES.ECHO_OUVERT && (
+            <div className="option-row">
+              <label>Type</label>
+              <div className="toggle-group">
+                <button className={type === 'libre' ? 'active' : ''} onClick={() => setType('libre')}>🕊️ Libre</button>
+                <button className={type === 'ouvert' ? 'active' : ''} onClick={() => setType('ouvert')}>🔓 Ouvert</button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Options écho ouvert */}
-          {type === 'ouvert' && (
+          {FEATURES.ECHO_OUVERT && type === 'ouvert' && (
             <>
               <div className="option-row">
                 <label>Participants</label>

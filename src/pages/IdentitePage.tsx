@@ -1,11 +1,14 @@
 import JarreIcon from '../components/JarreIcon';
+import { FEATURES } from '../config/features';
 import './IdentitePage.css';
 
-const PILIERS = [
+type FeatureKey = keyof typeof FEATURES;
+
+const PILIERS: { icon: string; titre: string; texte: string; feature?: FeatureKey }[] = [
   { icon: '🕊️', titre: 'Anonymat choisi', texte: "Vous êtes un pseudonyme. Votre parole, libérée. Votre identité réelle reste strictement confidentielle — seul EchoTalk la connaît." },
   { icon: '🌊', titre: 'Résonance', texte: "Ce qui compte, c'est ce que vous vivez et ce que vous partagez. Chaque écho a vocation à trouver un écho chez quelqu'un d'autre." },
   { icon: '✨', titre: 'Soutien humain', texte: "Des jarres, pas des chiffres. Du sens, pas de la performance. Trois façons d'être présent pour quelqu'un : soutenir, compatir, encourager." },
-  { icon: '🤝', titre: 'Entraide réelle', texte: "L'Écho Solidaire existe pour ceux qui traversent des moments difficiles. La communauté se mobilise. Ensemble, concrètement." },
+  { icon: '🤝', titre: 'Entraide réelle', texte: "L'Écho Solidaire existe pour ceux qui traversent des moments difficiles. La communauté se mobilise. Ensemble, concrètement.", feature: 'ECHO_SOLIDAIRE' },
 ];
 
 const VALEURS = [
@@ -17,7 +20,22 @@ const VALEURS = [
   { icon: '🕊️', label: 'Liberté de parole' },
 ];
 
+const PROPOSITIONS: { texte: string; feature?: FeatureKey }[] = [
+  { texte: '🕊️ Un pseudonyme généré automatiquement — votre seule identité publique' },
+  { texte: '🌊 Des Échos Libres — pour partager sans limite' },
+  { texte: '🔓 Des Échos Ouverts — pour échanger en petit groupe', feature: 'ECHO_OUVERT' },
+  { texte: '💬 Un EchoRep — pour répondre à un Écho Ouvert', feature: 'ECHO_OUVERT' },
+  { texte: '✨ Des Jarres — pour soutenir ceux qui en ont besoin' },
+  { texte: '💛 Un Écho Solidaire — pour une entraide concrète', feature: 'ECHO_SOLIDAIRE' },
+  { texte: '🍾 Un Écho-Bouteille — pour transmettre un message à un inconnu' },
+  { texte: '📓 Un Écholègue — pour transmettre une leçon de vie à la communauté', feature: 'ECHOLEGUE' },
+  { texte: '🤝 Une communauté fondée sur la résonance humaine' },
+];
+
 export default function IdentitePage() {
+  const piliersVisibles = PILIERS.filter(p => !p.feature || FEATURES[p.feature]);
+  const propositionsVisibles = PROPOSITIONS.filter(p => !p.feature || FEATURES[p.feature]);
+
   return (
     <div className="identite-page">
 
@@ -42,7 +60,7 @@ export default function IdentitePage() {
       <div className="identite-section">
         <h2>Nos piliers</h2>
         <div className="piliers-liste">
-          {PILIERS.map((p, i) => (
+          {piliersVisibles.map((p, i) => (
             <div key={i} className="pilier-carte">
               <span className="pilier-icon">{p.icon}</span>
               <div><h3>{p.titre}</h3><p>{p.texte}</p></div>
@@ -68,15 +86,9 @@ export default function IdentitePage() {
       <div className="identite-section identite-manifeste">
         <h2>Ce qu'EchoTalk vous propose</h2>
         <ul>
-          <li>🕊️ Un pseudonyme généré automatiquement — votre seule identité publique</li>
-          <li>🌊 Des Échos Libres — pour partager sans limite</li>
-          <li>🔓 Des Échos Ouverts — pour échanger en petit groupe</li>
-          <li>💬 Un EchoRep — pour répondre à un Écho Ouvert</li>
-          <li>✨ Des Jarres — pour soutenir ceux qui en ont besoin</li>
-          <li>💛 Un Écho Solidaire — pour une entraide concrète</li>
-          <li>🍾 Un Écho-Bouteille — pour transmettre un message à un inconnu</li>
-          <li>📓 Un Écholègue — pour transmettre une leçon de vie à la communauté</li>
-          <li>🤝 Une communauté fondée sur la résonance humaine</li>
+          {propositionsVisibles.map((p, i) => (
+            <li key={i}>{p.texte}</li>
+          ))}
         </ul>
       </div>
 
@@ -98,10 +110,12 @@ export default function IdentitePage() {
             <span className="reaction-emoji">💔</span>
             <div><strong>Cœur brisé</strong><p>Compassion. Je ressens la douleur ou la difficulté partagée. Tu n'es pas seul.</p></div>
           </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji"><JarreIcon color="rose" size="m" /></span>
-            <div><strong>Jarre Rose</strong><p>Soutien solidaire. Réservée à l'Écho Solidaire du mois, elle contribue concrètement à aider.</p></div>
-          </div>
+          {FEATURES.ECHO_SOLIDAIRE && (
+            <div className="reaction-item">
+              <span className="reaction-emoji"><JarreIcon color="rose" size="m" /></span>
+              <div><strong>Jarre Rose</strong><p>Soutien solidaire. Réservée à l'Écho Solidaire du mois, elle contribue concrètement à aider.</p></div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -132,30 +146,32 @@ export default function IdentitePage() {
       </div>
 
       {/* Écholègue */}
-      <div className="identite-section">
-        <h2>📓 L'Écholègue</h2>
-        <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
-          Une expérience de vie racontée, et la leçon qu'elle vous a laissée, transmise à toute la communauté.
-        </p>
-        <div className="reaction-explication">
-          <div className="reaction-item">
-            <span className="reaction-emoji">✍️</span>
-            <div><strong>Récit et leçon</strong><p>Vous racontez une expérience réellement vécue, puis ce qu'elle vous a appris. Le vécu, et la sagesse qui en reste.</p></div>
-          </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji">📚</span>
-            <div><strong>Bibliothèque permanente</strong><p>Chaque Écholègue publié rejoint une bibliothèque collective qui demeure dans le temps.</p></div>
-          </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji">🗞️</span>
-            <div><strong>Sélection hebdomadaire</strong><p>Chaque semaine, jusqu'à trois Écholègues sont mis en lumière dans le Journal des Lègues.</p></div>
-          </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji">🤫</span>
-            <div><strong>Anonymat</strong><p>Votre récit circule sans jamais révéler qui vous êtes. Seule l'expérience compte, pas son auteur.</p></div>
+      {FEATURES.ECHOLEGUE && (
+        <div className="identite-section">
+          <h2>📓 L'Écholègue</h2>
+          <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
+            Une expérience de vie racontée, et la leçon qu'elle vous a laissée, transmise à toute la communauté.
+          </p>
+          <div className="reaction-explication">
+            <div className="reaction-item">
+              <span className="reaction-emoji">✍️</span>
+              <div><strong>Récit et leçon</strong><p>Vous racontez une expérience réellement vécue, puis ce qu'elle vous a appris. Le vécu, et la sagesse qui en reste.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">📚</span>
+              <div><strong>Bibliothèque permanente</strong><p>Chaque Écholègue publié rejoint une bibliothèque collective qui demeure dans le temps.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">🗞️</span>
+              <div><strong>Sélection hebdomadaire</strong><p>Chaque semaine, jusqu'à trois Écholègues sont mis en lumière dans le Journal des Lègues.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">🤫</span>
+              <div><strong>Anonymat</strong><p>Votre récit circule sans jamais révéler qui vous êtes. Seule l'expérience compte, pas son auteur.</p></div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="identite-section">
         <h2>Politique EchoTalk</h2>
@@ -164,7 +180,9 @@ export default function IdentitePage() {
           <div className="politique-item"><span>🤝</span><p>La bienveillance est la règle fondamentale. Chaque échange doit respecter la dignité de chacun.</p></div>
           <div className="politique-item"><span>🛡️</span><p>Une équipe de modération veille à la qualité des échanges. Tout contenu inapproprié peut être signalé.</p></div>
           <div className="politique-item"><span>🌱</span><p>EchoTalk accueille toute l'expérience humaine — joies, réussites, doutes, épreuves, apprentissages.</p></div>
-          <div className="politique-item"><span>💛</span><p>L'Écho Solidaire est sélectionné et validé par l'équipe EchoTalk avant toute mise en avant.</p></div>
+          {FEATURES.ECHO_SOLIDAIRE && (
+            <div className="politique-item"><span>💛</span><p>L'Écho Solidaire est sélectionné et validé par l'équipe EchoTalk avant toute mise en avant.</p></div>
+          )}
         </div>
       </div>
 
