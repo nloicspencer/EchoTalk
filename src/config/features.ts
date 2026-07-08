@@ -13,5 +13,5 @@ export const FEATURES = {
   ECHO_SOLIDAIRE: true,
 
   // V3 — Échos Ouverts + EchoRep
-  ECHO_OUVERT: false,
+  ECHO_OUVERT: true,
 };
