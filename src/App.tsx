@@ -1,32 +1,44 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './pages/AuthPage';
 import FilPage from './pages/FilPage';
-import ProfilPage from './pages/ProfilPage';
-import IdentitePage from './pages/IdentitePage';
-import AdminPage from './pages/AdminPage';
-import ModerationPage from './pages/ModerationPage';
-import DecouvertePage from './pages/DecouvertePage';
-import OnboardingPage from './pages/OnboardingPage';
 import NavBar from './components/NavBar';
 import SuspensionBanner from './SuspensionBanner';
 import './App.css';
+
+const ProfilPage = lazy(() => import('./pages/ProfilPage'));
+const IdentitePage = lazy(() => import('./pages/IdentitePage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ModerationPage = lazy(() => import('./pages/ModerationPage'));
+const DecouvertePage = lazy(() => import('./pages/DecouvertePage'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+
+function ChargementPage() {
+  return (
+    <div className="app-loading">
+      <span>🫙</span>
+      <p>EchoTalk</p>
+    </div>
+  );
+}
 
 function AppLayout() {
   return (
     <>
       <SuspensionBanner />
       <main className="app-main">
-        <Routes>
-          <Route path="/" element={<FilPage />} />
-          <Route path="/decouverte" element={<DecouvertePage />} />
-          <Route path="/profil" element={<ProfilPage />} />
-          <Route path="/identite" element={<IdentitePage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/moderation" element={<ModerationPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<ChargementPage />}>
+          <Routes>
+            <Route path="/" element={<FilPage />} />
+            <Route path="/decouverte" element={<DecouvertePage />} />
+            <Route path="/profil" element={<ProfilPage />} />
+            <Route path="/identite" element={<IdentitePage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/moderation" element={<ModerationPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
       <NavBar />
     </>
@@ -54,10 +66,12 @@ function AppContent() {
       {!user ? (
         <AuthPage onInscriptionComplete={(pseudo) => setOnboardingInfo({ pseudo })} />
       ) : onboardingInfo ? (
-        <OnboardingPage
-          pseudo={onboardingInfo.pseudo}
-          onTermine={() => setOnboardingInfo(null)}
-        />
+        <Suspense fallback={<ChargementPage />}>
+          <OnboardingPage
+            pseudo={onboardingInfo.pseudo}
+            onTermine={() => setOnboardingInfo(null)}
+          />
+        </Suspense>
       ) : (
         <AppLayout />
       )}
