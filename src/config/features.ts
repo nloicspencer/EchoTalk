@@ -9,8 +9,8 @@ export const FEATURES = {
   ECHO_BOUTEILLE: true,
 
   // V2 — Écholègue + Écho Solidaire
-  ECHOLEGUE: false,
-  ECHO_SOLIDAIRE: false,
+  ECHOLEGUE: true,
+  ECHO_SOLIDAIRE: true,
 
   // V3 — Échos Ouverts + EchoRep
   ECHO_OUVERT: false,
