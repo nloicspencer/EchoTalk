@@ -84,7 +84,7 @@ export default function FilPage() {
         <div className="fil-community-text">
           <span className={`fil-community-nombre ${puitsAnim ? 'compteur-pop' : ''}`}>{totalJarres}</span>
           <span className="fil-community-label"> jarres offertes</span>
-          <div className="fil-community-sub">par la communauté cette semaine</div>
+          <div className="fil-community-sub">par la communauté</div>
         </div>
       </div>
 
