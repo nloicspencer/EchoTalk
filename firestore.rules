@@ -34,6 +34,16 @@ service cloud.firestore {
       allow delete: if estAdmin();
     }
 
+    // Annuaire public minimal (uid + statut banni uniquement).
+    // Sert au tirage aléatoire de destinataire pour Écho-Bouteille
+    // sans exposer les données privées de la collection users.
+    match /annuaire/{userId} {
+      allow read: if estConnecte();
+      allow create: if estProprietaire(userId) || estModerateurOuAdmin();
+      allow update: if estProprietaire(userId) || estModerateurOuAdmin();
+      allow delete: if false;
+    }
+
     match /echos/{echoId} {
       function seulsChampsReactionOuPlaces() {
         return request.resource.data.diff(resource.data).affectedKeys()
