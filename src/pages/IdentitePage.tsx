@@ -119,11 +119,39 @@ export default function IdentitePage() {
         </div>
       </div>
 
+      {/* Écho Solidaire */}
+      {FEATURES.ECHO_SOLIDAIRE && (
+        <div className="identite-section">
+          <h2>💛 L'Écho Solidaire</h2>
+          <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
+            Chaque mois, l'un de vous devient l'Écho Solidaire — choisi avec soin par l'équipe EchoTalk parmi les récits qui vous ont le plus touchés.
+          </p>
+          <div className="reaction-explication">
+            <div className="reaction-item">
+              <span className="reaction-emoji">✨</span>
+              <div><strong>Sélection avec soin</strong><p>Pas un algorithme : l'équipe EchoTalk choisit chaque mois le récit qui mérite d'être porté, parfois même sans avoir fait beaucoup de bruit.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji"><JarreIcon color="rose" size="m" /></span>
+              <div><strong>Un geste concret</strong><p>Offrir une jarre rose, c'est dire : je suis là, concrètement. Gratuit, simple, mais réel.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">🤝</span>
+              <div><strong>Une preuve tangible</strong><p>Pour celui qui la reçoit, chaque jarre est la preuve qu'il n'est pas seul ce mois-ci.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">🔄</span>
+              <div><strong>Des rôles réversibles</strong><p>Ce mois-ci, c'est peut-être vous qu'on soutient. Le mois prochain, ce sera peut-être vous qui soutenez — sans savoir qui, mais en sachant que ça compte.</p></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Écho-Bouteille */}
       <div className="identite-section">
         <h2>🍾 L'Écho-Bouteille</h2>
         <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
-          Un message sincère lancé à la mer, reçu par un inconnu de la communauté.
+          Une pensée qui vous traverse, une leçon de vie, un conseil qu'on aurait aimé recevoir un jour — transmis à un inconnu, au hasard, sans savoir qui il touchera ni quand. Peut-être qu'il arrivera exactement le jour où quelqu'un en avait besoin. Peut-être qu'il lui donnera un peu de force, ou juste la preuve qu'il n'est pas seul à ressentir ça.
         </p>
         <div className="reaction-explication">
           <div className="reaction-item">
