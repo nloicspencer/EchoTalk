@@ -23,6 +23,27 @@ const DUREES_SUSPENSION = [
   { label: '7 jours', heures: 168 },
 ];
 
+// Ressources d'aide incluses dans le mail de soutien envoyé depuis la
+// rubrique Détresse. Vérifiées à jour (2026) — à revérifier périodiquement.
+const RESSOURCES_SOUTIEN_SUJET = "Un message de l'équipe EchoTalk";
+const RESSOURCES_SOUTIEN_CORPS = `Bonjour,
+
+Nous avons remarqué qu'un de vos partages récents sur EchoTalk exprimait une grande souffrance. Nous ne savons pas précisément ce que vous traversez, mais nous voulions vous dire que vous n'êtes pas seul(e), et qu'il existe des personnes prêtes à vous écouter, à tout moment :
+
+- 3114 — Numéro national de prévention du suicide, gratuit et accessible 24h/24 et 7j/7
+- SOS Amitié — 09 72 39 40 50, écoute anonyme et gratuite, 24h/24 et 7j/7
+- En cas de danger immédiat, appelez le 15 (SAMU) ou le 112
+
+Prenez soin de vous.
+
+L'équipe EchoTalk`;
+
+function genererLienSoutien(email: string): string {
+  const sujet = encodeURIComponent(RESSOURCES_SOUTIEN_SUJET);
+  const corps = encodeURIComponent(RESSOURCES_SOUTIEN_CORPS);
+  return `mailto:${email}?subject=${sujet}&body=${corps}`;
+}
+
 interface Signalement {
   id: string; echoId: string; echoRepId?: string; echoBouteilleId?: string;
   auteurContenuId: string; auteurContenuPseudo: string;
@@ -37,13 +58,58 @@ export default function ModerationPage() {
   const [signalements, setSignalements] = useState<Signalement[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [onglet, setOnglet] = useState<'en_attente' | 'traites'>('en_attente');
+  const [onglet, setOnglet] = useState<'en_attente' | 'traites' | 'detresse'>('en_attente');
+  const [detresseEnAttenteCount, setDetresseEnAttenteCount] = useState(0);
   const [suspensionModal, setSuspensionModal] = useState<{ signalement: Signalement; action: 'temp' | 'def' } | null>(null);
   const [dureeSuspension, setDureeSuspension] = useState(24);
   const estModerateur = profile?.role === 'admin' || profile?.role === 'moderateur';
 
   useEffect(() => {
     if (!estModerateur) return;
+
+    // Onglet Détresse : tous les signalements de type "detresse", peu importe
+    // leur statut (en attente ou déjà traité), pour garder l'historique visible
+    // dans une seule rubrique dédiée plutôt que mélangés à la modération classique.
+    if (onglet === 'detresse') {
+      const q = query(
+        collection(db, 'signalements'),
+        where('type', '==', 'detresse'),
+        orderBy('createdAt', 'desc')
+      );
+      const unsub = onSnapshot(q, async (snap) => {
+        const items: Signalement[] = [];
+        for (const d of snap.docs) {
+          const data = d.data();
+          if (data.statut === 'archive') continue;
+          let identiteReelle;
+          if (data.auteurContenuId && data.auteurContenuId !== 'systeme') {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', data.auteurContenuId));
+              if (userDoc.exists()) {
+                const ud = userDoc.data();
+                identiteReelle = { prenom: ud.prenom || '—', nom: ud.nom || '—', email: ud.email || '—' };
+              }
+            } catch {}
+          }
+          items.push({
+            id: d.id, echoId: data.echoId || '', echoRepId: data.echoRepId,
+            echoBouteilleId: data.echoBouteilleId,
+            auteurContenuId: data.auteurContenuId, auteurContenuPseudo: data.auteurContenuPseudo,
+            contenu: data.contenu, raison: data.raison, raisonsAlgo: data.raisonsAlgo,
+            type: data.type, source: data.source, statut: data.statut,
+            decision: data.decision || '',
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+            identiteReelle,
+          });
+        }
+        setSignalements(items);
+        setLoading(false);
+      });
+      return unsub;
+    }
+
+    // Onglets En attente / Traités : modération classique, la Détresse est
+    // exclue côté client pour ne pas la mélanger avec les vrais signalements.
     const statut = onglet === 'en_attente' ? 'en_attente' : 'traite';
     const q = query(
       collection(db, 'signalements'),
@@ -55,6 +121,7 @@ export default function ModerationPage() {
       for (const d of snap.docs) {
         const data = d.data();
         if (data.statut === 'archive') continue;
+        if (data.type === 'detresse') continue;
         let identiteReelle;
         if (data.auteurContenuId && data.auteurContenuId !== 'systeme') {
           try {
@@ -81,6 +148,21 @@ export default function ModerationPage() {
     });
     return unsub;
   }, [estModerateur, onglet]);
+
+  // Compteur du badge "Détresse", actif en permanence quel que soit l'onglet
+  // affiché, pour que le modérateur voie tout de suite s'il y a du nouveau.
+  useEffect(() => {
+    if (!estModerateur) return;
+    const q = query(
+      collection(db, 'signalements'),
+      where('type', '==', 'detresse'),
+      where('statut', '==', 'en_attente')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setDetresseEnAttenteCount(snap.docs.length);
+    });
+    return unsub;
+  }, [estModerateur]);
 
   const afficher = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(''), 5000); };
   const marquerTraite = async (id: string, decision: string) => {
@@ -116,6 +198,17 @@ export default function ModerationPage() {
   const handleIgnorer = async (id: string) => {
     await updateDoc(doc(db, 'signalements', id), { statut: 'ignore', decision: 'Ignoré — signalement non fondé' });
     afficher('✅ Signalement ignoré.');
+  };
+
+  const handleSoutenir = (s: Signalement) => {
+    const email = s.identiteReelle?.email;
+    if (!email || email === '—') {
+      afficher("❌ Aucune adresse email connue pour ce compte — vérifiez manuellement.");
+      return;
+    }
+    window.location.href = genererLienSoutien(email);
+    marquerTraite(s.id, 'Ressources de soutien proposées par email');
+    afficher('✅ Brouillon de mail de soutien ouvert — relisez-le puis envoyez-le depuis votre messagerie.');
   };
 
   const handleValiderBouteille = async (s: Signalement) => {
@@ -199,6 +292,7 @@ export default function ModerationPage() {
     if (type === 'echo') return '🕊️ Écho';
     if (type === 'echorep') return '💬 ÉchoRep';
     if (type === 'echo_bouteille') return '🍾 Écho-Bouteille';
+    if (type === 'detresse') return '🫂 Détresse';
     return '👤 Compte';
   };
 
@@ -239,18 +333,23 @@ export default function ModerationPage() {
 
       <div className="modo-onglets">
         <button className={onglet === 'en_attente' ? 'active' : ''} onClick={() => setOnglet('en_attente')}>
-          En attente {enAttenteCount > 0 && <span className="badge">{enAttenteCount}</span>}
+          En attente {enAttenteCount > 0 && onglet === 'en_attente' && <span className="badge">{enAttenteCount}</span>}
         </button>
         <button className={onglet === 'traites' ? 'active' : ''} onClick={() => setOnglet('traites')}>Traités</button>
+        <button className={onglet === 'detresse' ? 'active' : ''} onClick={() => setOnglet('detresse')}>
+          🫂 Détresse {detresseEnAttenteCount > 0 && <span className="badge">{detresseEnAttenteCount}</span>}
+        </button>
       </div>
 
       {loading ? <p className="modo-vide">Chargement...</p>
         : signalements.length === 0
-          ? <p className="modo-vide">Aucun signalement {onglet === 'en_attente' ? 'en attente' : 'traité'}.</p>
+          ? <p className="modo-vide">
+              {onglet === 'detresse' ? 'Aucun signal de détresse pour le moment.' : `Aucun signalement ${onglet === 'en_attente' ? 'en attente' : 'traité'}.`}
+            </p>
           : (
             <div className="modo-liste">
               {signalements.map(s => (
-                <div key={s.id} className={`modo-card ${s.source === 'algorithme' ? 'algo' : 'user'}`}>
+                <div key={s.id} className={`modo-card ${s.source === 'algorithme' ? 'algo' : 'user'} ${s.type === 'detresse' ? 'detresse' : ''}`}>
                   <div className="modo-card-header">
                     <span className={`modo-source ${s.source}`}>
                       {s.source === 'algorithme' ? '🤖 Détection auto' : '🚩 Signalement'}
@@ -274,7 +373,14 @@ export default function ModerationPage() {
                     )}
                   </div>
 
-                  {s.statut === 'en_attente' && (
+                  {s.statut === 'en_attente' && s.type === 'detresse' && (
+                    <div className="modo-actions">
+                      <button className="btn-ignorer" onClick={() => handleIgnorer(s.id)}>Ignorer</button>
+                      <button className="btn-soutenir" onClick={() => handleSoutenir(s)}>🤍 Soutenir</button>
+                    </div>
+                  )}
+
+                  {s.statut === 'en_attente' && s.type !== 'detresse' && (
                     <div className="modo-actions">
                       {/* Écho-Bouteille algo : Valider ou Supprimer uniquement */}
                       {estBouteilleEnAttente(s) ? (
