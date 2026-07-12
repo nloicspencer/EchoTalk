@@ -206,7 +206,9 @@ export default function ModerationPage() {
       afficher("❌ Aucune adresse email connue pour ce compte — vérifiez manuellement.");
       return;
     }
-    window.location.href = genererLienSoutien(email);
+    const lien = genererLienSoutien(email);
+    console.log('[handleSoutenir] Lien mailto généré :', lien);
+    window.open(lien, '_self');
     marquerTraite(s.id, 'Ressources de soutien proposées par email');
     afficher('✅ Brouillon de mail de soutien ouvert — relisez-le puis envoyez-le depuis votre messagerie.');
   };

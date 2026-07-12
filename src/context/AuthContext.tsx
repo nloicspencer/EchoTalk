@@ -113,7 +113,7 @@ function useAuthState(): AuthContextValue {
       echosPublies: 0, jarresBleuesRecues: 0, jarresBleuesPartagees: 0,
       coeursRecus: 0, stockJarresBleues: 15, stockJarresRoses: 0,
     };
-    const docData = { ...newProfile, prenom, nom, dateNaissance, civilite, suspension: null };
+    const docData = { ...newProfile, prenom, nom, dateNaissance, civilite, email, suspension: null };
 
     try {
       await setDoc(doc(db, 'users', cred.user.uid), docData);
