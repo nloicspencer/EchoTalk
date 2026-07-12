@@ -296,6 +296,16 @@ export default function ModerationPage() {
     return '👤 Compte';
   };
 
+  // Un signalement de détresse a toujours type === "detresse", quel que soit
+  // le canal d'origine — on déduit ce canal à partir des IDs disponibles pour
+  // pouvoir retrouver le contenu exact (Écho, EchoRep ou Écho-Bouteille) dans
+  // Firestore si besoin.
+  const origineDetresse = (s: Signalement) => {
+    if (s.echoRepId) return { label: '💬 ÉchoRep', id: s.echoRepId };
+    if (s.echoBouteilleId) return { label: '🍾 Écho-Bouteille', id: s.echoBouteilleId };
+    return { label: '🕊️ Écho', id: s.echoId };
+  };
+
   return (
     <div className="moderation-page">
       <div className="modo-header">
@@ -363,6 +373,11 @@ export default function ModerationPage() {
                     <span className="modo-pseudo">{s.auteurContenuPseudo}</span>
                     {s.identiteReelle && (
                       <span className="modo-identite">👤 {s.identiteReelle.prenom} {s.identiteReelle.nom} — {s.identiteReelle.email}</span>
+                    )}
+                    {s.type === 'detresse' && (
+                      <span className="modo-identite">
+                        {origineDetresse(s).label} — ID : {origineDetresse(s).id}
+                      </span>
                     )}
                   </div>
                   <p className="modo-contenu">"{s.contenu}"</p>
