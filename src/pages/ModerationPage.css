@@ -388,3 +388,30 @@
   border-color: var(--et-rose) !important;
   font-weight: 500 !important;
 }
+
+/* Rubrique Détresse — teinte bleue distincte du gold (algo) et du rose
+   (utilisateur), pour évoquer le calme et le soutien plutôt qu'une sanction. */
+.modo-card.detresse {
+  border-left-color: #5B8DEF;
+  background: rgba(91,141,239,0.05);
+}
+
+.modo-card.detresse .modo-type {
+  color: #3E6FC4;
+  font-weight: 500;
+}
+
+.btn-soutenir {
+  padding: 5px 12px;
+  border-radius: var(--et-radius-sm);
+  border: 0.5px solid rgba(91,141,239,0.4);
+  background: rgba(91,141,239,0.12);
+  color: #3E6FC4;
+  font-size: 0.8rem;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-soutenir:hover { background: #5B8DEF; color: white; }
