@@ -1,16 +1,17 @@
 import {
     collection,
-    doc, getDoc,
+    doc, DocumentData, getDoc,
     getDocs,
     onSnapshot,
     orderBy,
     query,
+    QueryDocumentSnapshot,
     serverTimestamp,
     Timestamp,
     updateDoc,
     where
 } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supprimerEchoBouteille, validerEchoBouteille } from '../hooks/useEchoBouteille';
 import { masquerEchoRep, modererCompte, modererEcho, recupererEchoRep } from '../hooks/useModeration';
@@ -38,10 +39,8 @@ Prenez soin de vous.
 
 L'équipe EchoTalk`;
 
-function genererLienSoutien(email: string): string {
-  const sujet = encodeURIComponent(RESSOURCES_SOUTIEN_SUJET);
-  const corps = encodeURIComponent(RESSOURCES_SOUTIEN_CORPS);
-  return `mailto:${email}?subject=${sujet}&body=${corps}`;
+function genererTexteSoutien(email: string): string {
+  return `Destinataire : ${email}\nObjet : ${RESSOURCES_SOUTIEN_SUJET}\n\n${RESSOURCES_SOUTIEN_CORPS}`;
 }
 
 interface Signalement {
@@ -64,6 +63,57 @@ export default function ModerationPage() {
   const [dureeSuspension, setDureeSuspension] = useState(24);
   const estModerateur = profile?.role === 'admin' || profile?.role === 'moderateur';
 
+  // Cache d'identité : évite de re-interroger Firestore pour un même auteur à
+  // chaque rafraîchissement (avant, chaque snapshot refaisait tous les getDoc).
+  const identiteCacheRef = useRef<Map<string, { prenom: string; nom: string; email: string }>>(new Map());
+  // Compteur de requête : si un nouveau snapshot arrive avant que le
+  // précédent ait fini de charger les identités, on ignore le résultat
+  // obsolète au lieu de laisser une réponse en retard écraser une plus
+  // récente (c'était la cause du "ça ne marche pas" par intermittence).
+  const requeteIdRef = useRef(0);
+
+  const chargerIdentite = async (auteurContenuId?: string) => {
+    if (!auteurContenuId || auteurContenuId === 'systeme') return undefined;
+    const cache = identiteCacheRef.current;
+    if (cache.has(auteurContenuId)) return cache.get(auteurContenuId);
+    try {
+      const userDoc = await getDoc(doc(db, 'users', auteurContenuId));
+      if (userDoc.exists()) {
+        const ud = userDoc.data();
+        const identite = { prenom: ud.prenom || '—', nom: ud.nom || '—', email: ud.email || '—' };
+        cache.set(auteurContenuId, identite);
+        return identite;
+      }
+    } catch {}
+    return undefined;
+  };
+
+  const construireSignalements = async (
+    docs: QueryDocumentSnapshot<DocumentData>[],
+    exclureDetresse: boolean
+  ): Promise<Signalement[]> => {
+    const filtres = docs.filter(d => {
+      const data = d.data();
+      if (data.statut === 'archive') return false;
+      if (exclureDetresse && data.type === 'detresse') return false;
+      return true;
+    });
+    return Promise.all(filtres.map(async d => {
+      const data = d.data();
+      const identiteReelle = await chargerIdentite(data.auteurContenuId);
+      return {
+        id: d.id, echoId: data.echoId || '', echoRepId: data.echoRepId,
+        echoBouteilleId: data.echoBouteilleId,
+        auteurContenuId: data.auteurContenuId, auteurContenuPseudo: data.auteurContenuPseudo,
+        contenu: data.contenu, raison: data.raison, raisonsAlgo: data.raisonsAlgo,
+        type: data.type, source: data.source, statut: data.statut,
+        decision: data.decision || '',
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+        identiteReelle,
+      } as Signalement;
+    }));
+  };
+
   useEffect(() => {
     if (!estModerateur) return;
 
@@ -76,34 +126,13 @@ export default function ModerationPage() {
         where('type', '==', 'detresse'),
         orderBy('createdAt', 'desc')
       );
-      const unsub = onSnapshot(q, async (snap) => {
-        const items: Signalement[] = [];
-        for (const d of snap.docs) {
-          const data = d.data();
-          if (data.statut === 'archive') continue;
-          let identiteReelle;
-          if (data.auteurContenuId && data.auteurContenuId !== 'systeme') {
-            try {
-              const userDoc = await getDoc(doc(db, 'users', data.auteurContenuId));
-              if (userDoc.exists()) {
-                const ud = userDoc.data();
-                identiteReelle = { prenom: ud.prenom || '—', nom: ud.nom || '—', email: ud.email || '—' };
-              }
-            } catch {}
-          }
-          items.push({
-            id: d.id, echoId: data.echoId || '', echoRepId: data.echoRepId,
-            echoBouteilleId: data.echoBouteilleId,
-            auteurContenuId: data.auteurContenuId, auteurContenuPseudo: data.auteurContenuPseudo,
-            contenu: data.contenu, raison: data.raison, raisonsAlgo: data.raisonsAlgo,
-            type: data.type, source: data.source, statut: data.statut,
-            decision: data.decision || '',
-            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-            identiteReelle,
-          });
-        }
-        setSignalements(items);
-        setLoading(false);
+      const unsub = onSnapshot(q, (snap) => {
+        const requeteId = ++requeteIdRef.current;
+        construireSignalements(snap.docs, false).then(items => {
+          if (requeteId !== requeteIdRef.current) return; // une requête plus récente est en cours, on jette celle-ci
+          setSignalements(items);
+          setLoading(false);
+        });
       });
       return unsub;
     }
@@ -116,35 +145,13 @@ export default function ModerationPage() {
       where('statut', '==', statut),
       orderBy('createdAt', 'desc')
     );
-    const unsub = onSnapshot(q, async (snap) => {
-      const items: Signalement[] = [];
-      for (const d of snap.docs) {
-        const data = d.data();
-        if (data.statut === 'archive') continue;
-        if (data.type === 'detresse') continue;
-        let identiteReelle;
-        if (data.auteurContenuId && data.auteurContenuId !== 'systeme') {
-          try {
-            const userDoc = await getDoc(doc(db, 'users', data.auteurContenuId));
-            if (userDoc.exists()) {
-              const ud = userDoc.data();
-              identiteReelle = { prenom: ud.prenom || '—', nom: ud.nom || '—', email: ud.email || '—' };
-            }
-          } catch {}
-        }
-        items.push({
-          id: d.id, echoId: data.echoId || '', echoRepId: data.echoRepId,
-          echoBouteilleId: data.echoBouteilleId,
-          auteurContenuId: data.auteurContenuId, auteurContenuPseudo: data.auteurContenuPseudo,
-          contenu: data.contenu, raison: data.raison, raisonsAlgo: data.raisonsAlgo,
-          type: data.type, source: data.source, statut: data.statut,
-          decision: data.decision || '',
-          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-          identiteReelle,
-        });
-      }
-      setSignalements(items);
-      setLoading(false);
+    const unsub = onSnapshot(q, (snap) => {
+      const requeteId = ++requeteIdRef.current;
+      construireSignalements(snap.docs, true).then(items => {
+        if (requeteId !== requeteIdRef.current) return;
+        setSignalements(items);
+        setLoading(false);
+      });
     });
     return unsub;
   }, [estModerateur, onglet]);
@@ -200,17 +207,20 @@ export default function ModerationPage() {
     afficher('✅ Signalement ignoré.');
   };
 
-  const handleSoutenir = (s: Signalement) => {
+  const handleSoutenir = async (s: Signalement) => {
     const email = s.identiteReelle?.email;
     if (!email || email === '—') {
       afficher("❌ Aucune adresse email connue pour ce compte — vérifiez manuellement.");
       return;
     }
-    const lien = genererLienSoutien(email);
-    console.log('[handleSoutenir] Lien mailto généré :', lien);
-    window.open(lien, '_self');
-    marquerTraite(s.id, 'Ressources de soutien proposées par email');
-    afficher('✅ Brouillon de mail de soutien ouvert — relisez-le puis envoyez-le depuis votre messagerie.');
+    try {
+      await navigator.clipboard.writeText(genererTexteSoutien(email));
+      window.open('https://webmail.gandi.net/', '_blank');
+      marquerTraite(s.id, 'Ressources de soutien proposées par email');
+      afficher('✅ Texte du mail copié dans le presse-papier — collez-le dans un nouveau message depuis votre webmail.');
+    } catch {
+      afficher("❌ Impossible de copier le texte automatiquement — vérifiez les permissions du navigateur.");
+    }
   };
 
   const handleValiderBouteille = async (s: Signalement) => {
