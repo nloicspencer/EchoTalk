@@ -1,17 +1,18 @@
 import {
-    collection,
-    doc, DocumentData, getDoc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    QueryDocumentSnapshot,
-    serverTimestamp,
-    Timestamp,
-    updateDoc,
-    where
+  collection,
+  doc, DocumentData, getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  QueryDocumentSnapshot,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supprimerEchoBouteille, validerEchoBouteille } from '../hooks/useEchoBouteille';
 import { masquerEchoRep, modererCompte, modererEcho, recupererEchoRep } from '../hooks/useModeration';
@@ -24,25 +25,6 @@ const DUREES_SUSPENSION = [
   { label: '7 jours', heures: 168 },
 ];
 
-// Ressources d'aide incluses dans le mail de soutien envoyé depuis la
-// rubrique Détresse. Vérifiées à jour (2026) — à revérifier périodiquement.
-const RESSOURCES_SOUTIEN_SUJET = "Un message de l'équipe EchoTalk";
-const RESSOURCES_SOUTIEN_CORPS = `Bonjour,
-
-Nous avons remarqué qu'un de vos partages récents sur EchoTalk exprimait une grande souffrance. Nous ne savons pas précisément ce que vous traversez, mais nous voulions vous dire que vous n'êtes pas seul(e), et qu'il existe des personnes prêtes à vous écouter, à tout moment :
-
-- 3114 — Numéro national de prévention du suicide, gratuit et accessible 24h/24 et 7j/7
-- SOS Amitié — 09 72 39 40 50, écoute anonyme et gratuite, 24h/24 et 7j/7
-- En cas de danger immédiat, appelez le 15 (SAMU) ou le 112
-
-Prenez soin de vous.
-
-L'équipe EchoTalk`;
-
-function genererTexteSoutien(email: string): string {
-  return `Destinataire : ${email}\nObjet : ${RESSOURCES_SOUTIEN_SUJET}\n\n${RESSOURCES_SOUTIEN_CORPS}`;
-}
-
 interface Signalement {
   id: string; echoId: string; echoRepId?: string; echoBouteilleId?: string;
   auteurContenuId: string; auteurContenuPseudo: string;
@@ -52,24 +34,21 @@ interface Signalement {
   identiteReelle?: { prenom: string; nom: string; email: string };
 }
 
+// Cette page ne gère QUE la modération classique (signalements utilisateur
+// et détection auto sur Écho / EchoRep / Écho-Bouteille). Le volet Détresse
+// vit désormais dans sa propre page (ModerationDetressePage.tsx), séparée
+// pour éviter tout couplage entre les deux logiques.
 export default function ModerationPage() {
   const { user, profile } = useAuth();
   const [signalements, setSignalements] = useState<Signalement[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [onglet, setOnglet] = useState<'en_attente' | 'traites' | 'detresse'>('en_attente');
-  const [detresseEnAttenteCount, setDetresseEnAttenteCount] = useState(0);
+  const [onglet, setOnglet] = useState<'en_attente' | 'traites'>('en_attente');
   const [suspensionModal, setSuspensionModal] = useState<{ signalement: Signalement; action: 'temp' | 'def' } | null>(null);
   const [dureeSuspension, setDureeSuspension] = useState(24);
   const estModerateur = profile?.role === 'admin' || profile?.role === 'moderateur';
 
-  // Cache d'identité : évite de re-interroger Firestore pour un même auteur à
-  // chaque rafraîchissement (avant, chaque snapshot refaisait tous les getDoc).
   const identiteCacheRef = useRef<Map<string, { prenom: string; nom: string; email: string }>>(new Map());
-  // Compteur de requête : si un nouveau snapshot arrive avant que le
-  // précédent ait fini de charger les identités, on ignore le résultat
-  // obsolète au lieu de laisser une réponse en retard écraser une plus
-  // récente (c'était la cause du "ça ne marche pas" par intermittence).
   const requeteIdRef = useRef(0);
 
   const chargerIdentite = async (auteurContenuId?: string) => {
@@ -88,15 +67,10 @@ export default function ModerationPage() {
     return undefined;
   };
 
-  const construireSignalements = async (
-    docs: QueryDocumentSnapshot<DocumentData>[],
-    exclureDetresse: boolean
-  ): Promise<Signalement[]> => {
+  const construireSignalements = async (docs: QueryDocumentSnapshot<DocumentData>[]): Promise<Signalement[]> => {
     const filtres = docs.filter(d => {
       const data = d.data();
-      if (data.statut === 'archive') return false;
-      if (exclureDetresse && data.type === 'detresse') return false;
-      return true;
+      return data.statut !== 'archive' && data.type !== 'detresse';
     });
     return Promise.all(filtres.map(async d => {
       const data = d.data();
@@ -116,29 +90,7 @@ export default function ModerationPage() {
 
   useEffect(() => {
     if (!estModerateur) return;
-
-    // Onglet Détresse : tous les signalements de type "detresse", peu importe
-    // leur statut (en attente ou déjà traité), pour garder l'historique visible
-    // dans une seule rubrique dédiée plutôt que mélangés à la modération classique.
-    if (onglet === 'detresse') {
-      const q = query(
-        collection(db, 'signalements'),
-        where('type', '==', 'detresse'),
-        orderBy('createdAt', 'desc')
-      );
-      const unsub = onSnapshot(q, (snap) => {
-        const requeteId = ++requeteIdRef.current;
-        construireSignalements(snap.docs, false).then(items => {
-          if (requeteId !== requeteIdRef.current) return; // une requête plus récente est en cours, on jette celle-ci
-          setSignalements(items);
-          setLoading(false);
-        });
-      });
-      return unsub;
-    }
-
-    // Onglets En attente / Traités : modération classique, la Détresse est
-    // exclue côté client pour ne pas la mélanger avec les vrais signalements.
+    setLoading(true);
     const statut = onglet === 'en_attente' ? 'en_attente' : 'traite';
     const q = query(
       collection(db, 'signalements'),
@@ -147,7 +99,7 @@ export default function ModerationPage() {
     );
     const unsub = onSnapshot(q, (snap) => {
       const requeteId = ++requeteIdRef.current;
-      construireSignalements(snap.docs, true).then(items => {
+      construireSignalements(snap.docs).then(items => {
         if (requeteId !== requeteIdRef.current) return;
         setSignalements(items);
         setLoading(false);
@@ -155,21 +107,6 @@ export default function ModerationPage() {
     });
     return unsub;
   }, [estModerateur, onglet]);
-
-  // Compteur du badge "Détresse", actif en permanence quel que soit l'onglet
-  // affiché, pour que le modérateur voie tout de suite s'il y a du nouveau.
-  useEffect(() => {
-    if (!estModerateur) return;
-    const q = query(
-      collection(db, 'signalements'),
-      where('type', '==', 'detresse'),
-      where('statut', '==', 'en_attente')
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setDetresseEnAttenteCount(snap.docs.length);
-    });
-    return unsub;
-  }, [estModerateur]);
 
   const afficher = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(''), 5000); };
   const marquerTraite = async (id: string, decision: string) => {
@@ -205,22 +142,6 @@ export default function ModerationPage() {
   const handleIgnorer = async (id: string) => {
     await updateDoc(doc(db, 'signalements', id), { statut: 'ignore', decision: 'Ignoré — signalement non fondé' });
     afficher('✅ Signalement ignoré.');
-  };
-
-  const handleSoutenir = async (s: Signalement) => {
-    const email = s.identiteReelle?.email;
-    if (!email || email === '—') {
-      afficher("❌ Aucune adresse email connue pour ce compte — vérifiez manuellement.");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(genererTexteSoutien(email));
-      window.open('https://webmail.gandi.net/', '_blank');
-      marquerTraite(s.id, 'Ressources de soutien proposées par email');
-      afficher('✅ Texte du mail copié dans le presse-papier — collez-le dans un nouveau message depuis votre webmail.');
-    } catch {
-      afficher("❌ Impossible de copier le texte automatiquement — vérifiez les permissions du navigateur.");
-    }
   };
 
   const handleValiderBouteille = async (s: Signalement) => {
@@ -304,18 +225,7 @@ export default function ModerationPage() {
     if (type === 'echo') return '🕊️ Écho';
     if (type === 'echorep') return '💬 ÉchoRep';
     if (type === 'echo_bouteille') return '🍾 Écho-Bouteille';
-    if (type === 'detresse') return '🫂 Détresse';
     return '👤 Compte';
-  };
-
-  // Un signalement de détresse a toujours type === "detresse", quel que soit
-  // le canal d'origine — on déduit ce canal à partir des IDs disponibles pour
-  // pouvoir retrouver le contenu exact (Écho, EchoRep ou Écho-Bouteille) dans
-  // Firestore si besoin.
-  const origineDetresse = (s: Signalement) => {
-    if (s.echoRepId) return { label: '💬 ÉchoRep', id: s.echoRepId };
-    if (s.echoBouteilleId) return { label: '🍾 Écho-Bouteille', id: s.echoBouteilleId };
-    return { label: '🕊️ Écho', id: s.echoId };
   };
 
   return (
@@ -358,20 +268,15 @@ export default function ModerationPage() {
           En attente {enAttenteCount > 0 && onglet === 'en_attente' && <span className="badge">{enAttenteCount}</span>}
         </button>
         <button className={onglet === 'traites' ? 'active' : ''} onClick={() => setOnglet('traites')}>Traités</button>
-        <button className={onglet === 'detresse' ? 'active' : ''} onClick={() => setOnglet('detresse')}>
-          🫂 Détresse {detresseEnAttenteCount > 0 && <span className="badge">{detresseEnAttenteCount}</span>}
-        </button>
       </div>
 
       {loading ? <p className="modo-vide">Chargement...</p>
         : signalements.length === 0
-          ? <p className="modo-vide">
-              {onglet === 'detresse' ? 'Aucun signal de détresse pour le moment.' : `Aucun signalement ${onglet === 'en_attente' ? 'en attente' : 'traité'}.`}
-            </p>
+          ? <p className="modo-vide">Aucun signalement {onglet === 'en_attente' ? 'en attente' : 'traité'}.</p>
           : (
             <div className="modo-liste">
               {signalements.map(s => (
-                <div key={s.id} className={`modo-card ${s.source === 'algorithme' ? 'algo' : 'user'} ${s.type === 'detresse' ? 'detresse' : ''}`}>
+                <div key={s.id} className={`modo-card ${s.source === 'algorithme' ? 'algo' : 'user'}`}>
                   <div className="modo-card-header">
                     <span className={`modo-source ${s.source}`}>
                       {s.source === 'algorithme' ? '🤖 Détection auto' : '🚩 Signalement'}
@@ -386,11 +291,6 @@ export default function ModerationPage() {
                     {s.identiteReelle && (
                       <span className="modo-identite">👤 {s.identiteReelle.prenom} {s.identiteReelle.nom} — {s.identiteReelle.email}</span>
                     )}
-                    {s.type === 'detresse' && (
-                      <span className="modo-identite">
-                        {origineDetresse(s).label} — ID : {origineDetresse(s).id}
-                      </span>
-                    )}
                   </div>
                   <p className="modo-contenu">"{s.contenu}"</p>
                   <div className="modo-raison">
@@ -400,16 +300,8 @@ export default function ModerationPage() {
                     )}
                   </div>
 
-                  {s.statut === 'en_attente' && s.type === 'detresse' && (
+                  {s.statut === 'en_attente' && (
                     <div className="modo-actions">
-                      <button className="btn-ignorer" onClick={() => handleIgnorer(s.id)}>Ignorer</button>
-                      <button className="btn-soutenir" onClick={() => handleSoutenir(s)}>🤍 Soutenir</button>
-                    </div>
-                  )}
-
-                  {s.statut === 'en_attente' && s.type !== 'detresse' && (
-                    <div className="modo-actions">
-                      {/* Écho-Bouteille algo : Valider ou Supprimer uniquement */}
                       {estBouteilleEnAttente(s) ? (
                         <>
                           <button className="btn-valider-bouteille" onClick={() => handleValiderBouteille(s)}>
@@ -455,6 +347,8 @@ export default function ModerationPage() {
               ))}
             </div>
           )}
+
+      <Link to="/moderation-detresse" className="btn-admin btn-moderation">🫂 Modération Détresse</Link>
     </div>
   );
 }

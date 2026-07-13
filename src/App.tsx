@@ -11,6 +11,7 @@ const ProfilPage = lazy(() => import('./pages/ProfilPage'));
 const IdentitePage = lazy(() => import('./pages/IdentitePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ModerationPage = lazy(() => import('./pages/ModerationPage'));
+const ModerationDetressePage = lazy(() => import('./pages/ModerationDetressePage'));
 const DecouvertePage = lazy(() => import('./pages/DecouvertePage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 
@@ -36,6 +37,7 @@ function AppLayout() {
             <Route path="/identite" element={<IdentitePage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/moderation" element={<ModerationPage />} />
+            <Route path="/moderation-detresse" element={<ModerationDetressePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
