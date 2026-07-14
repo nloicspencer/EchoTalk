@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useEchos } from '../hooks/useEchos';
+import { useEchosDecouverte } from '../hooks/useDecouverte';
 import EchoCard from '../components/EchoCard';
 import { FEATURES } from '../config/features';
 import './DecouvertePage.css';
@@ -15,7 +15,16 @@ export default function DecouvertePage() {
   const [filtreTonalite, setFiltreTonalite] = useState<FiltreTonalite>('tous');
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('tous');
   const [filtreTemporalite, setFiltreTemporalite] = useState<FiltreTemporalite>('tous');
-  const { echos, loading } = useEchos();
+
+  // Type, tonalité et période sont filtrés directement par Firestore (voir
+  // useEchosDecouverte) — les "30 derniers" dépendent donc déjà des filtres
+  // choisis. Le statut et la recherche texte restent appliqués ci-dessous,
+  // sur la fenêtre déjà chargée.
+  const { echos, loading, loadingMore, hasMore, chargerPlus } = useEchosDecouverte(
+    FEATURES.ECHO_OUVERT ? filtreType : 'tous',
+    filtreTonalite,
+    filtreTemporalite
+  );
 
   const resultats = useMemo(() => {
     return echos.filter(echo => {
@@ -28,25 +37,12 @@ export default function DecouvertePage() {
         if (!contenu.includes(terme) && !pseudo.includes(terme)) return false;
       }
 
-      if (FEATURES.ECHO_OUVERT && filtreType !== 'tous' && echo.type !== filtreType) return false;
-      if (filtreTonalite !== 'tous' && echo.tonalite !== filtreTonalite) return false;
       if (FEATURES.ECHO_OUVERT && filtreStatut === 'actif' && echo.type === 'ouvert' && !echo.estOuvert) return false;
       if (FEATURES.ECHO_OUVERT && filtreStatut === 'cloture' && echo.type === 'ouvert' && echo.estOuvert) return false;
 
-      if (filtreTemporalite !== 'tous') {
-        const maintenant = Date.now();
-        const limites: Record<string, number> = {
-          '48h': 48 * 60 * 60 * 1000,
-          '7j': 7 * 24 * 60 * 60 * 1000,
-          '14j': 14 * 24 * 60 * 60 * 1000,
-        };
-        const limite = limites[filtreTemporalite];
-        if (maintenant - echo.createdAt.getTime() > limite) return false;
-      }
-
       return true;
     });
-  }, [echos, recherche, filtreType, filtreTonalite, filtreStatut, filtreTemporalite]);
+  }, [echos, recherche, filtreStatut]);
 
   return (
     <div className="decouverte-page">
@@ -66,6 +62,14 @@ export default function DecouvertePage() {
         />
         {recherche && <button className="recherche-clear" onClick={() => setRecherche('')}>✕</button>}
       </div>
+
+      {/* Note : la recherche porte sur les échos déjà chargés (selon les
+          filtres actifs), pas sur tout l'historique de la plateforme. */}
+      {recherche && hasMore && (
+        <p className="decouverte-note-recherche">
+          La recherche porte sur les échos déjà chargés. Cliquez sur "Charger plus" en bas pour élargir la recherche.
+        </p>
+      )}
 
       <div className="filtres">
         {/* Type — n'existe que si Écho Ouvert est actif (sinon tous les échos sont Libres) */}
@@ -141,6 +145,12 @@ export default function DecouvertePage() {
               {resultats.map(echo => <EchoCard key={echo.id} echo={echo} />)}
             </div>
           </>
+        )}
+
+        {!loading && hasMore && (
+          <button className="fil-charger-plus" onClick={chargerPlus} disabled={loadingMore}>
+            {loadingMore ? 'Chargement...' : 'Charger plus d\'échos'}
+          </button>
         )}
       </div>
     </div>

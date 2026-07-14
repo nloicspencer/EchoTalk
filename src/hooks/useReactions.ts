@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   doc, getDoc, updateDoc, setDoc,
   collection, query, where, getDocs, addDoc,
-  serverTimestamp, onSnapshot, Timestamp
+  serverTimestamp, onSnapshot, Timestamp, increment
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
@@ -31,6 +31,26 @@ export function useStockJarres(userId: string) {
   }, [userId]);
 
   return stock;
+}
+
+// Compteur global "jarres offertes par la communauté" — un document unique
+// (stats/global), incrémenté à chaque jarre bleue offerte. Indépendant du
+// nombre d'Échos chargés côté client : reste exact même si le Fil est
+// paginé et n'affiche qu'une fraction de l'historique.
+//
+// ⚠️ Ce compteur démarre à 0 tant qu'aucun script de migration n'a été
+// exécuté pour y injecter la somme des jarresBleues déjà accumulées sur les
+// Échos existants avant la mise en place de ce compteur.
+export function useCompteurGlobalJarres() {
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    const ref = doc(db, 'stats', 'global');
+    const unsub = onSnapshot(ref, (snap) => {
+      setTotal(snap.exists() ? (snap.data().totalJarresBleues || 0) : 0);
+    });
+    return unsub;
+  }, []);
+  return total;
 }
 
 // Vérifier si l'utilisateur a déjà réagi à un écho
@@ -73,6 +93,13 @@ export async function donnerJarreBleu(
   await updateDoc(doc(db, 'echos', echoId), {
     jarresBleues: compteurActuel + 1,
   });
+
+  // Incrémenter le compteur global du puits (document unique, indépendant
+  // de la pagination du Fil). setDoc + merge pour créer le document au
+  // premier appel s'il n'existe pas encore.
+  await setDoc(doc(db, 'stats', 'global'), {
+    totalJarresBleues: increment(1),
+  }, { merge: true });
 }
 
 // Donner une jarre rose (Écho Solidaire) — illimité tant que stock > 0

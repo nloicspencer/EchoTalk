@@ -175,8 +175,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Compteurs globaux (ex : jarres offertes par la communauté, affiché
+    // sur le Fil). Lecture publique — tout le monde doit pouvoir voir le
+    // total. Écriture ouverte à tout utilisateur connecté : n'importe qui
+    // qui offre une jarre doit pouvoir incrémenter ce compteur, pas
+    // seulement les admins (contrairement à la règle précédente qui
+    // bloquait cet usage).
     match /stats/{id} {
-      allow read, write: if estAdmin();
+      allow read: if true;
+      allow write: if estConnecte();
     }
 
     match /{document=**} {

@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  onSnapshot, query, orderBy, where,
-  addDoc, updateDoc, deleteDoc, doc,
-  serverTimestamp, Timestamp, collection, getDocs, writeBatch,
+  onSnapshot, query, orderBy, where, limit, startAfter, documentId,
+  addDoc, updateDoc, deleteDoc, doc, getDocs,
+  serverTimestamp, Timestamp, collection, writeBatch,
+  DocumentData, QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
 import { Echo, EchoType, Tonalite } from '../types';
 
-function convertEcho(id: string, data: Record<string, unknown>): Echo {
+export function convertEcho(id: string, data: Record<string, unknown>): Echo {
   return {
     ...data, id,
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
@@ -19,34 +20,104 @@ function convertEcho(id: string, data: Record<string, unknown>): Echo {
   } as Echo;
 }
 
-export function useEchos() {
+export function filtrerEchosVisibles(docs: QueryDocumentSnapshot<DocumentData>[]): Echo[] {
+  const maintenant = Date.now();
+  const heures24 = 24 * 60 * 60 * 1000;
+  return docs
+    .map((d) => convertEcho(d.id, d.data() as Record<string, unknown>))
+    .filter(e => {
+      if (e.masque) return false;
+      if (e.supprime && e.suppressionAt) {
+        const suppressionDate = e.suppressionAt instanceof Date ? e.suppressionAt : new Date(e.suppressionAt);
+        if (!isNaN(suppressionDate.getTime())) {
+          return maintenant - suppressionDate.getTime() < heures24;
+        }
+      }
+      return true;
+    });
+}
+
+// Fil : pagination stable, jamais réinitialisée.
+//
+// Chaque page est chargée une seule fois (pas d'écoute sur la requête
+// globale) — un nouvel Écho publié par quelqu'un d'autre n'apparaît donc
+// qu'au rafraîchissement de la page, pas en direct. Choix assumé : ça évite
+// qu'une pagination déjà avancée (plusieurs "Charger plus" déjà cliqués) ne
+// soit balayée par l'arrivée d'un nouveau post.
+//
+// En revanche, les RÉACTIONS (jarres, cœurs) sur les Échos déjà affichés
+// restent en direct : chaque page de 30 documents (la limite de l'opérateur
+// Firestore `in`) a son propre listener ciblé sur exactement ces IDs, qui
+// met à jour uniquement ces Échos dans la liste sans jamais la réordonner
+// autrement que par date de création (stable, puisque createdAt ne change
+// jamais après publication).
+export function useEchos(pageSize = 30) {
   const [echos, setEchos] = useState<Echo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const chunkUnsubsRef = useRef<Map<number, () => void>>(new Map());
+  const prochainChunkRef = useRef(0);
+
+  const abonnerChunk = (chunkIndex: number, ids: string[]) => {
+    if (ids.length === 0) return;
+    // documentId() 'in' accepte au maximum 30 valeurs — d'où pageSize = 30
+    const q = query(echosCollection, where(documentId(), 'in', ids));
+    const unsub = onSnapshot(q, (snap) => {
+      const majVisibles = filtrerEchosVisibles(snap.docs);
+      setEchos(prev => {
+        const sansCeChunk = prev.filter(e => !ids.includes(e.id));
+        return [...sansCeChunk, ...majVisibles].sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+        );
+      });
+    });
+    chunkUnsubsRef.current.set(chunkIndex, unsub);
+  };
+
+  const chargerPage = async (cursor: QueryDocumentSnapshot<DocumentData> | null) => {
+    const contraintes = cursor ? [startAfter(cursor)] : [];
+    const q = query(echosCollection, orderBy('createdAt', 'desc'), ...contraintes, limit(pageSize));
+    const snap = await getDocs(q);
+    if (snap.docs.length > 0) {
+      const nouveaux = filtrerEchosVisibles(snap.docs);
+      const ids = snap.docs.map(d => d.id);
+      abonnerChunk(prochainChunkRef.current++, ids);
+      lastDocRef.current = snap.docs[snap.docs.length - 1];
+      setEchos(prev => [...prev, ...nouveaux].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      ));
+    }
+    setHasMore(snap.docs.length === pageSize);
+  };
 
   useEffect(() => {
-    const q = query(echosCollection, orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const maintenant = Date.now();
-      const heures24 = 24 * 60 * 60 * 1000;
-      const echosFiltres = snap.docs
-        .map((d) => convertEcho(d.id, d.data() as Record<string, unknown>))
-        .filter(e => {
-          if (e.masque) return false;
-          if (e.supprime && e.suppressionAt) {
-            const suppressionDate = e.suppressionAt instanceof Date ? e.suppressionAt : new Date(e.suppressionAt);
-            if (!isNaN(suppressionDate.getTime())) {
-              return maintenant - suppressionDate.getTime() < heures24;
-            }
-          }
-          return true;
-        });
-      setEchos(echosFiltres);
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+    setLoading(true);
+    setEchos([]);
+    lastDocRef.current = null;
+    prochainChunkRef.current = 0;
+    chunkUnsubsRef.current.forEach(u => u());
+    chunkUnsubsRef.current.clear();
+    chargerPage(null).finally(() => setLoading(false));
+    return () => {
+      chunkUnsubsRef.current.forEach(u => u());
+      chunkUnsubsRef.current.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize]);
 
-  return { echos, loading };
+  const chargerPlus = async () => {
+    if (!lastDocRef.current || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      await chargerPage(lastDocRef.current);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  return { echos, loading, loadingMore, hasMore, chargerPlus };
 }
 
 export function useEchoSolidaire() {

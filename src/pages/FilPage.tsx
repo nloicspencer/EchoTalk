@@ -6,6 +6,7 @@ import JournalLegues from '../components/JournalLegues';
 import PublierEcho from '../components/PublierEcho';
 import { useAuth } from '../context/AuthContext';
 import { useEchos, useEchoSolidaire } from '../hooks/useEchos';
+import { useCompteurGlobalJarres } from '../hooks/useReactions';
 import { CATEGORIES } from '../types';
 import { FEATURES } from '../config/features';
 import './FilPage.css';
@@ -14,11 +15,13 @@ export default function FilPage() {
   const [categoriesActives, setCategoriesActives] = useState<string[]>([]);
   const [showCategories, setShowCategories] = useState(false);
   const [showSolidaire, setShowSolidaire] = useState(false);
-  const { echos, loading } = useEchos();
+  const { echos, loading, loadingMore, hasMore, chargerPlus } = useEchos();
   const echoSolidaire = useEchoSolidaire();
   const { profile } = useAuth();
 
-  const totalJarres = echos.reduce((sum, e) => sum + (e.jarresBleues || 0), 0);
+  // Compteur global indépendant de la pagination — reste exact même si le
+  // Fil n'affiche qu'une fraction de l'historique des Échos.
+  const totalJarres = useCompteurGlobalJarres();
   const [puitsAnim, setPuitsAnim] = useState(false);
   const totalJarresPrecedent = useRef(totalJarres);
 
@@ -143,6 +146,15 @@ export default function FilPage() {
           <div className="vide">Aucun écho dans cette catégorie.</div>
         ) : (
           echosFiltres.map((echo, index) => <EchoCard key={echo.id} echo={echo} delayIndex={index} />)
+        )}
+
+        {/* Pagination stable : ne réapparaît/disparaît jamais suite à un
+            nouvel Écho publié par quelqu'un d'autre — seul un rafraîchissement
+            de page fait apparaître les tout nouveaux posts. */}
+        {!loading && hasMore && categoriesActives.length === 0 && (
+          <button className="fil-charger-plus" onClick={chargerPlus} disabled={loadingMore}>
+            {loadingMore ? 'Chargement...' : 'Charger plus d\'échos'}
+          </button>
         )}
       </div>
 
