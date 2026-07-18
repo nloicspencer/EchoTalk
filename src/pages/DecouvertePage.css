@@ -121,3 +121,34 @@
 .decouverte-vide { text-align: center; padding: 3rem 1rem; color: var(--et-text-3); }
 .decouverte-vide span { font-size: 2rem; display: block; margin-bottom: 0.75rem; }
 .decouverte-vide p { font-size: 0.875rem; font-family: var(--et-font-echo); font-style: italic; margin: 0; }
+
+.decouverte-note-recherche {
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: var(--et-text-3);
+  background: rgba(123,94,167,0.06);
+  border-radius: var(--et-radius-sm);
+  padding: 0.6rem 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.decouverte-charger-plus {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 11px 14px;
+  border-radius: var(--et-radius-md);
+  border: 0.5px solid var(--et-border);
+  background: var(--et-surface);
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--et-accent);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  backdrop-filter: blur(8px);
+}
+
+.decouverte-charger-plus:hover:not(:disabled) { background: var(--et-surface-3); }
+.decouverte-charger-plus:disabled { opacity: 0.6; cursor: default; }

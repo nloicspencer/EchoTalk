@@ -148,7 +148,7 @@ export default function DecouvertePage() {
         )}
 
         {!loading && hasMore && (
-          <button className="fil-charger-plus" onClick={chargerPlus} disabled={loadingMore}>
+          <button className="decouverte-charger-plus" onClick={chargerPlus} disabled={loadingMore}>
             {loadingMore ? 'Chargement...' : 'Charger plus d\'échos'}
           </button>
         )}

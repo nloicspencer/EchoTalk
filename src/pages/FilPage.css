@@ -207,3 +207,22 @@
   display: inline-block;
   animation: compteurPop 0.35s ease-out;
 }
+
+/* Pagination — "Charger plus d'échos" */
+.fil-charger-plus {
+  margin: 4px 16px 0;
+  padding: 11px 14px;
+  border-radius: var(--et-radius-md);
+  border: 0.5px solid var(--et-border);
+  background: var(--et-surface);
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--et-accent);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  backdrop-filter: blur(8px);
+}
+
+.fil-charger-plus:hover:not(:disabled) { background: var(--et-surface-3); }
+.fil-charger-plus:disabled { opacity: 0.6; cursor: default; }

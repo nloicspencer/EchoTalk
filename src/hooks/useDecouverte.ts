@@ -57,6 +57,11 @@ export function useEchosDecouverte(
       setHasMore(snap.docs.length === pageSize);
       setEchos(filtrerEchosVisibles(snap.docs));
       setLoading(false);
+    }).catch(err => {
+      console.error('[useEchosDecouverte] Erreur de requête (index manquant ?) :', err);
+      setEchos([]);
+      setHasMore(false);
+      setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtreType, filtreTonalite, filtreTemporalite, pageSize]);
@@ -76,6 +81,9 @@ export function useEchosDecouverte(
         setEchos(prev => [...prev, ...filtrerEchosVisibles(snap.docs)]);
       }
       setHasMore(snap.docs.length === pageSize);
+    } catch (err) {
+      console.error('[useEchosDecouverte] Erreur "Charger plus" (index manquant ?) :', err);
+      setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
