@@ -6,7 +6,6 @@ import { Echolegue, getSemaineISO, retirerDuJournal, selectionnerEcholegue, useB
 import { db } from '../services/firebase';
 import './AdminPage.css';
 
-const ADMINS = ['loicspencer3@echotalk.com'];
 const APERCU_RECIT = 70;
 const APERCU_LECON = 45;
 
@@ -91,7 +90,12 @@ function HistoriqueCompact({ historique }: { historique: Echolegue['historiqueSe
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  // Aligné sur la même source de vérité que ModerationPage.tsx : le champ
+  // `role` du profil Firestore, plutôt qu'une liste d'emails codée en dur
+  // (ancienne approche — source d'incohérence si un nouveau compte admin
+  // était créé sans penser à l'ajouter ici aussi).
+  const estAdmin = profile?.role === 'admin';
   const [candidats, setCandidats] = useState<EchoCandidат[]>([]);
   const [echoSolidaireActuel, setEchoSolidaireActuel] = useState<EchoCandidат | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,10 +108,11 @@ export default function AdminPage() {
   const semaineCourante = getSemaineISO();
 
   useEffect(() => {
-    if (user && ADMINS.includes(user.email ?? '')) chargerDonnees();
-  }, [user]);
+    if (user && estAdmin) chargerDonnees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, estAdmin]);
 
-  if (!user || !ADMINS.includes(user.email ?? '')) {
+  if (!user || !estAdmin) {
     return (
       <div className="admin-page">
         <div className="admin-header"><h1>⚠️ Accès refusé</h1><p>Cette page est réservée à l'équipe EchoTalk.</p></div>
