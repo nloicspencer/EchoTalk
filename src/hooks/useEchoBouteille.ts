@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   collection, addDoc, onSnapshot, query, where,
-  getDocs, updateDoc, doc, serverTimestamp, Timestamp, getDoc
+  getDocs, updateDoc, doc, serverTimestamp, Timestamp
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
@@ -61,33 +61,23 @@ export async function envoyerEchoBouteille(
 // au lieu de "users" (protégé), pour que le tirage aléatoire fonctionne
 // pour tous les comptes et pas seulement pour un admin/modérateur.
 //
-// Fix ultérieur — "annuaire" peut contenir des entrées orphelines
-// (comptes supprimés manuellement sans nettoyage, la suppression étant
-// bloquée par les règles Firestore côté client). Un candidat tiré au
-// hasard est donc vérifié : son document `users/{uid}` doit encore
-// exister réellement, sinon on l'écarte et on retire un autre candidat
-// dans la liste restante, jusqu'à en trouver un valide ou épuiser le
-// pool (auquel cas on renvoie null, comme s'il n'y avait personne).
+// ⚠️ Ne PAS vérifier l'existence via users/{uid} ici : les règles Firestore
+// interdisent à un compte normal de lire le document `users` de quelqu'un
+// d'autre (allow read: if estProprietaire(userId) || estModerateurOuAdmin()),
+// donc un tel contrôle échoue avec "Missing or insufficient permissions"
+// pour tout le monde sauf les admins. La fiabilité de "annuaire" doit être
+// assurée en amont (nettoyage des entrées orphelines), pas vérifiée ici.
 async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
   const snap = await getDocs(collection(db, 'annuaire'));
-  const candidats = snap.docs
-    .map(d => {
+  const autresUsers = snap.docs
+    .filter(d => {
       const data = d.data();
-      return (data.uid || d.id) as string;
+      const uid = data.uid || d.id;
+      return uid !== expediteurId && !data.banni;
     })
-    .filter(uid => {
-      const data = snap.docs.find(d => (d.data().uid || d.id) === uid)?.data();
-      return uid !== expediteurId && !data?.banni;
-    });
-
-  // Mélange pour piocher dans un ordre aléatoire, puis on vérifie chaque
-  // candidat un par un jusqu'à en trouver un dont le compte existe encore.
-  const melanges = [...candidats].sort(() => Math.random() - 0.5);
-  for (const uid of melanges) {
-    const userSnap = await getDoc(doc(db, 'users', uid));
-    if (userSnap.exists()) return uid;
-  }
-  return null;
+    .map(d => d.data().uid || d.id);
+  if (autresUsers.length === 0) return null;
+  return autresUsers[Math.floor(Math.random() * autresUsers.length)];
 }
 
 export function useBouteillesRecues(destinataireId: string) {
