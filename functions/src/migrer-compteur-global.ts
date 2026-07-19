@@ -20,7 +20,7 @@
  *    explicitement).
  */
 
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Si ce script tourne dans functions/ avec les credentials déjà configurés

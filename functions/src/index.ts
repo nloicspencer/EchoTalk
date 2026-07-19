@@ -1,4 +1,4 @@
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -17,6 +17,37 @@ const CATEGORIES_VALIDES = [
   "famille", "couple", "amour", "amitie", "travail", "entrepreneuriat",
   "sante", "sport", "voyages", "creativite", "solitude", "joie",
 ];
+
+// ============================================================
+// 0) NETTOYAGE AUTOMATIQUE DE L'ANNUAIRE
+// Se déclenche à la suppression d'un document users/{uid} — retire
+// automatiquement l'entrée annuaire/{uid} correspondante, pour que le
+// tirage aléatoire de destinataire (Écho-Bouteille) ne pioche jamais un
+// compte qui n'existe plus.
+//
+// ⚠️ Limite connue : ce déclencheur ne se déclenche QUE si le document
+// Firestore users/{uid} est supprimé (via l'app, un script admin, ou
+// Firestore Console). Si un compte est supprimé uniquement depuis
+// l'onglet Firebase Authentication (sans toucher à Firestore), ce
+// déclencheur ne se déclenche pas et l'entrée annuaire resterait
+// orpheline — dans ce cas, relancer le script
+// functions/src/nettoyer-annuaire-orphelin.ts ponctuellement.
+// ============================================================
+export const nettoyerAnnuaireSurSuppressionUser = onDocumentDeleted(
+  {
+    document: "users/{userId}",
+    region: "europe-west9",
+  },
+  async (event) => {
+    const userId = event.params.userId;
+    try {
+      await db.collection("annuaire").doc(userId).delete();
+      console.log("[nettoyerAnnuaireSurSuppressionUser] annuaire nettoyé pour", userId);
+    } catch (err) {
+      console.error("[nettoyerAnnuaireSurSuppressionUser] Erreur pour", userId, err);
+    }
+  }
+);
 
 // ============================================================
 // 1) CATÉGORISATION AUTOMATIQUE
@@ -71,21 +102,6 @@ export const categoriserEcho = onDocumentCreated(
 
 // ============================================================
 // 2) MODÉRATION — NIVEAU SENS (sécurité et bienveillance uniquement)
-// Vient compléter les regex/liste noire déjà en place côté client
-// (services/moderation.ts). Ne s'occupe QUE de :
-//   - harcèlement, insultes réelles
-//   - discours de haine, discrimination
-//   - menaces réelles envers autrui
-//   - contenu illégal
-//   - spam / contenu commercial déguisé
-// Ne signale JAMAIS : tristesse, détresse personnelle, doute, mal-être —
-// c'est le cœur légitime du contenu EchoTalk, pas un problème à filtrer.
-//
-// Si un signal de détresse réelle et explicite (danger immédiat) est
-// détecté, ce n'est pas non plus un signalement de modération classique :
-// ça crée une entrée séparée (type "detresse") pour que l'admin puisse,
-// à sa discrétion, décider d'envoyer un email de ressources d'aide.
-// Aucune action automatique n'est jamais prise sur ces cas.
 // ============================================================
 
 interface AnalyseIA {
@@ -134,8 +150,6 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte autour, sans balises m
   console.log(`[${contexteLog}] stop_reason:`, reponse.stop_reason, "| tokens:", JSON.stringify(reponse.usage));
 
   try {
-    // Certains modèles entourent parfois le JSON de ```json ... ``` malgré la consigne.
-    // On nettoie au cas où avant de parser, pour ne pas faire échouer le parsing pour si peu.
     const nettoye = texte.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
     const parsed = JSON.parse(nettoye);
     const resultat = {
@@ -146,8 +160,6 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte autour, sans balises m
     console.log(`[${contexteLog}] Décision finale interprétée:`, resultat);
     return resultat;
   } catch (err) {
-    // Si le JSON est mal formé, on ne bloque rien par sécurité — mais on log fort
-    // pour ne plus jamais perdre cette info silencieusement.
     console.error(`[${contexteLog}] ÉCHEC PARSING JSON — texte brut reçu:`, texte, "erreur:", err);
     return { probleme: false, categorie: "aucun", detresse: false };
   }
