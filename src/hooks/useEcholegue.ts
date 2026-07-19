@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   collection, addDoc, onSnapshot, query, where,
-  updateDoc, doc, serverTimestamp, Timestamp, arrayUnion, increment
+  updateDoc, doc, serverTimestamp, Timestamp, arrayUnion, arrayRemove, increment
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
@@ -64,7 +64,7 @@ export async function publierEcholegue(
       auteurId, auteurPseudo, recit, lecon,
       statut: 'en_attente_moderation',
       createdAt: serverTimestamp(),
-      nbSelections: 0, historiqueSelections: [], masque: false,
+      nbSelections: 0, historiqueSelections: [], semainesSelectionnees: [], masque: false,
     });
     await addDoc(collection(db, 'signalements'), {
       echolegueId: ref.id,
@@ -81,7 +81,7 @@ export async function publierEcholegue(
     auteurId, auteurPseudo, recit, lecon,
     statut: 'publie',
     createdAt: serverTimestamp(),
-    nbSelections: 0, historiqueSelections: [], masque: false,
+    nbSelections: 0, historiqueSelections: [], semainesSelectionnees: [], masque: false,
   });
   return 'publie';
 }
@@ -101,7 +101,10 @@ export async function signalerEcholegue(
   });
 }
 
-// Sélectionner — incrémente nbSelections + ajoute à l'historique
+// Sélectionner — incrémente nbSelections + ajoute à l'historique détaillé
+// (historiqueSelections) ET à la version simplifiée interrogeable par
+// Firestore (semainesSelectionnees), utilisée par useJournalLegues() pour
+// filtrer côté serveur plutôt que de charger toute la bibliothèque.
 export async function selectionnerEcholegue(echolegueId: string, semaine: string) {
   await updateDoc(doc(db, 'echolegues', echolegueId), {
     nbSelections: increment(1),
@@ -109,16 +112,21 @@ export async function selectionnerEcholegue(echolegueId: string, semaine: string
       semaine,
       selectionneAt: Timestamp.now(),
     }),
+    semainesSelectionnees: arrayUnion(semaine),
   });
 }
 
-// Retirer du journal — retire la semaine de l'historique SANS toucher nbSelections
+// Retirer du journal — retire la semaine de l'historique détaillé ET du
+// champ simplifié, SANS toucher nbSelections (le lègue a bien été
+// sélectionné, on ne réécrit pas l'Histoire, on l'enlève juste du Journal
+// affiché actuellement).
 export async function retirerDuJournal(legue: Echolegue, semaine: string) {
   const nouvelHistorique = legue.historiqueSelections
     .filter(h => h.semaine !== semaine)
     .map(h => ({ semaine: h.semaine, selectionneAt: Timestamp.fromDate(h.selectionneAt) }));
   await updateDoc(doc(db, 'echolegues', legue.id), {
     historiqueSelections: nouvelHistorique,
+    semainesSelectionnees: arrayRemove(semaine),
     // nbSelections inchangé — le lègue a bien été sélectionné
   });
 }
@@ -131,16 +139,23 @@ export async function supprimerEcholegue(echolegueId: string) {
   await updateDoc(doc(db, 'echolegues', echolegueId), { statut: 'supprime' });
 }
 
-// Journal — max 3 lègues, filtrés sur la semaine courante
+// Journal — max 3 lègues, filtrés sur la semaine courante DIRECTEMENT PAR
+// FIRESTORE (array-contains sur semainesSelectionnees), plutôt que de
+// charger toute la bibliothèque publiée pour filtrer côté client comme
+// avant. Le tri par date de sélection la plus récente reste fait ici,
+// sur un jeu de résultats déjà réduit à 3 maximum en pratique.
 export function useJournalLegues() {
   const [legues, setLegues] = useState<Echolegue[]>([]);
   useEffect(() => {
     const semaineCourante = getSemaineISO();
-    const q = query(collection(db, 'echolegues'), where('statut', '==', 'publie'));
+    const q = query(
+      collection(db, 'echolegues'),
+      where('statut', '==', 'publie'),
+      where('semainesSelectionnees', 'array-contains', semaineCourante)
+    );
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs
         .map(d => convertLegue(d.id, d.data() as Record<string, unknown>))
-        .filter(l => l.historiqueSelections.some(h => h.semaine === semaineCourante))
         .sort((a, b) => {
           const dateA = a.historiqueSelections.find(h => h.semaine === semaineCourante)?.selectionneAt.getTime() ?? 0;
           const dateB = b.historiqueSelections.find(h => h.semaine === semaineCourante)?.selectionneAt.getTime() ?? 0;

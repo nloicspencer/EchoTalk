@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   collection, addDoc, onSnapshot, query, where,
-  getDocs, updateDoc, doc, serverTimestamp, Timestamp
+  getDocs, updateDoc, doc, serverTimestamp, Timestamp, getDoc
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
@@ -60,17 +60,34 @@ export async function envoyerEchoBouteille(
 // Fix v70 — lire depuis la collection publique "annuaire" (uid + banni)
 // au lieu de "users" (protégé), pour que le tirage aléatoire fonctionne
 // pour tous les comptes et pas seulement pour un admin/modérateur.
+//
+// Fix ultérieur — "annuaire" peut contenir des entrées orphelines
+// (comptes supprimés manuellement sans nettoyage, la suppression étant
+// bloquée par les règles Firestore côté client). Un candidat tiré au
+// hasard est donc vérifié : son document `users/{uid}` doit encore
+// exister réellement, sinon on l'écarte et on retire un autre candidat
+// dans la liste restante, jusqu'à en trouver un valide ou épuiser le
+// pool (auquel cas on renvoie null, comme s'il n'y avait personne).
 async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
   const snap = await getDocs(collection(db, 'annuaire'));
-  const autresUsers = snap.docs
-    .filter(d => {
+  const candidats = snap.docs
+    .map(d => {
       const data = d.data();
-      const uid = data.uid || d.id;
-      return uid !== expediteurId && !data.banni;
+      return (data.uid || d.id) as string;
     })
-    .map(d => d.data().uid || d.id);
-  if (autresUsers.length === 0) return null;
-  return autresUsers[Math.floor(Math.random() * autresUsers.length)];
+    .filter(uid => {
+      const data = snap.docs.find(d => (d.data().uid || d.id) === uid)?.data();
+      return uid !== expediteurId && !data?.banni;
+    });
+
+  // Mélange pour piocher dans un ordre aléatoire, puis on vérifie chaque
+  // candidat un par un jusqu'à en trouver un dont le compte existe encore.
+  const melanges = [...candidats].sort(() => Math.random() - 0.5);
+  for (const uid of melanges) {
+    const userSnap = await getDoc(doc(db, 'users', uid));
+    if (userSnap.exists()) return uid;
+  }
+  return null;
 }
 
 export function useBouteillesRecues(destinataireId: string) {
