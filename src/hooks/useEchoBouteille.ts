@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  collection, addDoc, onSnapshot, query, where,
+  collection, addDoc, onSnapshot, query, where, orderBy, limit,
   getDocs, updateDoc, doc, serverTimestamp, Timestamp
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -61,23 +61,50 @@ export async function envoyerEchoBouteille(
 // au lieu de "users" (protégé), pour que le tirage aléatoire fonctionne
 // pour tous les comptes et pas seulement pour un admin/modérateur.
 //
-// ⚠️ Ne PAS vérifier l'existence via users/{uid} ici : les règles Firestore
-// interdisent à un compte normal de lire le document `users` de quelqu'un
-// d'autre (allow read: if estProprietaire(userId) || estModerateurOuAdmin()),
-// donc un tel contrôle échoue avec "Missing or insufficient permissions"
-// pour tout le monde sauf les admins. La fiabilité de "annuaire" doit être
-// assurée en amont (nettoyage des entrées orphelines), pas vérifiée ici.
+// Fix scalabilité — l'ancienne version lisait TOUTE la collection annuaire
+// à chaque envoi (coûteux à grande échelle). Cette version utilise un
+// champ `alea` (nombre aléatoire fixé une fois pour toutes à l'inscription,
+// voir AuthContext.tsx) : on tire un nombre au hasard, et on demande à
+// Firestore les documents dont `alea` est juste au-dessus (ou, si aucun,
+// juste en-dessous) — ne coûte que quelques lectures, peu importe la
+// taille de la collection.
+//
+// On demande 3 candidats (pas 1 seul) : Firestore n'autorisant qu'un seul
+// champ en inégalité par requête, on ne peut pas filtrer "uid différent de
+// l'expéditeur" directement dans la même requête que le tri sur `alea`.
+// En retenant les 3 premiers résultats, il est extrêmement rare (sauf très
+// petite base d'utilisateurs) que TOUS soient l'expéditeur lui-même — ce
+// qui permet d'exclure l'expéditeur après coup, côté client, sans avoir
+// besoin d'une seconde lecture dans l'immense majorité des cas.
+//
+// Le résultat perçu est strictement identique à avant : un destinataire
+// choisi au hasard, jamais l'expéditeur, jamais un compte banni, jamais
+// un compte qui n'existe plus (voir nettoyerAnnuaireSurSuppressionUser
+// côté Cloud Functions).
+async function tirerCandidat(
+  expediteurId: string,
+  seuil: number,
+  sens: 'asc' | 'desc'
+): Promise<string | null> {
+  const operateur = sens === 'asc' ? '>=' : '<';
+  const q = query(
+    collection(db, 'annuaire'),
+    where('banni', '==', false),
+    where('alea', operateur, seuil),
+    orderBy('alea', sens),
+    limit(3)
+  );
+  const snap = await getDocs(q);
+  const candidat = snap.docs.find(d => (d.data().uid || d.id) !== expediteurId);
+  return candidat ? (candidat.data().uid || candidat.id) : null;
+}
+
 async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
-  const snap = await getDocs(collection(db, 'annuaire'));
-  const autresUsers = snap.docs
-    .filter(d => {
-      const data = d.data();
-      const uid = data.uid || d.id;
-      return uid !== expediteurId && !data.banni;
-    })
-    .map(d => d.data().uid || d.id);
-  if (autresUsers.length === 0) return null;
-  return autresUsers[Math.floor(Math.random() * autresUsers.length)];
+  const seuil = Math.random();
+  // Essai dans un sens, puis dans l'autre si rien trouvé (cas où le nombre
+  // tiré tombe après le dernier document, ou avant le premier).
+  return (await tirerCandidat(expediteurId, seuil, 'asc'))
+    ?? (await tirerCandidat(expediteurId, seuil, 'desc'));
 }
 
 export function useBouteillesRecues(destinataireId: string) {

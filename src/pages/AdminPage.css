@@ -202,3 +202,22 @@
   border-radius: var(--et-radius-sm); margin-bottom: 0.5rem; display: inline-block;
   white-space: nowrap;
 }
+
+/* Variante bouton cliquable du label, pour déplier/replier une semaine */
+.admin-semaine-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.admin-semaine-toggle:hover { background: rgba(123,94,167,0.18); }
+
+/* Bibliothèque : zone de défilement dédiée pour la liste des semaines,
+   pour ne pas allonger indéfiniment la page à mesure qu'elles s'accumulent */
+.admin-semaines-scroll {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}

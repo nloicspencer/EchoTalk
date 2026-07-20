@@ -131,8 +131,12 @@ function useAuthState(): AuthContextValue {
     }
 
     try {
+      // "alea" : nombre aléatoire fixé une fois pour toutes à la création
+      // du compte, utilisé par tirerDestinataireAleatoire() (Écho-Bouteille)
+      // pour piocher un destinataire au hasard sans jamais avoir à lire
+      // toute la collection annuaire, même à grande échelle.
       await setDoc(doc(db, 'annuaire', cred.user.uid), {
-        uid: cred.user.uid, banni: false,
+        uid: cred.user.uid, banni: false, alea: Math.random(),
       });
       console.log('setDoc annuaire réussi !');
     } catch (e) {
