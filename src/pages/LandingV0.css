@@ -1,0 +1,153 @@
+.v0-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.v0-card {
+  max-width: 460px;
+  width: 100%;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-lg);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  box-shadow: var(--et-shadow-md);
+  box-sizing: border-box;
+}
+
+.v0-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.v0-logo h1 {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--et-text-1);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.v0-logo h1 em {
+  font-style: italic;
+  color: var(--et-accent);
+}
+
+.v0-eyebrow {
+  display: inline-block;
+  font-family: var(--et-font-ui);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--et-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(123,94,167,0.1);
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 1rem;
+}
+
+.v0-titre {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--et-text-1);
+  line-height: 1.35;
+  margin: 0 0 1.25rem;
+}
+
+.v0-texte {
+  font-family: var(--et-font-ui);
+  font-size: 0.9rem;
+  color: var(--et-text-2);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.v0-texte-accent {
+  color: var(--et-accent-deep);
+  font-weight: 500;
+}
+
+.v0-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.v0-form input {
+  padding: 12px 16px;
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  background: rgba(255,255,255,0.6);
+  font-family: var(--et-font-ui);
+  font-size: 0.9375rem;
+  color: var(--et-text-1);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  text-align: center;
+}
+.v0-form input:focus { border-color: var(--et-accent); }
+.v0-form input::placeholder { color: var(--et-text-3); }
+
+.v0-form button {
+  padding: 12px 16px;
+  background: var(--et-accent);
+  color: white;
+  border: none;
+  border-radius: var(--et-radius-md);
+  font-family: var(--et-font-ui);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.v0-form button:hover:not(:disabled) { opacity: 0.88; }
+.v0-form button:disabled { opacity: 0.5; cursor: default; }
+
+.v0-erreur {
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  color: var(--et-rose);
+  margin: 0.5rem 0 0;
+}
+
+.v0-confirmation {
+  margin: 1.5rem 0 0.75rem;
+  padding: 1.25rem 1rem;
+  background: rgba(123,94,167,0.08);
+  border-radius: var(--et-radius-md);
+}
+
+.v0-confirmation-icone {
+  font-size: 1.75rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.v0-confirmation p {
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 0.9375rem;
+  color: var(--et-accent-deep);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.v0-note {
+  font-family: var(--et-font-ui);
+  font-size: 0.75rem;
+  color: var(--et-text-3);
+  margin: 1rem 0 0;
+}

@@ -186,6 +186,17 @@ service cloud.firestore {
       allow write: if estConnecte();
     }
 
+    // Pré-inscriptions V0 : écriture publique (pas besoin d'être connecté,
+    // la page de pré-inscription s'affiche avant toute authentification),
+    // mais aucune lecture publique — seuls les modérateurs/admins peuvent
+    // consulter la liste des emails inscrits.
+    match /preinscriptions/{email} {
+      allow read: if estModerateurOuAdmin();
+      allow create: if request.resource.data.email is string
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

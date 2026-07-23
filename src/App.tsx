@@ -3,6 +3,8 @@ import { useState, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './pages/AuthPage';
 import FilPage from './pages/FilPage';
+import LandingV0 from './pages/LandingV0';
+import { V0_MODE } from './config/v0Mode';
 import NavBar from './components/NavBar';
 import SuspensionBanner from './SuspensionBanner';
 import './App.css';
@@ -47,7 +49,7 @@ function AppLayout() {
   );
 }
 
-function AppContent() {
+function AppContent({ basename }: { basename?: string }) {
   const { user, loading, messageDeconnexion } = useAuth();
   const [onboardingInfo, setOnboardingInfo] = useState<{ pseudo: string } | null>(null);
 
@@ -61,7 +63,7 @@ function AppContent() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       {/* Banner visible même sur la page de connexion après déconnexion forcée */}
       {!user && messageDeconnexion && <SuspensionBanner />}
 
@@ -81,10 +83,23 @@ function AppContent() {
   );
 }
 
+// V0 : tant que V0_MODE est activé (voir config/v0Mode.ts), tout visiteur
+// qui arrive sur le site public (n'importe quelle URL hors /test) voit la
+// page de pré-inscription, pas l'application réelle. Les testeurs
+// accèdent normalement à l'application via /test — le `basename` de
+// react-router fait que toutes les routes internes ("/", "/profil"...)
+// se résolvent alors automatiquement sous ce préfixe, sans rien changer
+// au reste du code.
 export default function App() {
+  const enModeTest = window.location.pathname.startsWith('/test');
+
+  if (V0_MODE && !enModeTest) {
+    return <LandingV0 />;
+  }
+
   return (
     <AuthProvider>
-      <AppContent />
+      <AppContent basename={enModeTest ? '/test' : undefined} />
     </AuthProvider>
   );
 }
