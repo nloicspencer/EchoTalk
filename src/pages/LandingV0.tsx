@@ -50,7 +50,7 @@ export default function LandingV0() {
         <h2 className="v0-titre">Une place vous attend.<br />Mais elle est limitée.</h2>
 
         <p className="v0-texte">
-          EchoTalk arrive : un espace pensé pour être entendu, pas pour être vu. Partagez ce que vous ressentez (joie, doute, tristesse, fierté, colère...), au moment où vous le ressentez, et trouvez un écho auprès d'autres personnes. Ni likes, ni followers, ni mise en scène de soi — seulement des expériences partagées, une résonance humaine et la transmission de ce que la vie nous apprend.
+          EchoTalk arrive : un espace pensé pour être entendu, pas pour être vu. Partagez ce que vous ressentez (joie, doute, tristesse, fierté, colère...) de façon anonyme, au moment où vous le ressentez, et trouvez un écho auprès d'autres personnes. Ni likes, ni followers, ni mise en scène de soi — seulement des expériences partagées, une résonance humaine et la transmission de ce que la vie nous apprend.
         </p>
 
         <p className="v0-texte v0-texte-accent">
