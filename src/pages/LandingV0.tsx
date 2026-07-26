@@ -80,7 +80,7 @@ export default function LandingV0() {
 
         {statut === 'erreur' && <p className="v0-erreur">{messageErreur}</p>}
 
-        <p className="v0-note">Aucun spam. Un seul email, le jour de l'ouverture.</p>
+        <p className="v0-note">Accès gratuit. Aucun spam. Un seul email, le jour de l'ouverture.</p>
       </div>
     </div>
   );
