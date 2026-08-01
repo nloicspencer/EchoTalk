@@ -192,7 +192,14 @@ export function useEchoReps(echoId: string) {
         .filter(r => {
           // Masquée par modération → invisible
           if (r.masque) return false;
-          if (r.supprime && r.suppressionAt && r.contenu === 'EchoRep supprimée suite à un signalement.') {
+          // Fix : la condition comparait le contenu à une chaîne de texte
+          // exacte qui ne correspondait jamais à ce qui est réellement
+          // écrit ("EchoRep supprimée suite à une modération." vs. ce qui
+          // était cherché ici) — le message de remplacement restait donc
+          // affiché indéfiniment au lieu de disparaître après 24h. On se
+          // fie désormais uniquement à supprime + suppressionAt, peu
+          // importe le texte exact, pour les deux cas (auteur ou modération).
+          if (r.supprime && r.suppressionAt) {
             return maintenant - r.suppressionAt.getTime() < heures24;
           }
           return true;
@@ -277,7 +284,9 @@ export async function supprimerEchoRep(echoId: string, repId: string, auteurId: 
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
   const autresReps = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
   const seulementCetteRep = autresReps.docs.length === 1;
-  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), { supprime: true, contenu: 'EchoRep supprimée par son auteur.' });
+  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
+    supprime: true, contenu: 'EchoRep supprimée par son auteur.', suppressionAt: serverTimestamp(),
+  });
   if (seulementCetteRep && !estProprietaire) {
     await updateDoc(doc(db, 'echos', echoId), { placesOccupees: Math.max(0, placesOccupees - 1) });
   }
