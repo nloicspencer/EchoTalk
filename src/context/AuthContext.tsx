@@ -8,22 +8,35 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
-import { OISEAUX, UserProfile, VILLES } from '../types';
+import { OISEAUX, UserProfile } from '../types';
 import { verifierSuspension } from '../hooks/useModeration';
 
-function genererPseudo(): string {
+// La liste des communes (32 625 entrées, ~517 Ko) n'est chargée qu'au
+// moment où quelqu'un s'inscrit réellement — pas à chaque ouverture de
+// l'application. L'import dynamique la place dans un fichier séparé
+// (découpé automatiquement par Vite), téléchargé uniquement ici.
+let villesCache: string[] | null = null;
+async function chargerVilles(): Promise<string[]> {
+  if (villesCache) return villesCache;
+  const module = await import('../data/communes.json');
+  villesCache = module.default as string[];
+  return villesCache;
+}
+
+async function genererPseudo(): Promise<string> {
+  const villes = await chargerVilles();
   const oiseau = OISEAUX[Math.floor(Math.random() * OISEAUX.length)];
-  const ville = VILLES[Math.floor(Math.random() * VILLES.length)];
+  const ville = villes[Math.floor(Math.random() * villes.length)];
   return `${oiseau} ${ville}`;
 }
 
 async function genererPseudoUnique(): Promise<string> {
-  let pseudo = genererPseudo();
+  let pseudo = await genererPseudo();
   let tentatives = 0;
   while (tentatives < 10) {
     const snap = await getDoc(doc(db, 'pseudos', pseudo));
     if (!snap.exists()) return pseudo;
-    pseudo = genererPseudo();
+    pseudo = await genererPseudo();
     tentatives++;
   }
   return pseudo + Math.floor(Math.random() * 999);

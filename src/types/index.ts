@@ -77,15 +77,21 @@ export const CATEGORIES = [
   { id: 'joie', label: 'Joie', emoji: '🌟' },
 ] as const;
 
+// Liste élargie à 31 (depuis 24) pour atteindre ~1 million de combinaisons
+// possibles avec les communes de France (32 625 noms uniques après
+// dédoublonnage). "Pigeon" et "Canard" retirés (connotations familières
+// négatives : "se faire pigeonner", "sortir un canard") et remplacés par
+// Chardonneret et Martin-pêcheur.
 export const OISEAUX = [
-  'Albatros', 'Aigle', 'Buse', 'Cigogne', 'Colibri', 'Cygne',
-  'Faucon', 'Flamant', 'Grue', 'Héron', 'Hibou', 'Hirondelle',
-  'Merle', 'Mésange', 'Milan', 'Mouette', 'Pélican', 'Perroquet',
-  'Pie', 'Pigeon', 'Pinson', 'Rouge-gorge', 'Sterne', 'Tourterelle',
+  'Aigle', 'Albatros', 'Alouette', 'Buse', 'Chardonneret', 'Chouette',
+  'Cigogne', 'Colibri', 'Corneille', 'Cygne', 'Épervier', 'Faucon',
+  'Flamant', 'Geai', 'Grue', 'Héron', 'Hibou', 'Hirondelle',
+  'Martin-pêcheur', 'Merle', 'Mésange', 'Milan', 'Moineau', 'Mouette',
+  'Pélican', 'Perroquet', 'Pie', 'Pinson', 'Rouge-gorge', 'Sterne',
+  'Tourterelle',
 ];
 
-export const VILLES = [
-  'Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Nantes', 'Toulouse',
-  'Lille', 'Strasbourg', 'Rennes', 'Grenoble', 'Nice', 'Montpellier',
-  'Brest', 'Dijon', 'Angers', 'Reims', 'Caen', 'Metz', 'Forêt', 'Rivière',
-];
+// VILLES retiré : remplacé par un import dynamique de src/data/communes.json
+// (32 625 communes françaises réelles, chargé uniquement au moment de
+// l'inscription, pas à chaque chargement de l'application — voir
+// AuthContext.tsx). 31 oiseaux × 32 625 villes ≈ 1 011 375 combinaisons.
