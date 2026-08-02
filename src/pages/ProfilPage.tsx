@@ -1,4 +1,5 @@
-import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { deleteDoc, doc, collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import EchoBouteille from '../components/EchoBouteille';
@@ -58,6 +59,73 @@ export default function ProfilPage() {
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
   const [stockAnim, setStockAnim] = useState<{ bleues: boolean; roses: boolean }>({ bleues: false, roses: false });
   const stockPrecedent = useRef({ bleues: stock.jarresBleues, roses: stock.jarresRoses });
+
+  // ── Suppression de compte ──────────────────────────────────
+  // Option B (retenue avec Loïc) : le compte et l'identité réelle
+  // disparaissent, mais le contenu déjà publié (Échos, EchoReps,
+  // Écholègues, Écho-Bouteilles) reste intact et affiché tel quel — les
+  // échanges existent pour eux-mêmes, pas pour leur auteur. Le pseudonyme
+  // (pseudos/{pseudo}) n'est jamais supprimé : il reste réservé pour
+  // toujours, jamais réattribué à un autre compte.
+  const [modalSuppression, setModalSuppression] = useState(false);
+  const [etapeReauth, setEtapeReauth] = useState(false);
+  const [motDePasse, setMotDePasse] = useState('');
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
+  const [erreurSuppression, setErreurSuppression] = useState('');
+
+  const supprimerCompteDefinitivement = async () => {
+    if (!user) return;
+    // Supprimer le document Firestore déclenche automatiquement le
+    // nettoyage de l'entrée annuaire correspondante (Cloud Function
+    // nettoyerAnnuaireSurSuppressionUser déjà en place).
+    await deleteDoc(doc(db, 'users', user.uid));
+    // Supprime aussi le compte Firebase Authentication lui-même — sinon
+    // la personne pourrait se reconnecter avec ses identifiants sur un
+    // profil qui n'existe plus.
+    await deleteUser(user);
+  };
+
+  const handleSupprimerCompte = async () => {
+    if (!user) return;
+    setSuppressionEnCours(true);
+    setErreurSuppression('');
+    try {
+      await supprimerCompteDefinitivement();
+      // Après deleteUser(), onAuthStateChanged (AuthContext) détecte la
+      // déconnexion automatiquement et renvoie vers la page de connexion.
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/requires-recent-login') {
+        setEtapeReauth(true);
+      } else {
+        setErreurSuppression('Une erreur est survenue. Réessayez, ou contactez contact@echotalk.fr.');
+      }
+    } finally {
+      setSuppressionEnCours(false);
+    }
+  };
+
+  const handleReauthentifierEtSupprimer = async () => {
+    if (!user || !user.email) return;
+    setSuppressionEnCours(true);
+    setErreurSuppression('');
+    try {
+      const credential = EmailAuthProvider.credential(user.email, motDePasse);
+      await reauthenticateWithCredential(user, credential);
+      await supprimerCompteDefinitivement();
+    } catch {
+      setErreurSuppression('Mot de passe incorrect, ou erreur de connexion.');
+    } finally {
+      setSuppressionEnCours(false);
+    }
+  };
+
+  const fermerModalSuppression = () => {
+    setModalSuppression(false);
+    setEtapeReauth(false);
+    setMotDePasse('');
+    setErreurSuppression('');
+  };
 
   useEffect(() => {
     const champsChanges: Array<'bleues' | 'roses'> = [];
@@ -424,6 +492,55 @@ export default function ProfilPage() {
       )}
 
       <button className="btn-deconnexion" onClick={deconnexion}>Se déconnecter</button>
+
+      {/* Zone sensible — volontairement en retrait visuel, action irréversible */}
+      <div className="profil-zone-sensible">
+        <button className="btn-supprimer-compte" onClick={() => setModalSuppression(true)}>
+          Supprimer mon compte
+        </button>
+      </div>
+
+      {modalSuppression && (
+        <div className="suppression-compte-overlay" onClick={fermerModalSuppression}>
+          <div className="suppression-compte-modal" onClick={e => e.stopPropagation()}>
+            {!etapeReauth ? (
+              <>
+                <h3>Supprimer votre compte ?</h3>
+                <p>
+                  Votre identité et votre accès à EchoTalk seront définitivement supprimés. Vos Échos, EchoReps, Écholègues et Écho-Bouteilles déjà publiés resteront visibles tels quels, sous votre pseudonyme — ils font partie des échanges de la communauté.
+                </p>
+                <p className="suppression-compte-avertissement">Cette action est irréversible.</p>
+                {erreurSuppression && <p className="suppression-compte-erreur">{erreurSuppression}</p>}
+                <div className="suppression-compte-actions">
+                  <button onClick={fermerModalSuppression} disabled={suppressionEnCours}>Annuler</button>
+                  <button className="btn-confirmer-suppression" onClick={handleSupprimerCompte} disabled={suppressionEnCours}>
+                    {suppressionEnCours ? '...' : 'Supprimer définitivement'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>Confirmez votre mot de passe</h3>
+                <p>Pour des raisons de sécurité, veuillez ressaisir votre mot de passe avant de continuer.</p>
+                <input
+                  type="password"
+                  placeholder="Mot de passe"
+                  value={motDePasse}
+                  onChange={e => setMotDePasse(e.target.value)}
+                  className="suppression-compte-input"
+                />
+                {erreurSuppression && <p className="suppression-compte-erreur">{erreurSuppression}</p>}
+                <div className="suppression-compte-actions">
+                  <button onClick={fermerModalSuppression} disabled={suppressionEnCours}>Annuler</button>
+                  <button className="btn-confirmer-suppression" onClick={handleReauthentifierEtSupprimer} disabled={suppressionEnCours || !motDePasse}>
+                    {suppressionEnCours ? '...' : 'Confirmer la suppression'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

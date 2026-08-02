@@ -31,7 +31,7 @@ service cloud.firestore {
       allow update: if (estProprietaire(userId)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
         || estAdmin();
-      allow delete: if estAdmin();
+      allow delete: if estProprietaire(userId) || estAdmin();
     }
 
     // Annuaire public minimal (uid + statut banni uniquement).
