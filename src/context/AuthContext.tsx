@@ -4,6 +4,7 @@ import {
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged, signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut, User,
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -51,6 +52,7 @@ interface AuthContextValue {
     dateNaissance: string, civilite?: string
   ) => Promise<UserProfile>;
   connexion: (email: string, password: string) => Promise<import('firebase/auth').UserCredential>;
+  reinitialiserMotDePasse: (email: string) => Promise<void>;
   deconnexion: () => Promise<void>;
   suspension: { suspendu: boolean; banni: boolean; message: string };
   messageDeconnexion: string;
@@ -181,6 +183,26 @@ function useAuthState(): AuthContextValue {
     return cred;
   };
 
+  // Firebase gère l'intégralité du parcours après l'envoi : l'email
+  // contenant le lien, ET la page de saisie du nouveau mot de passe
+  // elle-même (hébergée par Firebase, pas besoin de la construire ici).
+  //
+  // On ne distingue jamais "email inconnu" de "email envoyé avec succès"
+  // dans le message renvoyé à l'utilisateur — bonne pratique de sécurité
+  // qui évite de révéler à quelqu'un de malveillant quels emails sont
+  // déjà inscrits sur EchoTalk.
+  const reinitialiserMotDePasse = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err: unknown) {
+      // auth/user-not-found est volontairement avalé ici : on ne le
+      // révèle jamais à l'appelant, le message affiché reste identique
+      // que le compte existe ou non.
+      const code = (err as { code?: string })?.code;
+      if (code !== 'auth/user-not-found') throw err;
+    }
+  };
+
   const deconnexion = async () => {
     await signOut(auth);
     setProfile(null);
@@ -190,7 +212,10 @@ function useAuthState(): AuthContextValue {
 
   const effacerMessageDeconnexion = () => setMessageDeconnexion('');
 
-  return { user, profile, loading, inscription, connexion, deconnexion, suspension, messageDeconnexion, effacerMessageDeconnexion };
+  return {
+    user, profile, loading, inscription, connexion, reinitialiserMotDePasse,
+    deconnexion, suspension, messageDeconnexion, effacerMessageDeconnexion,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

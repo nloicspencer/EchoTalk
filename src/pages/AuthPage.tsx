@@ -31,7 +31,37 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
   const [erreur, setErreur] = useState('');
   const [erreurType, setErreurType] = useState<'normal' | 'suspension' | 'ban'>('normal');
   const [loading, setLoading] = useState(false);
-  const { connexion, inscription } = useAuth();
+  const { connexion, inscription, reinitialiserMotDePasse } = useAuth();
+
+  // ── Mot de passe oublié ──────────────────────────────────
+  const [modalOubli, setModalOubli] = useState(false);
+  const [emailOubli, setEmailOubli] = useState('');
+  const [statutOubli, setStatutOubli] = useState<'idle' | 'loading' | 'ok' | 'erreur'>('idle');
+
+  const ouvrirModalOubli = () => {
+    setEmailOubli(email); // pré-rempli si déjà saisi dans le formulaire de connexion
+    setStatutOubli('idle');
+    setModalOubli(true);
+  };
+
+  const fermerModalOubli = () => {
+    setModalOubli(false);
+    setEmailOubli('');
+    setStatutOubli('idle');
+  };
+
+  const handleReinitialisation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailOubli.trim()) return;
+    setStatutOubli('loading');
+    try {
+      await reinitialiserMotDePasse(emailOubli.trim());
+      // Message volontairement identique que le compte existe ou non.
+      setStatutOubli('ok');
+    } catch {
+      setStatutOubli('erreur');
+    }
+  };
 
   const handleConnexion = async (e: React.FormEvent) => {
     e.preventDefault(); setErreur(''); setErreurType('normal'); setLoading(true);
@@ -98,6 +128,9 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
                 <i className={`ti ${showPassword ? 'ti-eye-off' : 'ti-eye'}`} aria-hidden="true" />
               </button>
             </div>
+            <button type="button" className="auth-mdp-oublie" onClick={ouvrirModalOubli}>
+              Mot de passe oublié ?
+            </button>
             {erreur && (
               <div className={`auth-erreur-bloc ${erreurType}`}>
                 <i className={`ti ${erreurType === 'ban' ? 'ti-ban' : erreurType === 'suspension' ? 'ti-clock' : 'ti-alert-circle'}`} />
@@ -160,6 +193,42 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
           </form>
         )}
       </div>
+
+      {modalOubli && (
+        <div className="auth-oubli-overlay" onClick={fermerModalOubli}>
+          <div className="auth-oubli-modal" onClick={e => e.stopPropagation()}>
+            {statutOubli === 'ok' ? (
+              <>
+                <h3>Vérifiez votre boîte mail</h3>
+                <p>Si un compte existe avec cette adresse, un lien de réinitialisation vient de vous être envoyé.</p>
+                <button className="auth-submit" onClick={fermerModalOubli}>Fermer</button>
+              </>
+            ) : (
+              <form onSubmit={handleReinitialisation}>
+                <h3>Réinitialiser votre mot de passe</h3>
+                <p>Indiquez votre adresse email, vous recevrez un lien pour choisir un nouveau mot de passe.</p>
+                <input
+                  type="email"
+                  placeholder="Adresse email"
+                  value={emailOubli}
+                  onChange={e => setEmailOubli(e.target.value)}
+                  required
+                  disabled={statutOubli === 'loading'}
+                />
+                {statutOubli === 'erreur' && (
+                  <p className="auth-erreur">Une erreur est survenue. Réessayez dans un instant.</p>
+                )}
+                <div className="auth-oubli-actions">
+                  <button type="button" onClick={fermerModalOubli} disabled={statutOubli === 'loading'}>Annuler</button>
+                  <button type="submit" className="auth-submit" disabled={statutOubli === 'loading'}>
+                    {statutOubli === 'loading' ? '...' : 'Envoyer le lien'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
