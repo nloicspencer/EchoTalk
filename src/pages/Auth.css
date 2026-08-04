@@ -322,3 +322,102 @@
   line-height: 1;
   color: var(--et-text-3);
 }
+
+/* Mot de passe oublié */
+.auth-mdp-oublie {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: -0.4rem;
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.15s;
+}
+
+.auth-mdp-oublie:hover { opacity: 0.8; }
+
+.auth-oubli-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(42,31,61,0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.auth-oubli-modal {
+  background: rgba(245,240,252,0.96);
+  backdrop-filter: blur(20px);
+  border-radius: var(--et-radius-lg);
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  border: 0.5px solid var(--et-border);
+  box-shadow: var(--et-shadow-md);
+  box-sizing: border-box;
+}
+
+.auth-oubli-modal h3 {
+  font-family: var(--et-font-ui);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--et-text-1);
+  margin: 0 0 0.75rem;
+}
+
+.auth-oubli-modal p {
+  font-family: var(--et-font-ui);
+  color: var(--et-text-2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0 0 1rem;
+}
+
+.auth-oubli-modal input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: rgba(255,255,255,0.6);
+  color: var(--et-text-1);
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  margin-bottom: 0.75rem;
+}
+
+.auth-oubli-modal input:focus { border-color: var(--et-accent); }
+
+.auth-oubli-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.auth-oubli-actions button {
+  padding: 7px 16px;
+  border-radius: var(--et-radius-sm);
+  border: 0.5px solid var(--et-border);
+  background: var(--et-surface-2);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-text-2);
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.auth-oubli-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-oubli-actions .auth-submit { width: auto; margin-top: 0; }
