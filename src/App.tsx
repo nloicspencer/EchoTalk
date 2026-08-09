@@ -1,14 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthPage from './pages/AuthPage';
-import FilPage from './pages/FilPage';
 import LandingV0 from './pages/LandingV0';
 import { V0_MODE } from './config/v0Mode';
 import NavBar from './components/NavBar';
 import SuspensionBanner from './SuspensionBanner';
 import './App.css';
 
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const FilPage = lazy(() => import('./pages/FilPage'));
 const ProfilPage = lazy(() => import('./pages/ProfilPage'));
 const IdentitePage = lazy(() => import('./pages/IdentitePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
@@ -68,7 +68,9 @@ function AppContent({ basename }: { basename?: string }) {
       {!user && messageDeconnexion && <SuspensionBanner />}
 
       {!user ? (
-        <AuthPage onInscriptionComplete={(pseudo) => setOnboardingInfo({ pseudo })} />
+        <Suspense fallback={<ChargementPage />}>
+          <AuthPage onInscriptionComplete={(pseudo) => setOnboardingInfo({ pseudo })} />
+        </Suspense>
       ) : onboardingInfo ? (
         <Suspense fallback={<ChargementPage />}>
           <OnboardingPage

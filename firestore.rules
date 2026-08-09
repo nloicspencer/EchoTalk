@@ -190,10 +190,19 @@ service cloud.firestore {
     // la page de pré-inscription s'affiche avant toute authentification),
     // mais aucune lecture publique — seuls les modérateurs/admins peuvent
     // consulter la liste des emails inscrits.
+    // Protection anti-spam/anti-bot ajoutée le 8 août 2026 : jeton App Check
+    // valide exigé (request.app != null), champs strictement limités à
+    // email + createdAt (conforme à LandingV0.tsx), email cohérent avec
+    // l'ID du document, et createdAt doit être un vrai serverTimestamp.
     match /preinscriptions/{email} {
       allow read: if estModerateurOuAdmin();
-      allow create: if request.resource.data.email is string
-        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+      allow create: if request.app != null
+        && request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        && request.resource.data.email is string
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && request.resource.data.email.size() < 200
+        && request.resource.data.email == email
+        && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }
 
