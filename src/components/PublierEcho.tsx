@@ -32,11 +32,9 @@ export default function PublierEcho({ profile }: Props) {
         auteurPseudo: profile.pseudo,
         tonalite,
         type: typeEffectif,
-        // Levier n°2 — Référencement naturel. Décoché par défaut : c'est
-        // un choix actif de l'auteur, cohérent avec la Charte ("l'objectif
-        // n'est pas d'être vu"). Une fois activé, l'Écho devient
-        // consultable via Google/IA, en plus du partage par lien direct
-        // (Levier n°1, toujours actif quel que soit ce réglage).
+        // Levier n°2 — Résonance stricte (défaut) ou élargie. Le principe
+        // est expliqué une bonne fois sur la page Identité — pas la peine
+        // de le réexpliquer ici, juste le choix.
         decouvrable,
         ...(typeEffectif === 'ouvert' && { placesMax, periodicitéJours: periodicite }),
       });
@@ -74,25 +72,16 @@ export default function PublierEcho({ profile }: Props) {
             </div>
           </div>
 
-          {/* Levier n°2 — Découvrabilité Google/IA. Positionné juste après
-              Tonalité, avant Type — s'applique aussi bien à un Écho Libre
-              qu'à un Écho Ouvert. */}
+          {/* Levier n°2 — Résonance stricte/élargie. Principe déjà expliqué
+              sur la page Identité — ici, juste le libellé et le choix,
+              sur le même modèle que Tonalité. */}
           <div className="option-row">
-            <label>Découverte</label>
+            <label>Résonance</label>
             <div className="toggle-group">
-              <button
-                className={decouvrable ? 'active' : ''}
-                onClick={() => setDecouvrable(!decouvrable)}
-              >
-                🔍 {decouvrable ? 'Visible sur Google' : 'Non visible sur Google'}
-              </button>
+              <button className={!decouvrable ? 'active' : ''} onClick={() => setDecouvrable(false)}>🔒 Stricte</button>
+              <button className={decouvrable ? 'active' : ''} onClick={() => setDecouvrable(true)}>🌐 Élargie</button>
             </div>
           </div>
-          {decouvrable && (
-            <p className="publier-decouvrable-aide">
-              Cet écho pourra être trouvé via une recherche Google ou une IA, même par une personne sans compte EchoTalk.
-            </p>
-          )}
 
           {/* Type — le choix Libre/Ouvert n'existe que si ECHO_OUVERT est activé */}
           {FEATURES.ECHO_OUVERT && (

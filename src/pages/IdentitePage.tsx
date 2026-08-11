@@ -92,6 +92,27 @@ export default function IdentitePage() {
         </ul>
       </div>
 
+      {/* Levier n°2 — Résonance stricte ou élargie. Pose le principe une
+          bonne fois ici, pour que le formulaire de publication n'ait plus
+          besoin d'expliquer quoi que ce soit — juste le libellé et le
+          choix. Placé juste avant "Résonance et réactions". */}
+      <div className="identite-section">
+        <h2>Résonance : stricte ou élargie</h2>
+        <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
+          Par défaut, la résonance de vos Échos reste stricte. À la publication, vous pouvez choisir de l'élargir, écho par écho.
+        </p>
+        <div className="reaction-explication">
+          <div className="reaction-item">
+            <span className="reaction-emoji">🔒</span>
+            <div><strong>Résonance stricte</strong><p>Le réglage par défaut. Votre Écho reste visible uniquement sur EchoTalk, et par les liens que vous partagez vous-même.</p></div>
+          </div>
+          <div className="reaction-item">
+            <span className="reaction-emoji">🌐</span>
+            <div><strong>Résonance élargie</strong><p>Un choix actif, à chaque publication. Votre Écho devient trouvable au-delà d'EchoTalk, via une recherche en ligne ou une intelligence artificielle — toujours sous votre pseudonyme, jamais votre identité réelle.</p></div>
+          </div>
+        </div>
+      </div>
+
       <div className="identite-section">
         <h2>Résonance et réactions</h2>
         <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
