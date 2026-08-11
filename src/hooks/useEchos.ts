@@ -215,6 +215,10 @@ export function useEchoReps(echoId: string) {
 interface PublierEchoParams {
   contenu: string; auteurId: string; auteurPseudo: string;
   tonalite: Tonalite; type: EchoType; placesMax?: 3 | 6 | 8; periodicitéJours?: 2 | 6 | 10;
+  // Levier n°2 — Référencement naturel. Optionnel : absent ou false =
+  // comportement par défaut (non découvrable), cohérent avec l'ancien
+  // appelant qui ne passerait pas ce champ.
+  decouvrable?: boolean;
 }
 
 export async function publierEcho(params: PublierEchoParams) {
@@ -225,6 +229,7 @@ export async function publierEcho(params: PublierEchoParams) {
     tonalite: params.tonalite, type: params.type, categorie: 'general',
     createdAt: serverTimestamp(), jarresBleues: 0, coeurs: 0, coeursBrises: 0,
     estSolidaire: false, modifie: false, supprime: false, masque: false,
+    decouvrable: params.decouvrable ?? false,
     ...(params.type === 'ouvert' && {
       placesMax: params.placesMax ?? 6, placesOccupees: 0,
       periodicitéJours: params.periodicitéJours ?? 6, ouvertureCount: 1,

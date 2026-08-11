@@ -14,6 +14,13 @@ export interface Echo {
   jarresBleues: number;
   coeurs: number;
   coeursBrises: number;
+  // Levier n°2 — Référencement naturel (Google/IA). Choix actif de
+  // l'auteur à la publication, décoché par défaut. Rend l'Écho consultable
+  // via la page publique /e/{id} sans balise "noindex", donc indexable
+  // par les moteurs de recherche et les IA. S'applique à Écho Libre et
+  // Écho Ouvert ; absent = non découvrable (comportement par défaut,
+  // équivalent à false).
+  decouvrable?: boolean;
   // Écho Ouvert uniquement
   placesMax?: 3 | 6 | 8;
   placesOccupees?: number;
