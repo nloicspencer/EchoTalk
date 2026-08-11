@@ -1,0 +1,67 @@
+.echo-public-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.echo-public-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.echo-public-logo {
+  font-family: var(--et-font-echo);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--et-accent);
+}
+
+.echo-public-chargement {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--et-text-3);
+  font-family: var(--et-font-ui);
+}
+
+.echo-public-indisponible {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.echo-public-indisponible h2 {
+  font-family: var(--et-font-ui);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--et-text-2);
+  margin: 0 0 1.5rem;
+}
+
+.echo-public-cta {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: rgba(123,94,167,0.08);
+  border-radius: var(--et-radius-md);
+}
+
+.echo-public-cta p {
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  color: var(--et-text-2);
+  margin: 0 0 1rem;
+}
+
+.echo-public-cta-btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--et-accent);
+  color: #fff;
+  border-radius: var(--et-radius-md);
+  font-family: var(--et-font-ui);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.echo-public-cta-btn:hover { opacity: 0.9; text-decoration: none; }

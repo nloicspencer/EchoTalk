@@ -13,6 +13,7 @@ import {
 import { signalerContenu } from '../hooks/useModeration';
 import { donnerCoeur, donnerJarreBleu, donnerJarreRose, useStockJarres } from '../hooks/useReactions';
 import { Echo } from '../types';
+import BoutonPartage from './BoutonPartage';
 import './EchoCard.css';
 import JarreIcon from './JarreIcon';
 
@@ -207,6 +208,11 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
   };
 
   const tonaliteClass = echo.tonalite === 'soleil' ? 'tonalite-soleil' : 'tonalite-pluie';
+
+  // Levier n°1 — Échos partageables. Extrait court du contenu pour le
+  // texte de partage (WhatsApp, email, etc.), lien vers la page publique
+  // dédiée (/e/{echoId}), consultable sans compte.
+  const extraitPartage = echo.contenu.length > 80 ? `${echo.contenu.slice(0, 80)}…` : echo.contenu;
 
   return (
     <div
@@ -442,16 +448,27 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
       )}
 
       <div className="echo-card-footer">
-        {!estSupprime && !estProprietaire ? (
-          <button
-            className="echo-card-signal"
-            onClick={() => handleSignaler('echo', echo.contenu, echo.auteurId)}
-            disabled={signalementFait}
-          >
-            <i className={`ti ${signalementFait ? 'ti-check' : 'ti-flag'}`} aria-hidden="true" />
-            {' '}{signalementFait ? 'Signalé' : 'Signaler'}
-          </button>
-        ) : <span />}
+        <div className="echo-card-footer-left">
+          {!estSupprime && (
+            <BoutonPartage
+              titre="EchoTalk"
+              texte={`"${extraitPartage}" — un Écho partagé sur EchoTalk`}
+              url={`https://echotalk.fr/e/${echo.id}`}
+              libelle="Partager"
+              className="echo-card-partage"
+            />
+          )}
+          {!estSupprime && !estProprietaire && (
+            <button
+              className="echo-card-signal"
+              onClick={() => handleSignaler('echo', echo.contenu, echo.auteurId)}
+              disabled={signalementFait}
+            >
+              <i className={`ti ${signalementFait ? 'ti-check' : 'ti-flag'}`} aria-hidden="true" />
+              {' '}{signalementFait ? 'Signalé' : 'Signaler'}
+            </button>
+          )}
+        </div>
         <span className="echo-card-date">
           {echo.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
         </span>

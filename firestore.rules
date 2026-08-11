@@ -71,7 +71,14 @@ service cloud.firestore {
         );
       }
 
-      allow read: if estConnecte();
+      // Levier n°1 — Échos partageables (11/08/2026) : n'importe qui avec
+      // le lien direct peut lire UN Écho précis par son ID (get) — c'est
+      // ce qui permet à un lien partagé sur WhatsApp/Instagram/etc. de
+      // fonctionner pour quelqu'un sans compte. Parcourir/lister toute la
+      // collection (list) reste réservé aux utilisateurs connectés :
+      // impossible de scraper l'ensemble du Fil sans compte.
+      allow get: if true;
+      allow list: if estConnecte();
       allow create: if estConnecte()
         && request.resource.data.auteurId == request.auth.uid;
       allow update: if estConnecte()
@@ -88,7 +95,12 @@ service cloud.firestore {
         && (resource.data.auteurId == request.auth.uid || estModerateurOuAdmin());
 
       match /echoreps/{repId} {
-        allow read: if estConnecte();
+        // Même principe que ci-dessus : un EchoRep précis reste lisible
+        // par lien direct (fait partie de la page publique d'un Écho
+        // Ouvert partagé), mais la sous-collection entière ne peut pas
+        // être parcourue sans compte.
+        allow get: if true;
+        allow list: if estConnecte();
         allow create: if estConnecte()
           && (
             request.resource.data.auteurId == request.auth.uid
