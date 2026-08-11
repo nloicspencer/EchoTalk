@@ -114,6 +114,47 @@
   margin: 0;
 }
 
+/* Levier n°3 — bandeau "Inviter à résonner". Volontairement plus présent
+   qu'une .profil-section classique (fond teinté, icône, bouton visible)
+   pour donner envie de partager plutôt que de se fondre dans la liste
+   des sections utilitaires qui suivent. */
+.profil-invitation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(123,94,167,0.1);
+  border: 0.5px solid var(--et-border-hover);
+  border-radius: var(--et-radius-md);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.profil-invitation-icon { font-size: 1.75rem; flex-shrink: 0; }
+
+.profil-invitation-texte { flex: 1; min-width: 0; }
+
+.profil-invitation-texte h3 {
+  font-family: var(--et-font-ui);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--et-accent-deep);
+  margin: 0 0 4px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.profil-invitation-texte p {
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  color: var(--et-text-2);
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .profil-invitation { flex-direction: column; align-items: flex-start; }
+}
+
 .profil-note {
   font-size: 0.8125rem;
   font-family: var(--et-font-ui);

@@ -2,6 +2,7 @@ import { deleteDoc, doc, collection, getDocs, onSnapshot, query, where } from 'f
 import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import BoutonPartage from '../components/BoutonPartage';
 import EchoBouteille from '../components/EchoBouteille';
 import EchoCard from '../components/EchoCard';
 import EcholegueForm from '../components/EcholegueForm';
@@ -476,6 +477,25 @@ export default function ProfilPage() {
 
       <div className="profil-principe">
         <p>L'EchoProfil met en valeur votre activité, votre participation, votre soutien aux autres et la résonance de vos Échos au sein de la communauté.</p>
+      </div>
+
+      {/* Levier n°3 — Inviter à résonner. Placé ici volontairement : juste
+          après la citation sur la résonance communautaire, avant de
+          basculer vers les sections plus utilitaires (identité,
+          déconnexion). Style distinct des .profil-section classiques
+          pour avoir davantage de présence, comme demandé. */}
+      <div className="profil-invitation">
+        <span className="profil-invitation-icon" aria-hidden="true">🫙</span>
+        <div className="profil-invitation-texte">
+          <h3>Inviter à résonner</h3>
+          <p>Vous connaissez quelqu'un qui pourrait trouver ici un espace d'écoute ? Invitez-le à découvrir EchoTalk.</p>
+        </div>
+        <BoutonPartage
+          titre="EchoTalk"
+          texte="Découvre EchoTalk avec moi — un espace pour être entendu, pas pour être vu."
+          url="https://echotalk.fr"
+          libelle="Inviter"
+        />
       </div>
 
       <div className="profil-section">

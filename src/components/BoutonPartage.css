@@ -1,0 +1,59 @@
+.bouton-partage-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.bouton-partage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--et-radius-md);
+  border: none;
+  background: var(--et-accent);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.bouton-partage:hover { opacity: 0.9; }
+
+.bouton-partage-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  background: rgba(255,255,255,0.98);
+  backdrop-filter: blur(12px);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  box-shadow: var(--et-shadow-md);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+}
+
+.bouton-partage-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--et-radius-sm);
+  border: none;
+  background: none;
+  color: var(--et-text-1);
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.bouton-partage-option:hover { background: rgba(123,94,167,0.1); color: var(--et-accent); }
