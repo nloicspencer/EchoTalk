@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /e/
+Allow: /sitemap.xml
+Disallow: /
+
+Sitemap: https://echotalk.fr/sitemap.xml

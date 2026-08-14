@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/e/:echoId", "destination": "/api/echo?id=:echoId" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
