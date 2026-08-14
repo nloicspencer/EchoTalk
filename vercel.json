@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/e/:echoId", "destination": "/api/echo?id=:echoId" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

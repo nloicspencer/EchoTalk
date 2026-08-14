@@ -16,7 +16,6 @@ const ModerationPage = lazy(() => import('./pages/ModerationPage'));
 const ModerationDetressePage = lazy(() => import('./pages/ModerationDetressePage'));
 const DecouvertePage = lazy(() => import('./pages/DecouvertePage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
-const EchoPublicPage = lazy(() => import('./pages/EchoPublicPage'));
 
 function ChargementPage() {
   return (
@@ -93,24 +92,14 @@ function AppContent({ basename }: { basename?: string }) {
 // react-router fait que toutes les routes internes ("/", "/profil"...)
 // se résolvent alors automatiquement sous ce préfixe, sans rien changer
 // au reste du code.
+//
+// Levier n°2 (11/08/2026) : la route /e/{echoId} (Levier n°1) n'est plus
+// gérée ici — elle est interceptée par vercel.json AVANT même d'atteindre
+// React, et rendue côté serveur par api/echo.ts pour être lisible par les
+// robots de recherche/IA. EchoPublicPage.tsx est donc devenue inutile et
+// a été retirée.
 export default function App() {
   const enModeTest = window.location.pathname.startsWith('/test');
-
-  // Levier n°1 — Échos partageables (11/08/2026) : la page publique d'un
-  // Écho partagé (/e/{echoId}) doit rester consultable à tout moment,
-  // même quand V0_MODE est actif — quelqu'un qui clique un lien partagé
-  // ne doit jamais tomber sur la page de pré-inscription à la place.
-  // Vérifiée en priorité, avant tout le reste, et rendue en dehors
-  // d'AuthProvider/BrowserRouter puisqu'elle ne nécessite ni compte ni
-  // routage interne.
-  const echoIdMatch = window.location.pathname.match(/^\/e\/([^/]+)$/);
-  if (echoIdMatch) {
-    return (
-      <Suspense fallback={<ChargementPage />}>
-        <EchoPublicPage echoId={echoIdMatch[1]} />
-      </Suspense>
-    );
-  }
 
   if (V0_MODE && !enModeTest) {
     return <LandingV0 />;
