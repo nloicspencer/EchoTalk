@@ -7,10 +7,11 @@ import {
   sendPasswordResetEmail,
   signOut, User,
 } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { OISEAUX, UserProfile } from '../types';
 import { verifierSuspension } from '../hooks/useModeration';
+import { VERSION_DOCUMENTS_LEGAUX } from '../constants/documentsLegaux';
 
 // La liste des communes (32 625 entrées, ~517 Ko) n'est chargée qu'au
 // moment où quelqu'un s'inscrit réellement — pas à chaque ouverture de
@@ -128,7 +129,22 @@ function useAuthState(): AuthContextValue {
       echosPublies: 0, jarresBleuesRecues: 0, jarresBleuesPartagees: 0,
       coeursRecus: 0, stockJarresBleues: 15, stockJarresRoses: 0,
     };
-    const docData = { ...newProfile, prenom, nom, dateNaissance, civilite, email, suspension: null };
+    // Preuve de consentement CGU/Politique de confidentialité (12/08/2026).
+    // Ce champ n'est écrit qu'ici, à l'unique point d'entrée de création
+    // de compte, et couplé à la case à cocher obligatoire dans
+    // AuthPage.tsx (le formulaire bloque la soumission tant qu'elle n'est
+    // pas cochée) — inscription() ne prend pas de paramètre séparé pour
+    // ça, "accepte: true" reflète directement cette contrainte du
+    // formulaire, pas une valeur arbitraire.
+    const consentementLegal = {
+      accepte: true,
+      horodatage: serverTimestamp(),
+      versionDocuments: VERSION_DOCUMENTS_LEGAUX,
+    };
+    const docData = {
+      ...newProfile, prenom, nom, dateNaissance, civilite, email, suspension: null,
+      consentementLegal,
+    };
 
     try {
       await setDoc(doc(db, 'users', cred.user.uid), docData);

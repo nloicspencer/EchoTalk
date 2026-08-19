@@ -139,6 +139,22 @@
   cursor: pointer; accent-color: var(--et-accent); flex-shrink: 0;
 }
 
+/* Liens cliquables (CGU / Politique de confidentialité) intégrés dans le
+   texte d'une case à cocher — boutons stylés pour se fondre dans la
+   phrase plutôt que de ressembler à des boutons classiques. */
+.auth-checkbox-lien {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--et-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-checkbox-lien:hover { opacity: 0.8; }
+
 .auth-erreur {
   color: var(--et-rose);
   font-size: 0.8125rem;

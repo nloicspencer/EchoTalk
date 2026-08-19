@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import DocumentLegalModal from '../components/DocumentLegalModal';
+import { CGU_SECTIONS, CONFIDENTIALITE_SECTIONS } from '../constants/documentsLegaux';
 import './Auth.css';
 
 interface Props {
@@ -28,6 +30,14 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
   const [dateNaissance, setDateNaissance] = useState('');
   const [majeur, setMajeur] = useState(false);
   const [attestation, setAttestation] = useState(false);
+  // Levier consentement légal (12/08/2026) : case distincte des deux
+  // ci-dessus — "majeur"/"attestation" sont des déclarations sur soi,
+  // "consentement" est l'acceptation d'un contrat (CGU + Politique de
+  // confidentialité). Horodatée et versionnée côté serveur (voir
+  // AuthContext.tsx > inscription()).
+  const [consentement, setConsentement] = useState(false);
+  const [modalCgu, setModalCgu] = useState(false);
+  const [modalConfidentialite, setModalConfidentialite] = useState(false);
   const [erreur, setErreur] = useState('');
   const [erreurType, setErreurType] = useState<'normal' | 'suspension' | 'ban'>('normal');
   const [loading, setLoading] = useState(false);
@@ -84,7 +94,7 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
     e.preventDefault(); setErreur(''); setErreurType('normal');
     if (calculerAge(dateNaissance) < 18) { setErreur('Vous devez avoir 18 ans ou plus pour rejoindre EchoTalk.'); return; }
     if (password !== confirmPassword) { setErreur('Les mots de passe ne correspondent pas.'); return; }
-    if (!majeur || !attestation) { setErreur('Veuillez cocher les deux cases pour continuer.'); return; }
+    if (!majeur || !attestation || !consentement) { setErreur('Veuillez cocher les trois cases pour continuer.'); return; }
     setLoading(true);
     try {
       const profile = await inscription(email, password, prenom, nom, dateNaissance, civilite || 'nr');
@@ -186,8 +196,17 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
               <input type="checkbox" checked={attestation} onChange={e => setAttestation(e.target.checked)} />
               <span>J'atteste que les informations renseignées sont exactes</span>
             </label>
+            <label className="auth-checkbox">
+              <input type="checkbox" checked={consentement} onChange={e => setConsentement(e.target.checked)} />
+              <span>
+                J'ai lu et j'accepte les{' '}
+                <button type="button" className="auth-checkbox-lien" onClick={() => setModalCgu(true)}>CGU</button>
+                {' '}et la{' '}
+                <button type="button" className="auth-checkbox-lien" onClick={() => setModalConfidentialite(true)}>Politique de confidentialité</button>
+              </span>
+            </label>
             {erreur && <p className="auth-erreur">{erreur}</p>}
-            <button type="submit" className="auth-submit" disabled={loading || !majeur || !attestation}>
+            <button type="submit" className="auth-submit" disabled={loading || !majeur || !attestation || !consentement}>
               {loading ? 'Création du compte...' : 'Créer mon compte'}
             </button>
           </form>
@@ -228,6 +247,21 @@ export default function AuthPage({ onInscriptionComplete }: Props) {
             )}
           </div>
         </div>
+      )}
+
+      {modalCgu && (
+        <DocumentLegalModal
+          titre="Conditions Générales d'Utilisation"
+          sections={CGU_SECTIONS}
+          onClose={() => setModalCgu(false)}
+        />
+      )}
+      {modalConfidentialite && (
+        <DocumentLegalModal
+          titre="Politique de confidentialité"
+          sections={CONFIDENTIALITE_SECTIONS}
+          onClose={() => setModalConfidentialite(false)}
+        />
       )}
     </div>
   );
