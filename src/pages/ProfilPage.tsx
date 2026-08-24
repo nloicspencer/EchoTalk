@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEchos } from '../hooks/useEchos';
 import { acquerirPack, useStockJarres } from '../hooks/useReactions';
 import { db } from '../services/firebase';
-import { FEATURES } from '../config/features';
+import { FEATURES } from '../config/appVersion';
 import './ProfilPage.css';
 
 interface Stats {

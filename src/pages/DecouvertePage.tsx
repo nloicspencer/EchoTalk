@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useEchosDecouverte } from '../hooks/useDecouverte';
 import EchoCard from '../components/EchoCard';
-import { FEATURES } from '../config/features';
+import { FEATURES } from '../config/appVersion';
 import './DecouvertePage.css';
 
 type FiltreType = 'tous' | 'libre' | 'ouvert';

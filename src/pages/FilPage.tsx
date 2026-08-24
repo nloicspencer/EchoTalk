@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEchos, useEchoSolidaire } from '../hooks/useEchos';
 import { useCompteurGlobalJarres } from '../hooks/useReactions';
 import { CATEGORIES } from '../types';
-import { FEATURES } from '../config/features';
+import { FEATURES } from '../config/appVersion';
 import './FilPage.css';
 
 export default function FilPage() {

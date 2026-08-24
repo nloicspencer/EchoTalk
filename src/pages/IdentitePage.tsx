@@ -1,5 +1,5 @@
 import JarreIcon from '../components/JarreIcon';
-import { FEATURES } from '../config/features';
+import { FEATURES } from '../config/appVersion';
 import './IdentitePage.css';
 
 type FeatureKey = keyof typeof FEATURES;

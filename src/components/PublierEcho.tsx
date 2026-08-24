@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { publierEcho } from '../hooks/useEchos';
 import { UserProfile, EchoType, Tonalite } from '../types';
-import { FEATURES } from '../config/features';
+import { FEATURES } from '../config/appVersion';
 import './PublierEcho.css';
 
 interface Props {
