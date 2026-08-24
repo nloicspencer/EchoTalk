@@ -1,28 +1,42 @@
 .fil-page { padding-top: 0; }
 
+/* En-tête divisée en deux vrais rectangles côte à côte : logo à gauche
+   (1/4), emplacement publicitaire à droite (3/4) — hauteur commune,
+   un peu plus haute que l'icône du logo, pour que les deux contenus
+   respirent bien dans leur propre encadré plutôt que de flotter. */
 .fil-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 20px 16px 12px;
+  align-items: stretch;
+  gap: 8px;
+  padding: 16px 16px 12px;
 }
 
 .fil-header-logo-group {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 60px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 6px;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  padding: 8px 6px;
+  box-sizing: border-box;
 }
+
+.fil-header-logo-group svg { flex-shrink: 0; width: 26px; height: auto; }
 
 .fil-header-logo {
   font-family: 'Lora', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: clamp(0.8125rem, 4.2vw, 1.3rem);
   font-weight: 400;
   color: var(--et-text-1);
   letter-spacing: -0.02em;
-  white-space: nowrap;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
 }
 
 .fil-header-logo span {
@@ -236,10 +250,3 @@
 
 .fil-charger-plus:hover:not(:disabled) { background: var(--et-surface-3); }
 .fil-charger-plus:disabled { opacity: 0.6; cursor: default; }
-
-/* Sur les très petits écrans, la ligne d'en-tête (logo + pub) peut se
-   replier sur deux lignes si nécessaire, plutôt que de compresser le
-   logo au-delà du lisible. */
-@media (max-width: 360px) {
-  .fil-header { flex-wrap: wrap; }
-}

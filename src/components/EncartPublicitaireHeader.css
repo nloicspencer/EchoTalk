@@ -1,17 +1,20 @@
 .pub-header-slot {
+  flex: 3 1 0;
+  min-width: 0;
+  min-height: 60px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 8px 14px;
   border: 1px dashed var(--et-border-hover);
-  border-radius: 20px;
+  border-radius: var(--et-radius-md);
   background: rgba(123,94,167,0.04);
-  max-width: 55%;
-  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .pub-header-label {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-family: var(--et-font-ui);
   font-weight: 500;
   color: var(--et-text-3);
@@ -21,7 +24,7 @@
 }
 
 .pub-header-texte {
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-family: var(--et-font-ui);
   color: var(--et-text-3);
   white-space: nowrap;
