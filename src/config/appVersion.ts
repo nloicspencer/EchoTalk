@@ -32,8 +32,12 @@ export const FEATURES = {
   // V3 — monétisation de l'Écho Solidaire
   ECHO_SOLIDAIRE: CURRENT_VERSION >= 3,
 
-  // V4 — Écho-Bouteille (la Publicité, également prévue en V4, n'a pas
-  // encore de flag consommé côté front — à ajouter quand l'infrastructure
-  // publicitaire sera codée)
+  // V4 — Écho-Bouteille
   ECHO_BOUTEILLE: CURRENT_VERSION >= 4,
+
+  // V4 — Publicité (21/08/2026). Emplacement construit (bandeau dans
+  // l'en-tête du Fil, à droite du logo), régie non encore choisie — le
+  // composant EncartPublicitaireHeader affiche pour l'instant un espace
+  // réservé, à remplacer par le contenu réel de la régie le moment venu.
+  PUBLICITE: CURRENT_VERSION >= 4,
 };

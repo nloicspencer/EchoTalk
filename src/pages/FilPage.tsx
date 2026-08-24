@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import EchoCard from '../components/EchoCard';
 import EchoSolidaireModal from '../components/EchoSolidaireModal';
+import EncartPublicitaireHeader from '../components/EncartPublicitaireHeader';
 import JarreIcon from '../components/JarreIcon';
 import JournalLegues from '../components/JournalLegues';
 import PublierEcho from '../components/PublierEcho';
@@ -51,18 +52,22 @@ export default function FilPage() {
   return (
     <div className="fil-page">
 
-      {/* En-tête */}
+      {/* En-tête — logo à gauche, emplacement publicitaire à droite
+          (V4 — Publicité, 21/08/2026). Rien d'autre ne change en dessous. */}
       <div className="fil-header">
-        <svg width="32" height="40" viewBox="0 0 64 84" aria-hidden="true">
-          <rect x="20" y="6" width="24" height="8" rx="3" fill="none" stroke="#7B5EA7" strokeWidth="2"/>
-          <rect x="10" y="20" width="44" height="56" rx="8" fill="none" stroke="#7B5EA7" strokeWidth="2"/>
-          <path d="M10 48 Q22 40 32 48 Q42 56 54 48" fill="none" stroke="#7B5EA7" strokeWidth="1.5" opacity="0.5"/>
-          <path d="M10 62 Q22 54 32 62 Q42 70 54 62" fill="none" stroke="#7B5EA7" strokeWidth="1" opacity="0.3"/>
-          <circle cx="32" cy="34" r="5" fill="none" stroke="#7B5EA7" strokeWidth="1" opacity="0.4"/>
-          <line x1="16" y1="14" x2="10" y2="20" stroke="#7B5EA7" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="48" y1="14" x2="54" y2="20" stroke="#7B5EA7" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-        <span className="fil-header-logo">Echo<span>Talk</span></span>
+        <div className="fil-header-logo-group">
+          <svg width="32" height="40" viewBox="0 0 64 84" aria-hidden="true">
+            <rect x="20" y="6" width="24" height="8" rx="3" fill="none" stroke="#7B5EA7" strokeWidth="2"/>
+            <rect x="10" y="20" width="44" height="56" rx="8" fill="none" stroke="#7B5EA7" strokeWidth="2"/>
+            <path d="M10 48 Q22 40 32 48 Q42 56 54 48" fill="none" stroke="#7B5EA7" strokeWidth="1.5" opacity="0.5"/>
+            <path d="M10 62 Q22 54 32 62 Q42 70 54 62" fill="none" stroke="#7B5EA7" strokeWidth="1" opacity="0.3"/>
+            <circle cx="32" cy="34" r="5" fill="none" stroke="#7B5EA7" strokeWidth="1" opacity="0.4"/>
+            <line x1="16" y1="14" x2="10" y2="20" stroke="#7B5EA7" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="48" y1="14" x2="54" y2="20" stroke="#7B5EA7" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span className="fil-header-logo">Echo<span>Talk</span></span>
+        </div>
+        {FEATURES.PUBLICITE && <EncartPublicitaireHeader />}
       </div>
 
       {/* Bandeau utilisateur */}
@@ -148,9 +153,6 @@ export default function FilPage() {
           echosFiltres.map((echo, index) => <EchoCard key={echo.id} echo={echo} delayIndex={index} />)
         )}
 
-        {/* Pagination stable : ne réapparaît/disparaît jamais suite à un
-            nouvel Écho publié par quelqu'un d'autre — seul un rafraîchissement
-            de page fait apparaître les tout nouveaux posts. */}
         {!loading && hasMore && categoriesActives.length === 0 && (
           <button className="fil-charger-plus" onClick={chargerPlus} disabled={loadingMore}>
             {loadingMore ? 'Chargement...' : 'Charger plus d\'échos'}
