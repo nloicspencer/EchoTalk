@@ -3,13 +3,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
-  border: 1px dashed var(--et-border-hover);
-  border-radius: var(--et-radius-md);
-  background: rgba(123,94,167,0.04);
-  box-sizing: border-box;
 }
 
 .pub-header-label {

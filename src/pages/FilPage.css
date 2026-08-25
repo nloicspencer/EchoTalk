@@ -1,17 +1,20 @@
 .fil-page { padding-top: 0; }
 
-/* En-tête — deux rectangles de largeur égale (50/50) : logo à gauche,
-   emplacement publicitaire à droite. align-items: stretch fait que les
-   deux boîtes prennent automatiquement la même hauteur ; le padding du
-   bandeau lui-même est réduit au minimum pour que les bordures de
-   chaque boîte arrivent presque au bord du bandeau. */
+/* En-tête — UN SEUL bandeau blanc continu (aucune bordure ni fond ne
+   sépare les deux zones à l'intérieur). Logo à gauche (50%), emplacement
+   publicitaire à droite (50%). Padding vertical du bandeau réduit au
+   minimum pour que le contenu soit proche des bords supérieur/inférieur. */
 .fil-header {
   display: flex;
-  align-items: stretch;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   margin: 0 16px 12px;
-  padding: 8px 16px;
-  min-height: 76px;
+  padding: 6px 16px;
+  min-height: 70px;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  backdrop-filter: blur(8px);
   box-sizing: border-box;
 }
 
@@ -22,11 +25,6 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--et-surface);
-  border: 0.5px solid var(--et-border);
-  border-radius: var(--et-radius-md);
-  padding: 6px 10px;
-  box-sizing: border-box;
 }
 
 .fil-header-logo-group svg { flex-shrink: 0; width: 30px; height: auto; }
