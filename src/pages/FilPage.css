@@ -1,13 +1,13 @@
 .fil-page { padding-top: 0; }
 
 /* En-tête — bandeau 50/50 : logo EchoTalk à gauche (aligné à gauche,
-   pas centré), pseudo de l'utilisateur à droite (remonté ici, sans la
-   jarre). Un filet fin sépare les deux zones. */
+   pas centré), pseudo de l'utilisateur à droite, centré dans son espace.
+   Marge en haut de page restaurée pour respirer un peu. */
 .fil-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 16px 12px;
+  margin: 20px 16px 12px;
   padding: 12px 14px;
   background: var(--et-surface);
   border: 0.5px solid var(--et-border);
@@ -45,6 +45,8 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   padding-left: 10px;
   border-left: 0.5px solid var(--et-border);
 }
