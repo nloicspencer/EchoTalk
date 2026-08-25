@@ -1,20 +1,17 @@
 .fil-page { padding-top: 0; }
 
-/* En-tête — UN SEUL bandeau continu blanc. Le logo occupe ~1/4 à
-   gauche, l'emplacement publicitaire ~3/4 à droite, à l'intérieur du
-   même bandeau — aucune bordure ni fond ne sépare visuellement les
-   deux zones, seule la répartition de l'espace les distingue. */
+/* En-tête — deux rectangles de largeur égale (50/50) : logo à gauche,
+   emplacement publicitaire à droite. align-items: stretch fait que les
+   deux boîtes prennent automatiquement la même hauteur ; le padding du
+   bandeau lui-même est réduit au minimum pour que les bordures de
+   chaque boîte arrivent presque au bord du bandeau. */
 .fil-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 10px;
   margin: 0 16px 12px;
-  padding: 14px 16px;
-  min-height: 60px;
-  background: var(--et-surface);
-  border: 0.5px solid var(--et-border);
-  border-radius: var(--et-radius-md);
-  backdrop-filter: blur(8px);
+  padding: 8px 16px;
+  min-height: 76px;
   box-sizing: border-box;
 }
 
@@ -23,21 +20,26 @@
   min-width: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  padding: 6px 10px;
+  box-sizing: border-box;
 }
 
-.fil-header-logo-group svg { flex-shrink: 0; width: 28px; height: auto; }
+.fil-header-logo-group svg { flex-shrink: 0; width: 30px; height: auto; }
 
 .fil-header-logo {
   font-family: 'Lora', Georgia, serif;
-  font-size: clamp(0.8125rem, 4vw, 1.4rem);
+  font-size: clamp(1rem, 5vw, 1.4rem);
   font-weight: 400;
   color: var(--et-text-1);
   letter-spacing: -0.02em;
   line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: center;
+  white-space: normal;
 }
 
 .fil-header-logo span {

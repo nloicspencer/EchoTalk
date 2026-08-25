@@ -1,12 +1,11 @@
 .pub-header-slot {
-  flex: 3 1 0;
+  flex: 1 1 0;
   min-width: 0;
-  min-height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border: 1px dashed var(--et-border-hover);
   border-radius: var(--et-radius-md);
   background: rgba(123,94,167,0.04);
