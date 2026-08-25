@@ -1,16 +1,14 @@
 .fil-page { padding-top: 0; }
 
-/* En-tête — UN SEUL bandeau blanc continu (aucune bordure ni fond ne
-   sépare les deux zones à l'intérieur). Logo à gauche (50%), emplacement
-   publicitaire à droite (50%). Padding vertical du bandeau réduit au
-   minimum pour que le contenu soit proche des bords supérieur/inférieur. */
+/* En-tête — bandeau 50/50 : logo EchoTalk à gauche (aligné à gauche,
+   pas centré), pseudo de l'utilisateur à droite (remonté ici, sans la
+   jarre). Un filet fin sépare les deux zones. */
 .fil-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin: 0 16px 12px;
-  padding: 6px 16px;
-  min-height: 70px;
+  padding: 12px 14px;
   background: var(--et-surface);
   border: 0.5px solid var(--et-border);
   border-radius: var(--et-radius-md);
@@ -23,21 +21,18 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
 }
 
-.fil-header-logo-group svg { flex-shrink: 0; width: 30px; height: auto; }
+.fil-header-logo-group svg { flex-shrink: 0; width: 26px; height: auto; }
 
 .fil-header-logo {
   font-family: 'Lora', Georgia, serif;
-  font-size: clamp(1rem, 5vw, 1.4rem);
+  font-size: clamp(1rem, 5vw, 1.3rem);
   font-weight: 400;
   color: var(--et-text-1);
   letter-spacing: -0.02em;
-  line-height: 1.15;
-  text-align: center;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .fil-header-logo span {
@@ -45,30 +40,25 @@
   color: var(--et-accent);
 }
 
-.fil-user-banner {
-  margin: 0 16px 12px;
-  padding: 14px 16px;
-  background: var(--et-surface);
-  border: 0.5px solid var(--et-border);
-  border-left: 3px solid var(--et-accent);
-  border-radius: 0 var(--et-radius-md) var(--et-radius-md) 0;
-  backdrop-filter: blur(8px);
+.fil-header-pseudo-group {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+  border-left: 0.5px solid var(--et-border);
 }
 
-.fil-user-pseudo {
+.fil-header-pseudo {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--et-accent);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 3px;
 }
 
-.fil-user-tagline {
+.fil-header-tagline {
   font-family: var(--et-font-echo);
   font-style: italic;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--et-text-3);
 }
 

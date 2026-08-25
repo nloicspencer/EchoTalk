@@ -1,26 +1,26 @@
-.pub-header-slot {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.pub-banner-full {
+  margin: 0 16px 12px;
+  padding: 14px 16px;
+  background: var(--et-surface);
+  border: 0.5px solid var(--et-border);
+  border-left: 3px solid var(--et-accent);
+  border-radius: 0 var(--et-radius-md) var(--et-radius-md) 0;
+  backdrop-filter: blur(8px);
 }
 
-.pub-header-label {
+.pub-banner-label {
+  display: block;
   font-size: 0.6875rem;
   font-family: var(--et-font-ui);
   font-weight: 500;
   color: var(--et-text-3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  flex-shrink: 0;
 }
 
-.pub-header-texte {
+.pub-banner-texte {
   font-size: 0.8125rem;
   font-family: var(--et-font-ui);
   color: var(--et-text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-top: 4px;
 }

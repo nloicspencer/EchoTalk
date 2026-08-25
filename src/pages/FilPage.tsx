@@ -52,11 +52,11 @@ export default function FilPage() {
   return (
     <div className="fil-page">
 
-      {/* En-tête — logo à gauche, emplacement publicitaire à droite
-          (V4 — Publicité, 21/08/2026). Rien d'autre ne change en dessous. */}
+      {/* En-tête — bandeau 50/50 : logo EchoTalk aligné à gauche, pseudo
+          de l'utilisateur (remonté ici, sans la jarre) à droite. */}
       <div className="fil-header">
         <div className="fil-header-logo-group">
-          <svg width="32" height="40" viewBox="0 0 64 84" aria-hidden="true">
+          <svg width="26" height="32" viewBox="0 0 64 84" aria-hidden="true">
             <rect x="20" y="6" width="24" height="8" rx="3" fill="none" stroke="#7B5EA7" strokeWidth="2"/>
             <rect x="10" y="20" width="44" height="56" rx="8" fill="none" stroke="#7B5EA7" strokeWidth="2"/>
             <path d="M10 48 Q22 40 32 48 Q42 56 54 48" fill="none" stroke="#7B5EA7" strokeWidth="1.5" opacity="0.5"/>
@@ -67,19 +67,20 @@ export default function FilPage() {
           </svg>
           <span className="fil-header-logo">Echo<span>Talk</span></span>
         </div>
-        {FEATURES.PUBLICITE && <EncartPublicitaireHeader />}
+        <div className="fil-header-pseudo-group">
+          {profile && (
+            <>
+              <span className="fil-header-pseudo">{profile.pseudo}</span>
+              <span className="fil-header-tagline">Ton espace. Ta voix. Ton écho.</span>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Bandeau utilisateur */}
-      {profile && (
-        <div className="fil-user-banner">
-          <div className="fil-user-pseudo">
-            <JarreIcon color="blue" size="s" />
-            {profile.pseudo}
-          </div>
-          <div className="fil-user-tagline">Ton espace. Ta voix. Ton écho.</div>
-        </div>
-      )}
+      {/* Emplacement publicitaire — bandeau pleine largeur, récupère le
+          style et l'espace généreux qu'occupait auparavant le bandeau
+          pseudo (V4 — Publicité, 21/08/2026). */}
+      {FEATURES.PUBLICITE && <EncartPublicitaireHeader />}
 
       {/* Puits communauté */}
       <div className="fil-community-counter">
