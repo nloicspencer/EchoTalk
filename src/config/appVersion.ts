@@ -15,7 +15,10 @@
 // ici — fonctionnalités encore en conception côté produit, à ajouter
 // quand elles se préciseront plutôt que d'anticiper une structure qui
 // pourrait changer.
-export const CURRENT_VERSION = 4;
+//
+// TEST du 21/08/2026 : réglé sur 1 pour vérifier le comportement V1 sur
+// /test avant de repasser à la valeur définitive.
+export const CURRENT_VERSION = 1;
 
 // FEATURES garde exactement la même forme que l'ancien features.ts, pour
 // que les fichiers qui l'utilisaient déjà (FEATURES.ECHOLEGUE, etc.)
