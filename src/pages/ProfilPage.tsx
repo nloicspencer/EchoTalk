@@ -216,27 +216,28 @@ export default function ProfilPage() {
     });
     unsubs.push(unsubReactions);
 
-    // Écho-Bouteilles envoyées
-    const qBouteillesEnv = query(
-      collection(db, 'echos_bouteille'),
-      where('expediteurId', '==', profile.uid)
-    );
-    const unsubBouteillesEnv = onSnapshot(qBouteillesEnv, (snap) => {
-      const actives = snap.docs.filter(d => d.data().statut === 'envoyee');
-      setStats(prev => ({ ...prev, bouteillesEnvoyees: actives.length }));
-    });
-    unsubs.push(unsubBouteillesEnv);
+    // Écho-Bouteilles envoyées/reçues — uniquement pertinent tant qu'Écho-Bouteille est actif
+    if (FEATURES.ECHO_BOUTEILLE) {
+      const qBouteillesEnv = query(
+        collection(db, 'echos_bouteille'),
+        where('expediteurId', '==', profile.uid)
+      );
+      const unsubBouteillesEnv = onSnapshot(qBouteillesEnv, (snap) => {
+        const actives = snap.docs.filter(d => d.data().statut === 'envoyee');
+        setStats(prev => ({ ...prev, bouteillesEnvoyees: actives.length }));
+      });
+      unsubs.push(unsubBouteillesEnv);
 
-    // Écho-Bouteilles reçues
-    const qBouteillesRec = query(
-      collection(db, 'echos_bouteille'),
-      where('destinataireId', '==', profile.uid)
-    );
-    const unsubBouteillesRec = onSnapshot(qBouteillesRec, (snap) => {
-      const actives = snap.docs.filter(d => d.data().statut === 'envoyee');
-      setStats(prev => ({ ...prev, bouteillesRecues: actives.length }));
-    });
-    unsubs.push(unsubBouteillesRec);
+      const qBouteillesRec = query(
+        collection(db, 'echos_bouteille'),
+        where('destinataireId', '==', profile.uid)
+      );
+      const unsubBouteillesRec = onSnapshot(qBouteillesRec, (snap) => {
+        const actives = snap.docs.filter(d => d.data().statut === 'envoyee');
+        setStats(prev => ({ ...prev, bouteillesRecues: actives.length }));
+      });
+      unsubs.push(unsubBouteillesRec);
+    }
 
     // Écholègues publiés — uniquement pertinent tant qu'Écholègue est actif
     if (FEATURES.ECHOLEGUE) {
@@ -436,16 +437,28 @@ export default function ProfilPage() {
         </div>
       )}
 
-      <div className="profil-section">
-        <h3>Transmission</h3>
-        <div className="stats-grid">
-          <div className="stat-row"><span className="stat-label">Écho-Bouteilles envoyées</span><span className="stat-val">{stats.bouteillesEnvoyees}</span></div>
-          <div className="stat-row"><span className="stat-label">Écho-Bouteilles reçues</span><span className="stat-val">{stats.bouteillesRecues}</span></div>
-          {FEATURES.ECHOLEGUE && (
-            <div className="stat-row"><span className="stat-label">Écholègues publiés</span><span className="stat-val">{stats.leguesPublies}</span></div>
-          )}
+      {/* Transmission — correction du 21/08/2026 : les lignes
+          Écho-Bouteilles envoyées/reçues n'étaient jamais conditionnées
+          par FEATURES.ECHO_BOUTEILLE (contrairement à Écholègues publiés
+          juste en dessous). Toute la section disparaît maintenant si ni
+          Écho-Bouteille ni Écholègue ne sont actifs, plutôt que d'afficher
+          un bloc vide ou incohérent. */}
+      {(FEATURES.ECHO_BOUTEILLE || FEATURES.ECHOLEGUE) && (
+        <div className="profil-section">
+          <h3>Transmission</h3>
+          <div className="stats-grid">
+            {FEATURES.ECHO_BOUTEILLE && (
+              <>
+                <div className="stat-row"><span className="stat-label">Écho-Bouteilles envoyées</span><span className="stat-val">{stats.bouteillesEnvoyees}</span></div>
+                <div className="stat-row"><span className="stat-label">Écho-Bouteilles reçues</span><span className="stat-val">{stats.bouteillesRecues}</span></div>
+              </>
+            )}
+            {FEATURES.ECHOLEGUE && (
+              <div className="stat-row"><span className="stat-label">Écholègues publiés</span><span className="stat-val">{stats.leguesPublies}</span></div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="profil-section">
         <h3>Résonance</h3>
