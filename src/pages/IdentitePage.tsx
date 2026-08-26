@@ -27,7 +27,10 @@ const PROPOSITIONS: { texte: string; feature?: FeatureKey }[] = [
   { texte: '💬 Un EchoRep — pour répondre à un Écho Ouvert', feature: 'ECHO_OUVERT' },
   { texte: '✨ Des Jarres — pour soutenir ceux qui en ont besoin' },
   { texte: '💛 Un Écho Solidaire — pour une entraide concrète', feature: 'ECHO_SOLIDAIRE' },
-  { texte: '🍾 Un Écho-Bouteille — pour transmettre un message à un inconnu' },
+  // Correction du 21/08/2026 : cette ligne n'avait jamais eu de `feature`
+  // associé — elle restait donc visible à toutes les versions, y compris
+  // avant que l'Écho-Bouteille ne soit réellement disponible.
+  { texte: '🍾 Un Écho-Bouteille — pour transmettre un message à un inconnu', feature: 'ECHO_BOUTEILLE' },
   { texte: '📓 Un Écholègue — pour transmettre une leçon de vie à la communauté', feature: 'ECHOLEGUE' },
   { texte: '🤝 Une communauté fondée sur la résonance humaine' },
 ];
@@ -168,31 +171,36 @@ export default function IdentitePage() {
         </div>
       )}
 
-      {/* Écho-Bouteille */}
-      <div className="identite-section">
-        <h2>🍾 L'Écho-Bouteille</h2>
-        <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
-          Une pensée qui vous traverse, une leçon de vie, un conseil qu'on aurait aimé recevoir un jour — transmis à un inconnu, au hasard, sans savoir qui il touchera ni quand. Peut-être qu'il arrivera exactement le jour où quelqu'un en avait besoin. Peut-être qu'il lui donnera un peu de force, ou juste la preuve qu'il n'est pas seul à ressentir ça.
-        </p>
-        <div className="reaction-explication">
-          <div className="reaction-item">
-            <span className="reaction-emoji">✍️</span>
-            <div><strong>Écrire</strong><p>Depuis votre EchoProfil, rédigez un message spontané et universel. Une pensée, une vérité, une invitation.</p></div>
-          </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji">🎲</span>
-            <div><strong>Envoi aléatoire</strong><p>Votre message est attribué à un autre membre de la communauté, tiré au sort. Vous ne saurez jamais qui le reçoit.</p></div>
-          </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji">🤫</span>
-            <div><strong>Anonymat total</strong><p>Le destinataire ne sait pas qui a envoyé le message. Aucune réponse possible. Juste une transmission.</p></div>
-          </div>
-          <div className="reaction-item">
-            <span className="reaction-emoji">⏳</span>
-            <div><strong>Éphémère</strong><p>Les bouteilles reçues disparaissent après 7 jours. Comme une vague qui passe.</p></div>
+      {/* Écho-Bouteille — correction du 21/08/2026 : cette section n'était
+          jamais conditionnée par un flag (contrairement à Écho Solidaire
+          et Écholègue juste au-dessus/en-dessous), donc toujours visible
+          même quand la fonctionnalité elle-même ne l'était pas. */}
+      {FEATURES.ECHO_BOUTEILLE && (
+        <div className="identite-section">
+          <h2>🍾 L'Écho-Bouteille</h2>
+          <p style={{fontFamily:'var(--et-font-echo)', fontStyle:'italic', fontSize:'0.9rem', color:'var(--et-text-2)', lineHeight:'1.75', marginBottom:'1rem'}}>
+            Une pensée qui vous traverse, une leçon de vie, un conseil qu'on aurait aimé recevoir un jour — transmis à un inconnu, au hasard, sans savoir qui il touchera ni quand. Peut-être qu'il arrivera exactement le jour où quelqu'un en avait besoin. Peut-être qu'il lui donnera un peu de force, ou juste la preuve qu'il n'est pas seul à ressentir ça.
+          </p>
+          <div className="reaction-explication">
+            <div className="reaction-item">
+              <span className="reaction-emoji">✍️</span>
+              <div><strong>Écrire</strong><p>Depuis votre EchoProfil, rédigez un message spontané et universel. Une pensée, une vérité, une invitation.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">🎲</span>
+              <div><strong>Envoi aléatoire</strong><p>Votre message est attribué à un autre membre de la communauté, tiré au sort. Vous ne saurez jamais qui le reçoit.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">🤫</span>
+              <div><strong>Anonymat total</strong><p>Le destinataire ne sait pas qui a envoyé le message. Aucune réponse possible. Juste une transmission.</p></div>
+            </div>
+            <div className="reaction-item">
+              <span className="reaction-emoji">⏳</span>
+              <div><strong>Éphémère</strong><p>Les bouteilles reçues disparaissent après 7 jours. Comme une vague qui passe.</p></div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Écholègue */}
       {FEATURES.ECHOLEGUE && (

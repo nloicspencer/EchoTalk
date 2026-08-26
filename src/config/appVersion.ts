@@ -6,9 +6,10 @@
 // aucune vraie étape de la roadmap.
 //
 // Roadmap officielle (Charte & Vision, Annexe B) :
-//   V1 — socle (Écho Libre, Écho Ouvert, réactions, modération, profil)
+//   V1 — socle (Écho Libre, Écho Ouvert, Écho Solidaire symbolique,
+//        réactions, modération, profil)
 //   V2 — V1 + Écholègue
-//   V3 — V2 + monétisation de l'Écho Solidaire
+//   V3 — V2 + monétisation de l'Écho Solidaire (transaction réelle)
 //   V4 — V3 + Écho-Bouteille + Publicité
 //
 // V5 (Journal Premium) et V6 (Partenariats) ne sont pas encore verrouillés
@@ -29,18 +30,30 @@ export const FEATURES = {
   // CURRENT_VERSION.
   ECHO_OUVERT: true,
 
+  // Correction du 21/08/2026 : l'Écho Solidaire SYMBOLIQUE (jarres roses
+  // sans transaction réelle, sélection mensuelle, historique) est déjà
+  // entièrement construit et ne coûte rien à activer — il doit être visible
+  // dès V1 pour acculturer les utilisateurs au concept, comme le prévoit
+  // déjà la Charte ("les Jarres Roses représentent un geste symbolique").
+  // Ce n'est PAS un jalon à verrouiller, contrairement à ce qui avait été
+  // fait initialement (qui le bloquait par erreur jusqu'à V3).
+  ECHO_SOLIDAIRE: true,
+
   // V2 — Écholègue
   ECHOLEGUE: CURRENT_VERSION >= 2,
 
-  // V3 — monétisation de l'Écho Solidaire
-  ECHO_SOLIDAIRE: CURRENT_VERSION >= 3,
+  // V3 — monétisation RÉELLE de l'Écho Solidaire (transaction financière).
+  // Nouveau flag distinct de ECHO_SOLIDAIRE ci-dessus. Pas encore consommé
+  // nulle part dans le code, puisque l'infrastructure de paiement n'existe
+  // pas encore (voir Roadmap technique, prérequis V3) — réservé pour le
+  // jour où cette brique sera codée.
+  ECHO_SOLIDAIRE_MONETISE: CURRENT_VERSION >= 3,
 
   // V4 — Écho-Bouteille
   ECHO_BOUTEILLE: CURRENT_VERSION >= 4,
 
   // V4 — Publicité (21/08/2026). Emplacement construit (bandeau dans
-  // l'en-tête du Fil, à droite du logo), régie non encore choisie — le
-  // composant EncartPublicitaireHeader affiche pour l'instant un espace
-  // réservé, à remplacer par le contenu réel de la régie le moment venu.
+  // l'en-tête du Fil), régie non encore choisie — le composant
+  // EncartPublicitaireHeader affiche pour l'instant un espace réservé.
   PUBLICITE: CURRENT_VERSION >= 4,
 };
