@@ -16,7 +16,7 @@ export default function FilPage() {
   const [categoriesActives, setCategoriesActives] = useState<string[]>([]);
   const [showCategories, setShowCategories] = useState(false);
   const [showSolidaire, setShowSolidaire] = useState(false);
-  const { echos, loading, loadingMore, hasMore, chargerPlus } = useEchos();
+  const { echos, loading, loadingMore, hasMore, chargerPlus, ajouterEchoLocalement } = useEchos();
   const echoSolidaire = useEchoSolidaire();
   const { profile } = useAuth();
 
@@ -52,8 +52,9 @@ export default function FilPage() {
   return (
     <div className="fil-page">
 
-      {/* En-tête — bandeau 50/50 : logo EchoTalk aligné à gauche, pseudo
-          de l'utilisateur (remonté ici, sans la jarre) à droite. */}
+      {/* En-tête — bandeau 50/50 : logo EchoTalk à gauche (aligné à gauche,
+          pas centré), pseudo de l'utilisateur à droite, centré dans son
+          espace. */}
       <div className="fil-header">
         <div className="fil-header-logo-group">
           <svg width="26" height="32" viewBox="0 0 64 84" aria-hidden="true">
@@ -77,9 +78,7 @@ export default function FilPage() {
         </div>
       </div>
 
-      {/* Emplacement publicitaire — bandeau pleine largeur, récupère le
-          style et l'espace généreux qu'occupait auparavant le bandeau
-          pseudo (V4 — Publicité, 21/08/2026). */}
+      {/* Emplacement publicitaire — bandeau pleine largeur (V4 — Publicité) */}
       {FEATURES.PUBLICITE && <EncartPublicitaireHeader />}
 
       {/* Puits communauté */}
@@ -143,7 +142,11 @@ export default function FilPage() {
         </div>
       )}
 
-      {profile && <PublierEcho profile={profile} />}
+      {/* Insertion locale optimiste (21/08/2026) : onEchoPublie appelle
+          ajouterEchoLocalement pour afficher immédiatement l'Écho qu'on
+          vient de publier soi-même, sans attendre un rafraîchissement de
+          page — ne concerne que ses propres publications. */}
+      {profile && <PublierEcho profile={profile} onEchoPublie={ajouterEchoLocalement} />}
 
       <div className="fil-list">
         {loading ? (

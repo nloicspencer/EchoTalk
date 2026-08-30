@@ -51,6 +51,14 @@ export function filtrerEchosVisibles(docs: QueryDocumentSnapshot<DocumentData>[]
 // met à jour uniquement ces Échos dans la liste sans jamais la réordonner
 // autrement que par date de création (stable, puisque createdAt ne change
 // jamais après publication).
+//
+// Insertion locale optimiste (21/08/2026) : quand L'UTILISATEUR LUI-MÊME
+// publie un Écho, on le connaît déjà entièrement (pas besoin de retourner
+// à Firestore pour savoir ce qu'on vient d'écrire) — ajouterEchoLocalement()
+// l'insère directement dans la liste affichée, sans attendre un
+// rafraîchissement de page. Ça ne concerne QUE l'auteur de sa propre
+// publication, pas les Échos publiés par d'autres utilisateurs (qui
+// suivent toujours la règle ci-dessus, volontairement).
 export function useEchos(pageSize = 30) {
   const [echos, setEchos] = useState<Echo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +125,17 @@ export function useEchos(pageSize = 30) {
     }
   };
 
-  return { echos, loading, loadingMore, hasMore, chargerPlus };
+  // Insertion locale optimiste — voir commentaire au-dessus du hook.
+  // Si l'Écho existe déjà dans la liste (cas rare, par exemple si un
+  // rafraîchissement partiel l'a déjà apporté), on ne le duplique pas.
+  const ajouterEchoLocalement = (echo: Echo) => {
+    setEchos(prev => {
+      if (prev.some(e => e.id === echo.id)) return prev;
+      return [echo, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    });
+  };
+
+  return { echos, loading, loadingMore, hasMore, chargerPlus, ajouterEchoLocalement };
 }
 
 export function useEchoSolidaire() {

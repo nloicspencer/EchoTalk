@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { publierEcho } from '../hooks/useEchos';
-import { UserProfile, EchoType, Tonalite } from '../types';
+import { UserProfile, EchoType, Tonalite, Echo } from '../types';
 import { FEATURES } from '../config/appVersion';
 import './PublierEcho.css';
 
 interface Props {
   profile: UserProfile;
+  // Insertion locale optimiste (21/08/2026) : appelé juste après une
+  // publication réussie, avec l'Écho tel qu'il vient d'être créé — permet
+  // à FilPage.tsx de l'afficher immédiatement sans attendre un
+  // rafraîchissement de page. Optionnel pour ne pas casser un éventuel
+  // autre appelant qui ne le fournirait pas.
+  onEchoPublie?: (echo: Echo) => void;
 }
 
-export default function PublierEcho({ profile }: Props) {
+export default function PublierEcho({ profile, onEchoPublie }: Props) {
   const [ouvert, setOuvert] = useState(false);
   const [contenu, setContenu] = useState('');
   const [tonalite, setTonalite] = useState<Tonalite>('soleil');
@@ -26,7 +32,7 @@ export default function PublierEcho({ profile }: Props) {
       // ancien état résiduel, on retombe toujours sur 'libre' tant que le flag
       // ECHO_OUVERT est désactivé.
       const typeEffectif: EchoType = FEATURES.ECHO_OUVERT ? type : 'libre';
-      await publierEcho({
+      const echoRef = await publierEcho({
         contenu,
         auteurId: profile.uid,
         auteurPseudo: profile.pseudo,
@@ -38,6 +44,44 @@ export default function PublierEcho({ profile }: Props) {
         decouvrable,
         ...(typeEffectif === 'ouvert' && { placesMax, periodicitéJours: periodicite }),
       });
+
+      // Insertion locale optimiste : on construit l'Écho tel qu'il vient
+      // d'être écrit côté serveur (mêmes valeurs par défaut que dans
+      // publierEcho(), voir useEchos.ts), avec l'ID réellement attribué
+      // par Firestore. createdAt utilise l'heure locale en attendant le
+      // vrai serverTimestamp — sans conséquence : au prochain vrai
+      // chargement, l'Écho reprendra sa date exacte, à sa juste place.
+      if (onEchoPublie) {
+        const nouvelEcho: Echo = {
+          id: echoRef.id,
+          contenu,
+          auteurId: profile.uid,
+          auteurPseudo: profile.pseudo,
+          tonalite,
+          type: typeEffectif,
+          categorie: 'general',
+          createdAt: new Date(),
+          jarresBleues: 0,
+          coeurs: 0,
+          coeursBrises: 0,
+          estSolidaire: false,
+          modifie: false,
+          supprime: false,
+          masque: false,
+          decouvrable,
+          ...(typeEffectif === 'ouvert' && {
+            placesMax,
+            placesOccupees: 0,
+            periodicitéJours: periodicite,
+            ouvertureCount: 1,
+            reouverturesRestantes: 3,
+            estOuvert: true,
+            expiresAt: new Date(Date.now() + periodicite * 24 * 60 * 60 * 1000),
+          }),
+        };
+        onEchoPublie(nouvelEcho);
+      }
+
       setContenu('');
       setDecouvrable(false);
       setOuvert(false);
