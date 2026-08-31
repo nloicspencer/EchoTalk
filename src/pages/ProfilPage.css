@@ -114,10 +114,6 @@
   margin: 0;
 }
 
-/* Levier n°3 — bandeau "Inviter à résonner". Volontairement plus présent
-   qu'une .profil-section classique (fond teinté, icône, bouton visible)
-   pour donner envie de partager plutôt que de se fondre dans la liste
-   des sections utilitaires qui suivent. */
 .profil-invitation {
   display: flex;
   align-items: center;
@@ -130,7 +126,6 @@
 }
 
 .profil-invitation-icon { font-size: 1.75rem; flex-shrink: 0; }
-
 .profil-invitation-texte { flex: 1; min-width: 0; }
 
 .profil-invitation-texte h3 {
@@ -189,7 +184,6 @@
 
 .btn-deconnexion:hover { background: var(--et-rose-light); }
 
-/* Stock jarres */
 .stock-jarres { display: flex; gap: 0.75rem; }
 
 .stock-item {
@@ -222,7 +216,6 @@
   color: var(--et-text-3);
 }
 
-/* Packs */
 .pack-note {
   font-size: 0.8125rem;
   font-family: var(--et-font-ui);
@@ -247,9 +240,9 @@
   gap: 0.2rem;
 }
 
-.pack-bleu:hover { border-color: var(--et-accent); background: rgba(123,94,167,0.08); }
-.pack-rose:hover { border-color: var(--et-rose); background: var(--et-rose-xlight); }
-.pack-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pack-bleu:hover:not(:disabled) { border-color: var(--et-accent); background: rgba(123,94,167,0.08); }
+.pack-rose:hover:not(:disabled) { border-color: var(--et-rose); background: var(--et-rose-xlight); }
+.pack-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .pack-quantite {
   font-size: 1.125rem;
@@ -275,6 +268,18 @@
   margin-top: 2px;
 }
 
+.pack-gratuit.pack-prix {
+  color: var(--et-accent-deep);
+  background: rgba(123,94,167,0.12);
+}
+
+.pack-erreur {
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-rose);
+  margin: 0.5rem 0 0;
+}
+
 .btn-admin {
   display: block;
   width: 100%;
@@ -295,7 +300,6 @@
 
 .btn-admin:hover { background: var(--et-accent); color: white; text-decoration: none; }
 
-/* Écho Solidaire proprio */
 .echo-solidaire-proprio {
   border-color: rgba(196,84,126,0.3) !important;
   background: var(--et-rose-xlight) !important;
@@ -358,7 +362,6 @@
   color: white !important;
 }
 
-/* Historique solidaire */
 .historique-solidaire { border-color: rgba(196,84,126,0.25) !important; }
 
 .historique-note {
@@ -404,7 +407,95 @@
 .stat-recues { color: var(--et-text-1); font-weight: 500; }
 .historique-reactions { font-size: 0.8125rem; color: var(--et-text-2); font-weight: 500; }
 
-/* Section "Mes Échos" */
+.recuperation-bandeau {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(39,174,96,0.12);
+  border: 0.5px solid rgba(39,174,96,0.3);
+  border-radius: var(--et-radius-sm);
+}
+
+.recuperation-bandeau span {
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  font-weight: 500;
+  color: #1e7e42;
+}
+
+.recuperation-bandeau button {
+  padding: 5px 14px;
+  border-radius: 16px;
+  border: none;
+  background: #27ae60;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.recuperation-bandeau button:hover { opacity: 0.88; }
+
+.portefeuille-solidaire {
+  border-color: rgba(39,174,96,0.3) !important;
+  background: rgba(39,174,96,0.06) !important;
+}
+
+.portefeuille-solidaire h3 { color: #1e7e42 !important; }
+
+.portefeuille-note {
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-text-3);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.portefeuille-total {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: rgba(255,255,255,0.7);
+  border-radius: var(--et-radius-sm);
+  margin-bottom: 0.75rem;
+}
+
+.portefeuille-nombre {
+  font-size: 1.5rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
+  color: #1e7e42;
+}
+
+.portefeuille-label {
+  font-size: 0.8125rem;
+  font-family: var(--et-font-ui);
+  color: var(--et-text-3);
+}
+
+.portefeuille-btn-recuperer {
+  width: 100%;
+  padding: 0.75rem;
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  border-radius: var(--et-radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.portefeuille-btn-recuperer:hover { opacity: 0.88; }
+
 .mes-echos-toggle {
   width: 100%;
   display: flex;
@@ -418,7 +509,6 @@
 }
 
 .mes-echos-toggle:hover h3 { color: var(--et-accent); }
-
 .mes-echos-toggle h3 { margin: 0; }
 
 .mes-echos-liste {
@@ -428,7 +518,6 @@
   margin-top: 1rem;
 }
 
-/* Micro-animation sur les compteurs qui changent (stock de jarres, etc.) */
 @keyframes compteurPop {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.25); }
@@ -440,8 +529,6 @@
   animation: compteurPop 0.35s ease-out;
 }
 
-/* Zone sensible — suppression de compte, volontairement en retrait
-   visuel (petit, discret, en bas de page) plutôt que mis en avant */
 .profil-zone-sensible {
   text-align: center;
   margin-top: 1.5rem;

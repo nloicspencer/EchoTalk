@@ -7,13 +7,21 @@ import EchoBouteille from '../components/EchoBouteille';
 import EchoCard from '../components/EchoCard';
 import EcholegueForm from '../components/EcholegueForm';
 import JarreIcon from '../components/JarreIcon';
+import PaiementFacadeModal from '../components/PaiementFacadeModal';
 import ValidationEchoReps from '../components/ValidationEchoReps';
 import { useAuth } from '../context/AuthContext';
 import { useEchos } from '../hooks/useEchos';
-import { acquerirPack, useStockJarres } from '../hooks/useReactions';
+import { acquerirPack, PRIX_PACKS_ROSES, useStockJarres } from '../hooks/useReactions';
 import { db } from '../services/firebase';
 import { FEATURES } from '../config/appVersion';
 import './ProfilPage.css';
+
+const PLAFOND_JARRES = 50;
+// Fenêtre de récupération de la façade paiement (V3) : le délai qu'un
+// utilisateur a, après la sortie du statut Écho Solidaire du mois, pour
+// récupérer son soutien avant qu'il ne bascule dans le Portefeuille
+// solidaire (récupérable à tout moment, sans limite de temps).
+const DELAI_RECUPERATION_JOURS = 30;
 
 interface Stats {
   echosTotal: number; echosLibres: number; echosOuverts: number;
@@ -53,21 +61,29 @@ export default function ProfilPage() {
         }).slice(0, 3)
     : [];
   const totalJarresRosesHistorique = historiqueSolidaire.reduce((sum, e) => sum + (e.jarresRoses || 0), 0);
+
+  const maintenant = Date.now();
+  const millisecondesDelai = DELAI_RECUPERATION_JOURS * 24 * 60 * 60 * 1000;
+  const entreesPortefeuille = FEATURES.ECHO_SOLIDAIRE_MONETISE
+    ? historiqueSolidaire.filter(e => {
+        if (!(e.solidaireTermineAt instanceof Date)) return false;
+        return maintenant - e.solidaireTermineAt.getTime() >= millisecondesDelai;
+      })
+    : [];
+  const totalPortefeuille = entreesPortefeuille.reduce((sum, e) => sum + (e.jarresRoses || 0), 0);
+
   const mesEchos = echos
     .filter(e => e.auteurId === profile?.uid && !e.supprime)
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const [mesEchosVisible, setMesEchosVisible] = useState(false);
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
+  const [erreurPack, setErreurPack] = useState<string>('');
   const [stockAnim, setStockAnim] = useState<{ bleues: boolean; roses: boolean }>({ bleues: false, roses: false });
   const stockPrecedent = useRef({ bleues: stock.jarresBleues, roses: stock.jarresRoses });
 
-  // ── Suppression de compte ──────────────────────────────────
-  // Option B (retenue avec Loïc) : le compte et l'identité réelle
-  // disparaissent, mais le contenu déjà publié (Échos, EchoReps,
-  // Écholègues, Écho-Bouteilles) reste intact et affiché tel quel — les
-  // échanges existent pour eux-mêmes, pas pour leur auteur. Le pseudonyme
-  // (pseudos/{pseudo}) n'est jamais supprimé : il reste réservé pour
-  // toujours, jamais réattribué à un autre compte.
+  const [modalAchat, setModalAchat] = useState<{ quantite: 5 | 10 | 15 } | null>(null);
+  const [modalRecuperation, setModalRecuperation] = useState<{ jarres: number } | null>(null);
+
   const [modalSuppression, setModalSuppression] = useState(false);
   const [etapeReauth, setEtapeReauth] = useState(false);
   const [motDePasse, setMotDePasse] = useState('');
@@ -76,13 +92,7 @@ export default function ProfilPage() {
 
   const supprimerCompteDefinitivement = async () => {
     if (!user) return;
-    // Supprimer le document Firestore déclenche automatiquement le
-    // nettoyage de l'entrée annuaire correspondante (Cloud Function
-    // nettoyerAnnuaireSurSuppressionUser déjà en place).
     await deleteDoc(doc(db, 'users', user.uid));
-    // Supprime aussi le compte Firebase Authentication lui-même — sinon
-    // la personne pourrait se reconnecter avec ses identifiants sur un
-    // profil qui n'existe plus.
     await deleteUser(user);
   };
 
@@ -92,8 +102,6 @@ export default function ProfilPage() {
     setErreurSuppression('');
     try {
       await supprimerCompteDefinitivement();
-      // Après deleteUser(), onAuthStateChanged (AuthContext) détecte la
-      // déconnexion automatiquement et renvoie vers la page de connexion.
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
       if (code === 'auth/requires-recent-login') {
@@ -161,7 +169,6 @@ export default function ProfilPage() {
     if (!profile?.uid) return;
     const unsubs: (() => void)[] = [];
 
-    // Mes échos
     const qMesEchos = query(collection(db, 'echos'), where('auteurId', '==', profile.uid));
     const unsubMesEchos = onSnapshot(qMesEchos, (snap) => {
       let libres = 0, ouverts = 0, jarresBleues = 0, jarresRoses = 0;
@@ -186,7 +193,6 @@ export default function ProfilPage() {
     });
     unsubs.push(unsubMesEchos);
 
-    // Participation — uniquement pertinent tant qu'Écho Ouvert est actif
     if (FEATURES.ECHO_OUVERT) {
       const qTousEchos = query(collection(db, 'echos'), where('type', '==', 'ouvert'));
       const unsubParticipation = onSnapshot(qTousEchos, async (snap) => {
@@ -204,7 +210,6 @@ export default function ProfilPage() {
       unsubs.push(unsubParticipation);
     }
 
-    // Réactions données
     const qReactions = query(collection(db, 'reactions'), where('auteurId', '==', profile.uid));
     const unsubReactions = onSnapshot(qReactions, (snap) => {
       let bleuesDonnees = 0, rosesDonnees = 0;
@@ -216,7 +221,6 @@ export default function ProfilPage() {
     });
     unsubs.push(unsubReactions);
 
-    // Écho-Bouteilles envoyées/reçues — uniquement pertinent tant qu'Écho-Bouteille est actif
     if (FEATURES.ECHO_BOUTEILLE) {
       const qBouteillesEnv = query(
         collection(db, 'echos_bouteille'),
@@ -239,7 +243,6 @@ export default function ProfilPage() {
       unsubs.push(unsubBouteillesRec);
     }
 
-    // Écholègues publiés — uniquement pertinent tant qu'Écholègue est actif
     if (FEATURES.ECHOLEGUE) {
       const qLegues = query(collection(db, 'echolegues'), where('auteurId', '==', profile.uid));
       const unsubLegues = onSnapshot(qLegues, (snap) => {
@@ -256,10 +259,29 @@ export default function ProfilPage() {
     if (!profile) return;
     const key = `${type}-${quantite}`;
     setLoadingPack(key);
+    setErreurPack('');
     try {
       const stockActuel = type === 'bleues' ? stock.jarresBleues : stock.jarresRoses;
       await acquerirPack(profile.uid, type, quantite, stockActuel);
-    } finally { setLoadingPack(null); }
+    } catch (e: unknown) {
+      setErreurPack(e instanceof Error ? e.message : 'Une erreur est survenue.');
+    } finally {
+      setLoadingPack(null);
+    }
+  };
+
+  const handleClickPackRose = (quantite: 5 | 10 | 15) => {
+    if (FEATURES.ECHO_SOLIDAIRE_MONETISE) {
+      setModalAchat({ quantite });
+    } else {
+      handleAcquerirPack('roses', quantite);
+    }
+  };
+
+  const handleContinuerTestAchat = async () => {
+    if (!modalAchat) return;
+    await handleAcquerirPack('roses', modalAchat.quantite);
+    setModalAchat(null);
   };
 
   if (!profile) return null;
@@ -269,6 +291,8 @@ export default function ProfilPage() {
     : new Date((profile.createdAt as { seconds: number }).seconds * 1000);
 
   const badges = calcBadges(stats);
+  const placeRestanteBleues = PLAFOND_JARRES - stock.jarresBleues;
+  const placeRestanteRoses = PLAFOND_JARRES - stock.jarresRoses;
 
   return (
     <div className="profil-page">
@@ -329,25 +353,58 @@ export default function ProfilPage() {
             Total : <strong>{totalJarresRosesHistorique} jarres roses</strong>
           </p>
           <div className="historique-liste">
-            {historiqueSolidaire.map((echo) => (
-              <div key={echo.id} className="historique-item">
-                <div className="historique-contenu">{echo.contenu.slice(0, 80)}{echo.contenu.length > 80 ? '...' : ''}</div>
-                <div className="historique-stats">
-                  <span className="historique-reactions">
-                    <JarreIcon color="blue" size="s" /> {echo.jarresBleues || 0}
-                    &nbsp;❤️ {echo.coeurs || 0}
-                    &nbsp;💔 {echo.coeursBrises || 0}
-                    &nbsp;<JarreIcon color="rose" size="s" /> {echo.jarresRoses || 0}
-                  </span>
-                  <span className="historique-date">
-                    {echo.solidaireTermineAt instanceof Date
-                      ? echo.solidaireTermineAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-                      : ''}
-                  </span>
+            {historiqueSolidaire.map((echo) => {
+              const estRecuperable = FEATURES.ECHO_SOLIDAIRE_MONETISE
+                && echo.solidaireTermineAt instanceof Date
+                && maintenant - echo.solidaireTermineAt.getTime() < millisecondesDelai;
+              return (
+                <div key={echo.id} className="historique-item">
+                  <div className="historique-contenu">{echo.contenu.slice(0, 80)}{echo.contenu.length > 80 ? '...' : ''}</div>
+                  <div className="historique-stats">
+                    <span className="historique-reactions">
+                      <JarreIcon color="blue" size="s" /> {echo.jarresBleues || 0}
+                      &nbsp;❤️ {echo.coeurs || 0}
+                      &nbsp;💔 {echo.coeursBrises || 0}
+                      &nbsp;<JarreIcon color="rose" size="s" /> {echo.jarresRoses || 0}
+                    </span>
+                    <span className="historique-date">
+                      {echo.solidaireTermineAt instanceof Date
+                        ? echo.solidaireTermineAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+                        : ''}
+                    </span>
+                  </div>
+                  {estRecuperable && (
+                    <div className="recuperation-bandeau">
+                      <span>Vous pouvez récupérer votre soutien</span>
+                      <button onClick={() => setModalRecuperation({ jarres: echo.jarresRoses || 0 })}>
+                        Récupérer
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {FEATURES.ECHO_SOLIDAIRE_MONETISE && entreesPortefeuille.length > 0 && (
+        <div className="profil-section portefeuille-solidaire">
+          <h3>💚 Portefeuille solidaire</h3>
+          <p className="portefeuille-note">
+            Soutiens reçus dont le délai de récupération de 30 jours est dépassé — toujours disponibles, sans limite de temps.
+          </p>
+          <div className="portefeuille-total">
+            <JarreIcon color="rose" size="m" />
+            <span className="portefeuille-nombre">{totalPortefeuille}</span>
+            <span className="portefeuille-label">jarres roses en attente de récupération</span>
+          </div>
+          <button
+            className="portefeuille-btn-recuperer"
+            onClick={() => setModalRecuperation({ jarres: totalPortefeuille })}
+          >
+            Récupérer mon soutien
+          </button>
         </div>
       )}
 
@@ -355,33 +412,48 @@ export default function ProfilPage() {
         <h3>Acquérir des jarres bleues</h3>
         <p className="pack-note">Les jarres bleues permettent de soutenir les échos de la communauté.</p>
         <div className="packs-liste">
-          {PACKS.map(pack => (
-            <button key={pack.quantite} className="pack-btn pack-bleu"
-              onClick={() => handleAcquerirPack('bleues', pack.quantite)}
-              disabled={loadingPack === `bleues-${pack.quantite}`}>
-              <span className="pack-quantite">+{pack.quantite}</span>
-              <span className="pack-label">jarres bleues</span>
-              <span className="pack-gratuit">Gratuit</span>
-            </button>
-          ))}
+          {PACKS.map(pack => {
+            const indisponible = pack.quantite > placeRestanteBleues;
+            return (
+              <button key={pack.quantite} className="pack-btn pack-bleu"
+                onClick={() => handleAcquerirPack('bleues', pack.quantite)}
+                disabled={loadingPack === `bleues-${pack.quantite}` || indisponible}
+                title={indisponible ? `Dépasserait le plafond de ${PLAFOND_JARRES} jarres` : undefined}>
+                <span className="pack-quantite">+{pack.quantite}</span>
+                <span className="pack-label">jarres bleues</span>
+                <span className="pack-gratuit">{indisponible ? 'Indisponible' : 'Gratuit'}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {FEATURES.ECHO_SOLIDAIRE && (
         <div className="profil-section">
           <h3>Acquérir des jarres roses</h3>
-          <p className="pack-note">Les jarres roses soutiennent l'Écho Solidaire du mois.</p>
+          <p className="pack-note">
+            {FEATURES.ECHO_SOLIDAIRE_MONETISE
+              ? "Les jarres roses soutiennent l'Écho Solidaire du mois — 50 % reversés au bénéficiaire, 50 % au fonctionnement d'EchoTalk."
+              : "Les jarres roses soutiennent l'Écho Solidaire du mois."}
+          </p>
           <div className="packs-liste">
-            {PACKS.map(pack => (
-              <button key={pack.quantite} className="pack-btn pack-rose"
-                onClick={() => handleAcquerirPack('roses', pack.quantite)}
-                disabled={loadingPack === `roses-${pack.quantite}`}>
-                <span className="pack-quantite">+{pack.quantite}</span>
-                <span className="pack-label">jarres roses</span>
-                <span className="pack-gratuit">Gratuit</span>
-              </button>
-            ))}
+            {PACKS.map(pack => {
+              const indisponible = pack.quantite > placeRestanteRoses;
+              return (
+                <button key={pack.quantite} className="pack-btn pack-rose"
+                  onClick={() => handleClickPackRose(pack.quantite)}
+                  disabled={loadingPack === `roses-${pack.quantite}` || indisponible}
+                  title={indisponible ? `Dépasserait le plafond de ${PLAFOND_JARRES} jarres` : undefined}>
+                  <span className="pack-quantite">+{pack.quantite}</span>
+                  <span className="pack-label">jarres roses</span>
+                  <span className={`pack-gratuit ${FEATURES.ECHO_SOLIDAIRE_MONETISE ? 'pack-prix' : ''}`}>
+                    {indisponible ? 'Indisponible' : FEATURES.ECHO_SOLIDAIRE_MONETISE ? `${PRIX_PACKS_ROSES[pack.quantite]} €` : 'Gratuit'}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+          {erreurPack && <p className="pack-erreur">{erreurPack}</p>}
         </div>
       )}
 
@@ -437,12 +509,6 @@ export default function ProfilPage() {
         </div>
       )}
 
-      {/* Transmission — correction du 21/08/2026 : les lignes
-          Écho-Bouteilles envoyées/reçues n'étaient jamais conditionnées
-          par FEATURES.ECHO_BOUTEILLE (contrairement à Écholègues publiés
-          juste en dessous). Toute la section disparaît maintenant si ni
-          Écho-Bouteille ni Écholègue ne sont actifs, plutôt que d'afficher
-          un bloc vide ou incohérent. */}
       {(FEATURES.ECHO_BOUTEILLE || FEATURES.ECHOLEGUE) && (
         <div className="profil-section">
           <h3>Transmission</h3>
@@ -492,11 +558,6 @@ export default function ProfilPage() {
         <p>L'EchoProfil met en valeur votre activité, votre participation, votre soutien aux autres et la résonance de vos Échos au sein de la communauté.</p>
       </div>
 
-      {/* Levier n°3 — Inviter à résonner. Placé ici volontairement : juste
-          après la citation sur la résonance communautaire, avant de
-          basculer vers les sections plus utilitaires (identité,
-          déconnexion). Style distinct des .profil-section classiques
-          pour avoir davantage de présence, comme demandé. */}
       <div className="profil-invitation">
         <span className="profil-invitation-icon" aria-hidden="true">🫙</span>
         <div className="profil-invitation-texte">
@@ -526,7 +587,6 @@ export default function ProfilPage() {
 
       <button className="btn-deconnexion" onClick={deconnexion}>Se déconnecter</button>
 
-      {/* Zone sensible — volontairement en retrait visuel, action irréversible */}
       <div className="profil-zone-sensible">
         <button className="btn-supprimer-compte" onClick={() => setModalSuppression(true)}>
           Supprimer mon compte
@@ -573,6 +633,24 @@ export default function ProfilPage() {
             )}
           </div>
         </div>
+      )}
+
+      {modalAchat && (
+        <PaiementFacadeModal
+          titre={`Pack de ${modalAchat.quantite} jarres roses — ${PRIX_PACKS_ROSES[modalAchat.quantite]} €`}
+          description="Le paiement sécurisé de ce pack sera géré par notre prestataire de paiement dès son intégration."
+          boutonTestLabel="Créditer quand même (mode test)"
+          onFermer={() => setModalAchat(null)}
+          onContinuerTest={handleContinuerTestAchat}
+        />
+      )}
+
+      {modalRecuperation && (
+        <PaiementFacadeModal
+          titre="Récupérer votre soutien"
+          description={`${modalRecuperation.jarres} jarre${modalRecuperation.jarres > 1 ? 's' : ''} rose${modalRecuperation.jarres > 1 ? 's' : ''} reçue${modalRecuperation.jarres > 1 ? 's' : ''}. Le montant exact sera calculé et versé par virement une fois notre prestataire de paiement intégré.`}
+          onFermer={() => setModalRecuperation(null)}
+        />
       )}
     </div>
   );

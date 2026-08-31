@@ -1,0 +1,88 @@
+.paiement-facade-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(42,31,61,0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 260;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.paiement-facade-modal {
+  background: rgba(245,240,252,0.98);
+  backdrop-filter: blur(20px);
+  border-radius: var(--et-radius-lg);
+  padding: 1.75rem 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  border: 0.5px solid var(--et-border);
+  box-shadow: var(--et-shadow-md);
+  box-sizing: border-box;
+}
+
+.paiement-facade-icone {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.paiement-facade-modal h3 {
+  font-family: var(--et-font-ui);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--et-text-1);
+  margin: 0 0 0.75rem;
+}
+
+.paiement-facade-modal p {
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  color: var(--et-text-2);
+  line-height: 1.6;
+  margin: 0 0 0.75rem;
+}
+
+.paiement-facade-note {
+  font-size: 0.75rem !important;
+  font-style: italic;
+  color: var(--et-text-3) !important;
+}
+
+.paiement-facade-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.paiement-facade-fermer {
+  padding: 10px 16px;
+  border-radius: var(--et-radius-sm);
+  border: 0.5px solid var(--et-border);
+  background: transparent;
+  color: var(--et-text-2);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: var(--et-font-ui);
+  transition: background 0.12s;
+}
+
+.paiement-facade-fermer:hover { background: var(--et-surface-2); }
+
+.paiement-facade-test {
+  padding: 10px 16px;
+  border-radius: var(--et-radius-sm);
+  border: none;
+  background: var(--et-accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--et-font-ui);
+  transition: opacity 0.15s;
+}
+
+.paiement-facade-test:hover { opacity: 0.88; }
