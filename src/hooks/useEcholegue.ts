@@ -80,10 +80,24 @@ function convertLegue(id: string, data: Record<string, unknown>): Echolegue {
 // disponibles (pour la Moulinette et la Bibliothèque) sans jamais avoir à
 // charger toute la bibliothèque juste pour le savoir — peu importe qu'elle
 // contienne 100 ou 100 000 Écholègues.
+//
+// Correction du 21/08/2026 : la clé imbriquée `comptes.${semaine}` doit
+// passer par updateDoc() — c'est la façon fiable et documentée de mettre
+// à jour un champ imbriqué sans écraser le reste de la carte `comptes`.
+// L'ancienne version utilisait setDoc(..., {merge:true}) avec cette même
+// clé en notation pointée, qui a produit un champ littéral nommé
+// "comptes.2026-W35" au lieu d'imbriquer proprement la clé "2026-W35"
+// dans `comptes` — bug détecté en conditions réelles le 21/08/2026.
+// updateDoc() échoue si le document n'existe pas encore : dans ce cas
+// (la toute première fois, jamais revu depuis), on retombe sur un setDoc
+// complet, sans risque d'écrasement puisque le document est vide.
 async function ajusterCompteurSemaine(semaine: string, delta: 1 | -1) {
-  await setDoc(doc(db, 'stats', 'echolegues_semaines'), {
-    [`comptes.${semaine}`]: increment(delta),
-  }, { merge: true });
+  const ref = doc(db, 'stats', 'echolegues_semaines');
+  try {
+    await updateDoc(ref, { [`comptes.${semaine}`]: increment(delta) });
+  } catch {
+    await setDoc(ref, { comptes: { [semaine]: increment(delta) } });
+  }
 }
 
 export async function publierEcholegue(
