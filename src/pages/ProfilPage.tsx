@@ -17,10 +17,6 @@ import { FEATURES } from '../config/appVersion';
 import './ProfilPage.css';
 
 const PLAFOND_JARRES = 50;
-// Fenêtre de récupération de la façade paiement (V3) : le délai qu'un
-// utilisateur a, après la sortie du statut Écho Solidaire du mois, pour
-// récupérer son soutien avant qu'il ne bascule dans le Portefeuille
-// solidaire (récupérable à tout moment, sans limite de temps).
 const DELAI_RECUPERATION_JOURS = 30;
 
 interface Stats {
@@ -71,6 +67,10 @@ export default function ProfilPage() {
       })
     : [];
   const totalPortefeuille = entreesPortefeuille.reduce((sum, e) => sum + (e.jarresRoses || 0), 0);
+
+  const [solidaireVisible, setSolidaireVisible] = useState(false);
+  const aQuelqueChoseAMontrer = FEATURES.ECHO_SOLIDAIRE
+    && (!!echoSolidaireProprio || historiqueSolidaire.length > 0);
 
   const mesEchos = echos
     .filter(e => e.auteurId === profile?.uid && !e.supprime)
@@ -330,83 +330,96 @@ export default function ProfilPage() {
         </div>
       </div>
 
-      {FEATURES.ECHO_OUVERT && <ValidationEchoReps proprietaireId={profile.uid} />}
-
-      {echoSolidaireProprio && (
-        <div className="profil-section echo-solidaire-proprio">
-          <h3>Votre Écho est Solidaire ce mois-ci</h3>
-          <p className="solidaire-contenu">{echoSolidaireProprio.contenu}</p>
-          <div className="solidaire-compteur">
-            <JarreIcon color="rose" size="m" />
-            <span className="solidaire-nombre">{echoSolidaireProprio.jarresRoses || 0}</span>
-            <span className="solidaire-label">Jarres Roses reçues</span>
-          </div>
-          <p className="solidaire-note">Ce compteur se met à jour en temps réel.</p>
-        </div>
-      )}
-
-      {historiqueSolidaire.length > 0 && (
-        <div className="profil-section historique-solidaire">
-          <h3>Historique Écho Solidaire</h3>
-          <p className="historique-note">
-            Vos {historiqueSolidaire.length} dernier{historiqueSolidaire.length > 1 ? 's' : ''} écho{historiqueSolidaire.length > 1 ? 's' : ''} solidaire{historiqueSolidaire.length > 1 ? 's' : ''} terminé{historiqueSolidaire.length > 1 ? 's' : ''}.
-            Total : <strong>{totalJarresRosesHistorique} jarres roses</strong>
-          </p>
-          <div className="historique-liste">
-            {historiqueSolidaire.map((echo) => {
-              const estRecuperable = FEATURES.ECHO_SOLIDAIRE_MONETISE
-                && echo.solidaireTermineAt instanceof Date
-                && maintenant - echo.solidaireTermineAt.getTime() < millisecondesDelai;
-              return (
-                <div key={echo.id} className="historique-item">
-                  <div className="historique-contenu">{echo.contenu.slice(0, 80)}{echo.contenu.length > 80 ? '...' : ''}</div>
-                  <div className="historique-stats">
-                    <span className="historique-reactions">
-                      <JarreIcon color="blue" size="s" /> {echo.jarresBleues || 0}
-                      &nbsp;❤️ {echo.coeurs || 0}
-                      &nbsp;💔 {echo.coeursBrises || 0}
-                      &nbsp;<JarreIcon color="rose" size="s" /> {echo.jarresRoses || 0}
-                    </span>
-                    <span className="historique-date">
-                      {echo.solidaireTermineAt instanceof Date
-                        ? echo.solidaireTermineAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-                        : ''}
-                    </span>
-                  </div>
-                  {estRecuperable && (
-                    <div className="recuperation-bandeau">
-                      <span>Vous pouvez récupérer votre soutien</span>
-                      <button onClick={() => setModalRecuperation({ jarres: echo.jarresRoses || 0 })}>
-                        Récupérer
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {FEATURES.ECHO_SOLIDAIRE_MONETISE && entreesPortefeuille.length > 0 && (
-        <div className="profil-section portefeuille-solidaire">
-          <h3>💚 Portefeuille solidaire</h3>
-          <p className="portefeuille-note">
-            Soutiens reçus dont le délai de récupération de 30 jours est dépassé — toujours disponibles, sans limite de temps.
-          </p>
-          <div className="portefeuille-total">
-            <JarreIcon color="rose" size="m" />
-            <span className="portefeuille-nombre">{totalPortefeuille}</span>
-            <span className="portefeuille-label">jarres roses en attente de récupération</span>
-          </div>
-          <button
-            className="portefeuille-btn-recuperer"
-            onClick={() => setModalRecuperation({ jarres: totalPortefeuille })}
-          >
-            Récupérer mon soutien
+      {aQuelqueChoseAMontrer && (
+        <div className="profil-section solidaire-section">
+          <button className="mes-echos-toggle" onClick={() => setSolidaireVisible(!solidaireVisible)}>
+            <h3 style={{ margin: 0 }}>💛 Écho Solidaire</h3>
+            <i className={`ti ${solidaireVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`} aria-hidden="true" />
           </button>
+
+          {solidaireVisible && (
+            <div className="solidaire-deplie">
+              {echoSolidaireProprio && (
+                <div className="echo-solidaire-proprio">
+                  <h4>Votre Écho est Solidaire ce mois-ci</h4>
+                  <p className="solidaire-contenu">{echoSolidaireProprio.contenu}</p>
+                  <div className="solidaire-compteur">
+                    <JarreIcon color="rose" size="m" />
+                    <span className="solidaire-nombre">{echoSolidaireProprio.jarresRoses || 0}</span>
+                    <span className="solidaire-label">Jarres Roses reçues</span>
+                  </div>
+                  <p className="solidaire-note">Ce compteur se met à jour en temps réel.</p>
+                </div>
+              )}
+
+              {historiqueSolidaire.length > 0 && (
+                <div className="historique-solidaire">
+                  <h4>Historique</h4>
+                  <p className="historique-note">
+                    Vos {historiqueSolidaire.length} dernier{historiqueSolidaire.length > 1 ? 's' : ''} écho{historiqueSolidaire.length > 1 ? 's' : ''} solidaire{historiqueSolidaire.length > 1 ? 's' : ''} terminé{historiqueSolidaire.length > 1 ? 's' : ''}.
+                    Total : <strong>{totalJarresRosesHistorique} jarres roses</strong>
+                  </p>
+                  <div className="historique-liste">
+                    {historiqueSolidaire.map((echo) => {
+                      const estRecuperable = FEATURES.ECHO_SOLIDAIRE_MONETISE
+                        && echo.solidaireTermineAt instanceof Date
+                        && maintenant - echo.solidaireTermineAt.getTime() < millisecondesDelai;
+                      return (
+                        <div key={echo.id} className="historique-item">
+                          <div className="historique-contenu">{echo.contenu.slice(0, 80)}{echo.contenu.length > 80 ? '...' : ''}</div>
+                          <div className="historique-stats">
+                            <span className="historique-reactions">
+                              <JarreIcon color="blue" size="s" /> {echo.jarresBleues || 0}
+                              &nbsp;❤️ {echo.coeurs || 0}
+                              &nbsp;💔 {echo.coeursBrises || 0}
+                              &nbsp;<JarreIcon color="rose" size="s" /> {echo.jarresRoses || 0}
+                            </span>
+                            <span className="historique-date">
+                              {echo.solidaireTermineAt instanceof Date
+                                ? echo.solidaireTermineAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                                : ''}
+                            </span>
+                          </div>
+                          {estRecuperable && (
+                            <div className="recuperation-bandeau">
+                              <span>Vous pouvez récupérer votre soutien</span>
+                              <button onClick={() => setModalRecuperation({ jarres: echo.jarresRoses || 0 })}>
+                                Récupérer
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {FEATURES.ECHO_SOLIDAIRE_MONETISE && entreesPortefeuille.length > 0 && (
+                <div className="portefeuille-solidaire">
+                  <h4>💚 Portefeuille solidaire</h4>
+                  <p className="portefeuille-note">
+                    Soutiens reçus dont le délai de récupération de 30 jours est dépassé — toujours disponibles, sans limite de temps.
+                  </p>
+                  <div className="portefeuille-total">
+                    <JarreIcon color="rose" size="m" />
+                    <span className="portefeuille-nombre">{totalPortefeuille}</span>
+                    <span className="portefeuille-label">jarres roses en attente de récupération</span>
+                  </div>
+                  <button
+                    className="portefeuille-btn-recuperer"
+                    onClick={() => setModalRecuperation({ jarres: totalPortefeuille })}
+                  >
+                    Récupérer mon soutien
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
+
+      {FEATURES.ECHO_OUVERT && <ValidationEchoReps proprietaireId={profile.uid} />}
 
       <div className="profil-section">
         <h3>Acquérir des jarres bleues</h3>

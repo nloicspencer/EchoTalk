@@ -9,6 +9,15 @@ import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
 import { Echo, EchoType, Tonalite } from '../types';
 
+// Correction du 21/08/2026 : cette fonction convertissait déjà createdAt,
+// expiresAt, updatedAt et suppressionAt de Timestamp Firestore vers de
+// vrais objets Date JS — mais avait toujours oublié solidaireTermineAt,
+// solidaireJusquau et solidaireDepuis (propres à l'Écho Solidaire). Sans
+// cette conversion, `echo.solidaireTermineAt instanceof Date` répondait
+// systématiquement faux même quand la donnée existait réellement en base
+// — d'où la date invisible et le bandeau de récupération (V3) qui
+// n'apparaissait jamais dans ProfilPage.tsx, découvert en conditions
+// réelles le 21/08/2026.
 export function convertEcho(id: string, data: Record<string, unknown>): Echo {
   return {
     ...data, id,
@@ -16,6 +25,9 @@ export function convertEcho(id: string, data: Record<string, unknown>): Echo {
     expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : undefined,
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
     suppressionAt: data.suppressionAt instanceof Timestamp ? data.suppressionAt.toDate() : undefined,
+    solidaireTermineAt: data.solidaireTermineAt instanceof Timestamp ? data.solidaireTermineAt.toDate() : undefined,
+    solidaireJusquau: data.solidaireJusquau instanceof Timestamp ? data.solidaireJusquau.toDate() : undefined,
+    solidaireDepuis: data.solidaireDepuis instanceof Timestamp ? data.solidaireDepuis.toDate() : undefined,
     reouverturesRestantes: data.reouverturesRestantes !== undefined ? data.reouverturesRestantes : 3,
   } as Echo;
 }
@@ -37,28 +49,6 @@ export function filtrerEchosVisibles(docs: QueryDocumentSnapshot<DocumentData>[]
     });
 }
 
-// Fil : pagination stable, jamais réinitialisée.
-//
-// Chaque page est chargée une seule fois (pas d'écoute sur la requête
-// globale) — un nouvel Écho publié par quelqu'un d'autre n'apparaît donc
-// qu'au rafraîchissement de la page, pas en direct. Choix assumé : ça évite
-// qu'une pagination déjà avancée (plusieurs "Charger plus" déjà cliqués) ne
-// soit balayée par l'arrivée d'un nouveau post.
-//
-// En revanche, les RÉACTIONS (jarres, cœurs) sur les Échos déjà affichés
-// restent en direct : chaque page de 30 documents (la limite de l'opérateur
-// Firestore `in`) a son propre listener ciblé sur exactement ces IDs, qui
-// met à jour uniquement ces Échos dans la liste sans jamais la réordonner
-// autrement que par date de création (stable, puisque createdAt ne change
-// jamais après publication).
-//
-// Insertion locale optimiste (21/08/2026) : quand L'UTILISATEUR LUI-MÊME
-// publie un Écho, on le connaît déjà entièrement (pas besoin de retourner
-// à Firestore pour savoir ce qu'on vient d'écrire) — ajouterEchoLocalement()
-// l'insère directement dans la liste affichée, sans attendre un
-// rafraîchissement de page. Ça ne concerne QUE l'auteur de sa propre
-// publication, pas les Échos publiés par d'autres utilisateurs (qui
-// suivent toujours la règle ci-dessus, volontairement).
 export function useEchos(pageSize = 30) {
   const [echos, setEchos] = useState<Echo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +60,6 @@ export function useEchos(pageSize = 30) {
 
   const abonnerChunk = (chunkIndex: number, ids: string[]) => {
     if (ids.length === 0) return;
-    // documentId() 'in' accepte au maximum 30 valeurs — d'où pageSize = 30
     const q = query(echosCollection, where(documentId(), 'in', ids));
     const unsub = onSnapshot(q, (snap) => {
       const majVisibles = filtrerEchosVisibles(snap.docs);
@@ -125,9 +114,6 @@ export function useEchos(pageSize = 30) {
     }
   };
 
-  // Insertion locale optimiste — voir commentaire au-dessus du hook.
-  // Si l'Écho existe déjà dans la liste (cas rare, par exemple si un
-  // rafraîchissement partiel l'a déjà apporté), on ne le duplique pas.
   const ajouterEchoLocalement = (echo: Echo) => {
     setEchos(prev => {
       if (prev.some(e => e.id === echo.id)) return prev;
@@ -208,15 +194,7 @@ export function useEchoReps(echoId: string) {
           };
         })
         .filter(r => {
-          // Masquée par modération → invisible
           if (r.masque) return false;
-          // Fix : la condition comparait le contenu à une chaîne de texte
-          // exacte qui ne correspondait jamais à ce qui est réellement
-          // écrit ("EchoRep supprimée suite à une modération." vs. ce qui
-          // était cherché ici) — le message de remplacement restait donc
-          // affiché indéfiniment au lieu de disparaître après 24h. On se
-          // fie désormais uniquement à supprime + suppressionAt, peu
-          // importe le texte exact, pour les deux cas (auteur ou modération).
           if (r.supprime && r.suppressionAt) {
             return maintenant - r.suppressionAt.getTime() < heures24;
           }
@@ -233,9 +211,6 @@ export function useEchoReps(echoId: string) {
 interface PublierEchoParams {
   contenu: string; auteurId: string; auteurPseudo: string;
   tonalite: Tonalite; type: EchoType; placesMax?: 3 | 6 | 8; periodicitéJours?: 2 | 6 | 10;
-  // Levier n°2 — Référencement naturel. Optionnel : absent ou false =
-  // comportement par défaut (non découvrable), cohérent avec l'ancien
-  // appelant qui ne passerait pas ce champ.
   decouvrable?: boolean;
 }
 
@@ -332,8 +307,6 @@ export async function toggleEchoOuvert(
   });
 }
 
-// Constate qu'un écho ouvert a dépassé sa date d'expiration et le ferme
-// automatiquement en base (sans consommer de réouverture, sans alerter l'auteur).
 export async function fermerEchoExpire(echoId: string) {
   await updateDoc(doc(db, 'echos', echoId), {
     estOuvert: false, clotureManuellement: false, fermeAutomatiquement: true,
