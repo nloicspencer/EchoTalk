@@ -9,19 +9,15 @@
 //   V1 — socle (Écho Libre, Écho Ouvert, Écho Solidaire symbolique,
 //        réactions, modération, profil)
 //   V2 — V1 + Écholègue
-//   V3 — V2 + monétisation de l'Écho Solidaire (transaction réelle —
-//        actuellement une architecture de façade, prête pour le
-//        prestataire de paiement)
+//   V3 — V2 + monétisation de l'Écho Solidaire (architecture de façade,
+//        prête pour le prestataire de paiement)
 //   V4 — V3 + Écho-Bouteille + Publicité
 //
 // V5 (Journal Premium) et V6 (Partenariats) ne sont pas encore verrouillés
 // ici — fonctionnalités encore en conception côté produit, à ajouter
 // quand elles se préciseront plutôt que d'anticiper une structure qui
 // pourrait changer.
-//
-// TEST du 21/08/2026 : réglé sur 3 pour vérifier le comportement V3 sur
-// /test avant de repasser à la valeur définitive.
-export const CURRENT_VERSION = 3;
+export const CURRENT_VERSION = 4;
 
 // FEATURES garde exactement la même forme que l'ancien features.ts, pour
 // que les fichiers qui l'utilisaient déjà (FEATURES.ECHOLEGUE, etc.)
@@ -50,6 +46,7 @@ export const FEATURES = {
   ECHO_BOUTEILLE: CURRENT_VERSION >= 4,
 
   // V4 — Publicité (21/08/2026). Emplacement construit (bandeau dans
-  // l'en-tête du Fil), régie non encore choisie.
+  // l'en-tête du Fil), régie non encore choisie — le composant
+  // EncartPublicitaireHeader affiche pour l'instant un espace réservé.
   PUBLICITE: CURRENT_VERSION >= 4,
 };
