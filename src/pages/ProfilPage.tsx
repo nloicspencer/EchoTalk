@@ -330,6 +330,57 @@ export default function ProfilPage() {
         </div>
       </div>
 
+      {FEATURES.ECHO_OUVERT && <ValidationEchoReps proprietaireId={profile.uid} />}
+
+      <div className="profil-section">
+        <h3>Acquérir des jarres bleues</h3>
+        <p className="pack-note">Les jarres bleues permettent de soutenir les échos de la communauté.</p>
+        <div className="packs-liste">
+          {PACKS.map(pack => {
+            const indisponible = pack.quantite > placeRestanteBleues;
+            return (
+              <button key={pack.quantite} className="pack-btn pack-bleu"
+                onClick={() => handleAcquerirPack('bleues', pack.quantite)}
+                disabled={loadingPack === `bleues-${pack.quantite}` || indisponible}
+                title={indisponible ? `Dépasserait le plafond de ${PLAFOND_JARRES} jarres` : undefined}>
+                <span className="pack-quantite">+{pack.quantite}</span>
+                <span className="pack-label">jarres bleues</span>
+                <span className="pack-gratuit">Gratuit</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {FEATURES.ECHO_SOLIDAIRE && (
+        <div className="profil-section">
+          <h3>Acquérir des jarres roses</h3>
+          <p className="pack-note">
+            {FEATURES.ECHO_SOLIDAIRE_MONETISE
+              ? "Les jarres roses soutiennent l'Écho Solidaire du mois — 50 % reversés au bénéficiaire, 50 % au fonctionnement d'EchoTalk."
+              : "Les jarres roses soutiennent l'Écho Solidaire du mois."}
+          </p>
+          <div className="packs-liste">
+            {PACKS.map(pack => {
+              const indisponible = pack.quantite > placeRestanteRoses;
+              return (
+                <button key={pack.quantite} className="pack-btn pack-rose"
+                  onClick={() => handleClickPackRose(pack.quantite)}
+                  disabled={loadingPack === `roses-${pack.quantite}` || indisponible}
+                  title={indisponible ? `Dépasserait le plafond de ${PLAFOND_JARRES} jarres` : undefined}>
+                  <span className="pack-quantite">+{pack.quantite}</span>
+                  <span className="pack-label">jarres roses</span>
+                  <span className={`pack-gratuit ${FEATURES.ECHO_SOLIDAIRE_MONETISE ? 'pack-prix' : ''}`}>
+                    {FEATURES.ECHO_SOLIDAIRE_MONETISE ? `${PRIX_PACKS_ROSES[pack.quantite]} €` : 'Gratuit'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {erreurPack && <p className="pack-erreur">{erreurPack}</p>}
+        </div>
+      )}
+
       {aQuelqueChoseAMontrer && (
         <div className="profil-section solidaire-section">
           <button className="mes-echos-toggle" onClick={() => setSolidaireVisible(!solidaireVisible)}>
@@ -416,57 +467,6 @@ export default function ProfilPage() {
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {FEATURES.ECHO_OUVERT && <ValidationEchoReps proprietaireId={profile.uid} />}
-
-      <div className="profil-section">
-        <h3>Acquérir des jarres bleues</h3>
-        <p className="pack-note">Les jarres bleues permettent de soutenir les échos de la communauté.</p>
-        <div className="packs-liste">
-          {PACKS.map(pack => {
-            const indisponible = pack.quantite > placeRestanteBleues;
-            return (
-              <button key={pack.quantite} className="pack-btn pack-bleu"
-                onClick={() => handleAcquerirPack('bleues', pack.quantite)}
-                disabled={loadingPack === `bleues-${pack.quantite}` || indisponible}
-                title={indisponible ? `Dépasserait le plafond de ${PLAFOND_JARRES} jarres` : undefined}>
-                <span className="pack-quantite">+{pack.quantite}</span>
-                <span className="pack-label">jarres bleues</span>
-                <span className="pack-gratuit">{indisponible ? 'Indisponible' : 'Gratuit'}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {FEATURES.ECHO_SOLIDAIRE && (
-        <div className="profil-section">
-          <h3>Acquérir des jarres roses</h3>
-          <p className="pack-note">
-            {FEATURES.ECHO_SOLIDAIRE_MONETISE
-              ? "Les jarres roses soutiennent l'Écho Solidaire du mois — 50 % reversés au bénéficiaire, 50 % au fonctionnement d'EchoTalk."
-              : "Les jarres roses soutiennent l'Écho Solidaire du mois."}
-          </p>
-          <div className="packs-liste">
-            {PACKS.map(pack => {
-              const indisponible = pack.quantite > placeRestanteRoses;
-              return (
-                <button key={pack.quantite} className="pack-btn pack-rose"
-                  onClick={() => handleClickPackRose(pack.quantite)}
-                  disabled={loadingPack === `roses-${pack.quantite}` || indisponible}
-                  title={indisponible ? `Dépasserait le plafond de ${PLAFOND_JARRES} jarres` : undefined}>
-                  <span className="pack-quantite">+{pack.quantite}</span>
-                  <span className="pack-label">jarres roses</span>
-                  <span className={`pack-gratuit ${FEATURES.ECHO_SOLIDAIRE_MONETISE ? 'pack-prix' : ''}`}>
-                    {indisponible ? 'Indisponible' : FEATURES.ECHO_SOLIDAIRE_MONETISE ? `${PRIX_PACKS_ROSES[pack.quantite]} €` : 'Gratuit'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          {erreurPack && <p className="pack-erreur">{erreurPack}</p>}
         </div>
       )}
 
