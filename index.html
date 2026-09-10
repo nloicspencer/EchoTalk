@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EchoTalk</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
+    <!-- PWA (21/08/2026) -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7B5EA7" />
+
+    <!-- iOS : Safari ignore manifest.json pour l'icône/le mode plein écran,
+         il faut ces balises dédiées en plus. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="EchoTalk" />
   </head>
   <body>
     <div id="root"></div>
