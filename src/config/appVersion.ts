@@ -19,20 +19,20 @@
 // pourrait changer.
 export const CURRENT_VERSION = 4;
 
-// Phase pionnière (21/08/2026) — configuration spéciale pour la période de
-// pré-remplissage avec les 30 à 50 premiers pionniers, avant l'ouverture
-// publique. Décision : tout le contenu de V4 reste actif (Écholègue,
+// Phase pionnière (21/08/2026, corrigé le même jour) — au départ, cette
+// valeur était fixe (true), ce qui appliquait la restriction partout, y
+// compris sur /test — empêchant de continuer à tester librement les
+// versions 1 à 4 dessus. Corrigé : la phase pionnière ne s'applique
+// désormais QUE sur /pionniers, déduite automatiquement de l'URL. Sur
+// /test, CURRENT_VERSION reprend son contrôle normal et complet, comme
+// avant l'introduction de cette phase.
+//
+// Sur /pionniers : tout le contenu de V4 reste actif (Écholègue,
 // Écho-Bouteille), MAIS la monétisation réelle de l'Écho Solidaire et
 // l'emplacement publicitaire restent désactivés le temps de cette phase
 // fermée — pas de vrai argent en jeu, pas d'impression commerciale,
 // pendant qu'on construit la confiance avec les premiers contributeurs.
-//
-// Ce n'est pas une vraie version de la roadmap officielle — juste un
-// réglage temporaire, découplé de CURRENT_VERSION. Une fois la phase
-// pionnière terminée et l'ouverture publique réelle enclenchée, repasser
-// cette valeur à `false` pour que CURRENT_VERSION reprenne seul le
-// contrôle normal des fonctionnalités.
-export const PHASE_PIONNIERE = true;
+export const PHASE_PIONNIERE = window.location.pathname.startsWith('/pionniers');
 
 // FEATURES garde exactement la même forme qu'avant, pour que les fichiers
 // qui l'utilisaient déjà (FEATURES.ECHOLEGUE, etc.) n'aient besoin de
@@ -53,15 +53,15 @@ export const FEATURES = {
 
   // V3 — monétisation RÉELLE de l'Écho Solidaire (prix des packs roses,
   // fenêtre de paiement de façade, bandeau de récupération, portefeuille
-  // solidaire). Forcée à false pendant la phase pionnière, peu importe
-  // CURRENT_VERSION.
+  // solidaire). Forcée à false sur /pionniers, peu importe CURRENT_VERSION
+  // — reste normale (suit CURRENT_VERSION) sur /test.
   ECHO_SOLIDAIRE_MONETISE: !PHASE_PIONNIERE && CURRENT_VERSION >= 3,
 
   // V4 — Écho-Bouteille (jamais désactivé par la phase pionnière — c'est
   // justement le contenu qu'on veut que les pionniers alimentent).
   ECHO_BOUTEILLE: CURRENT_VERSION >= 4,
 
-  // V4 — Publicité. Forcée à false pendant la phase pionnière, peu
-  // importe CURRENT_VERSION — même raison que ECHO_SOLIDAIRE_MONETISE.
+  // V4 — Publicité. Forcée à false sur /pionniers, peu importe
+  // CURRENT_VERSION — même raison que ECHO_SOLIDAIRE_MONETISE.
   PUBLICITE: !PHASE_PIONNIERE && CURRENT_VERSION >= 4,
 };
