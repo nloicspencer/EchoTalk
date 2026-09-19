@@ -19,9 +19,24 @@
 // pourrait changer.
 export const CURRENT_VERSION = 4;
 
-// FEATURES garde exactement la même forme que l'ancien features.ts, pour
-// que les fichiers qui l'utilisaient déjà (FEATURES.ECHOLEGUE, etc.)
-// n'aient besoin de changer que leur ligne d'import, pas leur logique.
+// Phase pionnière (21/08/2026) — configuration spéciale pour la période de
+// pré-remplissage avec les 30 à 50 premiers pionniers, avant l'ouverture
+// publique. Décision : tout le contenu de V4 reste actif (Écholègue,
+// Écho-Bouteille), MAIS la monétisation réelle de l'Écho Solidaire et
+// l'emplacement publicitaire restent désactivés le temps de cette phase
+// fermée — pas de vrai argent en jeu, pas d'impression commerciale,
+// pendant qu'on construit la confiance avec les premiers contributeurs.
+//
+// Ce n'est pas une vraie version de la roadmap officielle — juste un
+// réglage temporaire, découplé de CURRENT_VERSION. Une fois la phase
+// pionnière terminée et l'ouverture publique réelle enclenchée, repasser
+// cette valeur à `false` pour que CURRENT_VERSION reprenne seul le
+// contrôle normal des fonctionnalités.
+export const PHASE_PIONNIERE = true;
+
+// FEATURES garde exactement la même forme qu'avant, pour que les fichiers
+// qui l'utilisaient déjà (FEATURES.ECHOLEGUE, etc.) n'aient besoin de
+// changer que leur ligne d'import, pas leur logique.
 export const FEATURES = {
   // Écho Libre et Écho Ouvert sont le cœur du produit dès V1 — pas un
   // jalon à verrouiller, donc toujours actifs, jamais conditionnés par
@@ -38,15 +53,15 @@ export const FEATURES = {
 
   // V3 — monétisation RÉELLE de l'Écho Solidaire (prix des packs roses,
   // fenêtre de paiement de façade, bandeau de récupération, portefeuille
-  // solidaire). Architecture de façade en attendant l'intégration d'un
-  // vrai prestataire (Stripe Connect envisagé).
-  ECHO_SOLIDAIRE_MONETISE: CURRENT_VERSION >= 3,
+  // solidaire). Forcée à false pendant la phase pionnière, peu importe
+  // CURRENT_VERSION.
+  ECHO_SOLIDAIRE_MONETISE: !PHASE_PIONNIERE && CURRENT_VERSION >= 3,
 
-  // V4 — Écho-Bouteille
+  // V4 — Écho-Bouteille (jamais désactivé par la phase pionnière — c'est
+  // justement le contenu qu'on veut que les pionniers alimentent).
   ECHO_BOUTEILLE: CURRENT_VERSION >= 4,
 
-  // V4 — Publicité (21/08/2026). Emplacement construit (bandeau dans
-  // l'en-tête du Fil), régie non encore choisie — le composant
-  // EncartPublicitaireHeader affiche pour l'instant un espace réservé.
-  PUBLICITE: CURRENT_VERSION >= 4,
+  // V4 — Publicité. Forcée à false pendant la phase pionnière, peu
+  // importe CURRENT_VERSION — même raison que ECHO_SOLIDAIRE_MONETISE.
+  PUBLICITE: !PHASE_PIONNIERE && CURRENT_VERSION >= 4,
 };

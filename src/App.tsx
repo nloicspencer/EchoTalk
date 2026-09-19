@@ -64,7 +64,6 @@ function AppContent({ basename }: { basename?: string }) {
 
   return (
     <BrowserRouter basename={basename}>
-      {/* Banner visible même sur la page de connexion après déconnexion forcée */}
       {!user && messageDeconnexion && <SuspensionBanner />}
 
       {!user ? (
@@ -86,28 +85,35 @@ function AppContent({ basename }: { basename?: string }) {
 }
 
 // V0 : tant que V0_MODE est activé (voir config/v0Mode.ts), tout visiteur
-// qui arrive sur le site public (n'importe quelle URL hors /test) voit la
-// page de pré-inscription, pas l'application réelle. Les testeurs
-// accèdent normalement à l'application via /test — le `basename` de
-// react-router fait que toutes les routes internes ("/", "/profil"...)
-// se résolvent alors automatiquement sous ce préfixe, sans rien changer
-// au reste du code.
+// qui arrive sur le site public (n'importe quelle URL hors /test et
+// /pionniers) voit la page de pré-inscription, pas l'application réelle.
 //
-// Levier n°2 (11/08/2026) : la route /e/{echoId} (Levier n°1) n'est plus
-// gérée ici — elle est interceptée par vercel.json AVANT même d'atteindre
-// React, et rendue côté serveur par api/echo.ts pour être lisible par les
-// robots de recherche/IA. EchoPublicPage.tsx est donc devenue inutile et
-// a été retirée.
+// Trois portes d'entrée coexistent (21/08/2026) :
+//   - echotalk.fr           → grand public, page de pré-inscription
+//   - echotalk.fr/test      → accès technique (Loïc, tests de version)
+//   - echotalk.fr/pionniers → accès pour les Échos pionniers, le temps
+//                             de la phase de pré-remplissage — nom choisi
+//                             pour ne pas inquiéter des contributeurs de
+//                             confiance avec le mot "test"
+//
+// Le `basename` de react-router fait que toutes les routes internes
+// ("/", "/profil"...) se résolvent alors automatiquement sous le bon
+// préfixe, sans rien changer au reste du code.
 export default function App() {
-  const enModeTest = window.location.pathname.startsWith('/test');
+  const path = window.location.pathname;
+  const enModeTest = path.startsWith('/test');
+  const enModePionniers = path.startsWith('/pionniers');
+  const accesDirect = enModeTest || enModePionniers;
 
-  if (V0_MODE && !enModeTest) {
+  if (V0_MODE && !accesDirect) {
     return <LandingV0 />;
   }
 
+  const basename = enModeTest ? '/test' : enModePionniers ? '/pionniers' : undefined;
+
   return (
     <AuthProvider>
-      <AppContent basename={enModeTest ? '/test' : undefined} />
+      <AppContent basename={basename} />
     </AuthProvider>
   );
 }
