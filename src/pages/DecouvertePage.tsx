@@ -48,7 +48,14 @@ export default function DecouvertePage() {
     <div className="decouverte-page">
 
       <div className="decouverte-header">
-        <h1>🔍 Découverte</h1>
+        <span className="decouverte-badge" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="10.5" cy="10.5" r="6.5" stroke="#7B5EA7" strokeWidth="2"/>
+            <line x1="15.3" y1="15.3" x2="20" y2="20" stroke="#7B5EA7" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </span>
+        <span className="decouverte-kicker">Communauté</span>
+        <h1>Découverte</h1>
         <p>Explore les échos de la communauté</p>
       </div>
 

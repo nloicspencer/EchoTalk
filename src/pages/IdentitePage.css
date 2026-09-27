@@ -6,22 +6,34 @@
 
 .identite-accroche {
   text-align: center;
-  padding: 2rem 1rem 1.5rem;
+  padding: 1.25rem 1rem 1.5rem;
+}
+
+/* Logo + nom réunis dans une seule ligne centrée : corrige le décalage
+   précédent (une svg display:block dans un parent text-align:center
+   n'est pas centrée par text-align, elle reste calée à gauche) et
+   rapproche le titre du haut de page. */
+.identite-marque {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
 }
 
 .identite-logo {
-  font-size: 2.5rem;
   display: block;
-  margin-bottom: 0.75rem;
+  flex-shrink: 0;
 }
 
 .identite-accroche h1 {
   font-family: var(--et-font-echo);
-  font-size: 2rem;
+  font-size: 1.9rem;
   font-weight: 400;
   color: var(--et-text-1);
-  margin: 0 0 1.25rem;
+  margin: 0;
   letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .identite-phrase {
