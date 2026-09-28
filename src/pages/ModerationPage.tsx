@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supprimerEchoBouteille, validerEchoBouteille } from '../hooks/useEchoBouteille';
 import { masquerEchoRep, modererCompte, modererEcho, recupererEchoRep } from '../hooks/useModeration';
+import { supprimerEcholegue, validerEcholegue } from '../hooks/useEcholegue';
 import { db } from '../services/firebase';
 import './ModerationPage.css';
 
@@ -34,13 +35,30 @@ interface Signalement {
   identiteReelle?: { prenom: string; nom: string; email: string };
 }
 
+// Écholègue en attente de modération, lu DIRECTEMENT depuis la collection
+// `echolegues` (statut === 'en_attente_moderation') plutôt que via
+// `signalements` : publierEcholegue() écrit les deux documents dans deux
+// addDoc() séparés (pas de transaction), donc si le second échoue on se
+// retrouve avec un Écholègue en attente sans aucun signalement associé —
+// invisible pour toujours dans l'ancien système. Ce panneau ne dépend que
+// de la collection `echolegues` elle-même et ne peut donc pas rater un
+// Écholègue en attente.
+interface EcholegueEnAttente {
+  id: string;
+  auteurPseudo: string;
+  recit: string;
+  lecon: string;
+  createdAt: Date;
+}
+
 // Cette page ne gère QUE la modération classique (signalements utilisateur
-// et détection auto sur Écho / EchoRep / Écho-Bouteille). Le volet Détresse
-// vit désormais dans sa propre page (ModerationDetressePage.tsx), séparée
-// pour éviter tout couplage entre les deux logiques.
+// et détection auto sur Écho / EchoRep / Écho-Bouteille / Écholègue). Le
+// volet Détresse vit désormais dans sa propre page (ModerationDetressePage.tsx),
+// séparée pour éviter tout couplage entre les deux logiques.
 export default function ModerationPage() {
   const { user, profile } = useAuth();
   const [signalements, setSignalements] = useState<Signalement[]>([]);
+  const [echoleguesEnAttente, setEcholeguesEnAttente] = useState<EcholegueEnAttente[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [onglet, setOnglet] = useState<'en_attente' | 'traites'>('en_attente');
@@ -70,7 +88,9 @@ export default function ModerationPage() {
   const construireSignalements = async (docs: QueryDocumentSnapshot<DocumentData>[]): Promise<Signalement[]> => {
     const filtres = docs.filter(d => {
       const data = d.data();
-      return data.statut !== 'archive' && data.type !== 'detresse';
+      // Les signalements Écholègue sont gérés par le panneau dédié
+      // ci-dessous (branché directement sur `echolegues`), pas ici.
+      return data.statut !== 'archive' && data.type !== 'detresse' && data.type !== 'echolegue';
     });
     return Promise.all(filtres.map(async d => {
       const data = d.data();
@@ -107,6 +127,27 @@ export default function ModerationPage() {
     });
     return unsub;
   }, [estModerateur, onglet]);
+
+  // Panneau Écholègues en attente — indépendant de l'onglet et de la
+  // collection `signalements` (voir commentaire sur EcholegueEnAttente).
+  useEffect(() => {
+    if (!estModerateur) return;
+    const q = query(collection(db, 'echolegues'), where('statut', '==', 'en_attente_moderation'));
+    const unsub = onSnapshot(q, (snap) => {
+      const items: EcholegueEnAttente[] = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          auteurPseudo: data.auteurPseudo || '—',
+          recit: data.recit || '',
+          lecon: data.lecon || '',
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+        };
+      }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      setEcholeguesEnAttente(items);
+    });
+    return unsub;
+  }, [estModerateur]);
 
   const afficher = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(''), 5000); };
   const marquerTraite = async (id: string, decision: string) => {
@@ -149,6 +190,17 @@ export default function ModerationPage() {
     await validerEchoBouteille(s.echoBouteilleId, s.auteurContenuId);
     await marquerTraite(s.id, 'Écho-Bouteille validée — envoyée');
     afficher('✅ Écho-Bouteille validée et envoyée.');
+  };
+
+  const handleValiderEcholegue = async (legue: EcholegueEnAttente) => {
+    await validerEcholegue(legue.id);
+    afficher('✅ Écholègue validé et publié dans la bibliothèque.');
+  };
+
+  const handleSupprimerEcholegue = async (legue: EcholegueEnAttente) => {
+    if (!confirm('Supprimer définitivement cet Écholègue ?')) return;
+    await supprimerEcholegue(legue.id);
+    afficher('✅ Écholègue supprimé définitivement.');
   };
 
   const handleMasquer = async (s: Signalement) => {
@@ -225,6 +277,7 @@ export default function ModerationPage() {
     if (type === 'echo') return '🕊️ Écho';
     if (type === 'echorep') return '💬 ÉchoRep';
     if (type === 'echo_bouteille') return '🍾 Écho-Bouteille';
+    if (type === 'echolegue') return '📖 Écholègue';
     return '👤 Compte';
   };
 
@@ -260,6 +313,37 @@ export default function ModerationPage() {
               <button className="btn-confirmer" onClick={handleSuspendre}>Confirmer</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {echoleguesEnAttente.length > 0 && (
+        <div className="modo-liste" style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.05rem', margin: '0 0 0.75rem' }}>
+            📖 Écholègues en attente de modération
+            <span className="badge" style={{ marginLeft: '0.5rem' }}>{echoleguesEnAttente.length}</span>
+          </h2>
+          {echoleguesEnAttente.map(legue => (
+            <div key={legue.id} className="modo-card algo">
+              <div className="modo-card-header">
+                <span className="modo-source algorithme">🤖 Détection auto</span>
+                <span className="modo-type">📖 Écholègue</span>
+                <span className="modo-date">
+                  {legue.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <div className="modo-auteur">
+                <span className="modo-pseudo">{legue.auteurPseudo}</span>
+              </div>
+              <p className="modo-contenu"><strong>Récit :</strong> "{legue.recit}"</p>
+              <p className="modo-contenu"><strong>Leçon :</strong> "{legue.lecon}"</p>
+              <div className="modo-actions">
+                <button className="btn-valider-bouteille" onClick={() => handleValiderEcholegue(legue)}>
+                  ✅ Valider — publier
+                </button>
+                <button className="btn-supprimer" onClick={() => handleSupprimerEcholegue(legue)}>Supprimer</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
