@@ -1,13 +1,26 @@
 .fil-page { padding-top: 0; }
 
+/* Conteneur fixe au scroll (30/09/2026) — regroupe le bandeau EchoTalk et
+   le puits communauté pour qu'ils restent visibles pendant le défilement
+   du Fil. Le padding-top (au lieu du margin-top sur .fil-header) évite le
+   collapse de marge classique avec un parent position:sticky ; le fond
+   ci-dessous couvre l'interstice entre les deux bandeaux pendant le scroll,
+   pour qu'aucun contenu ne soit visible "à travers" en dessous. */
+.fil-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-top: 20px;
+  background: var(--et-bg, #FAF8FC);
+}
+
 /* En-tête — bandeau 50/50 : logo EchoTalk à gauche (aligné à gauche,
-   pas centré), pseudo de l'utilisateur à droite, centré dans son espace.
-   Marge en haut de page restaurée pour respirer un peu. */
+   pas centré), pseudo de l'utilisateur à droite, centré dans son espace. */
 .fil-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 20px 16px 12px;
+  margin: 0 16px 12px;
   padding: 12px 14px;
   background: var(--et-surface);
   border: 0.5px solid var(--et-border);
