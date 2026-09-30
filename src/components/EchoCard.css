@@ -68,13 +68,18 @@
 /* Repli des Échos longs (30/09/2026, même jour) — hauteur ~5 lignes,
    dégradé de fondu plutôt qu'une coupure nette en plein milieu d'une
    phrase, pour rester cohérent avec le ton de l'appli (une pause de
-   lecture, pas une troncature brutale). */
+   lecture, pas une troncature brutale). La limite de hauteur (.replie)
+   est TOUJOURS appliquée par défaut, y compris sur un texte court —
+   c'est ce qui permet à React de mesurer si le contenu dépasse réellement
+   (scrollHeight vs clientHeight) ; sans effet visible si le texte tient
+   déjà dans cette hauteur. Le dégradé (.a-fondu) et le bouton ne
+   s'affichent eux que si un dépassement a été mesuré. */
 .echo-card-texte-wrap.replie .echo-card-text {
   max-height: 8.2rem;
   overflow: hidden;
 }
 
-.echo-card-texte-wrap.replie::after {
+.echo-card-texte-wrap.replie.a-fondu::after {
   content: '';
   position: absolute;
   left: 0;

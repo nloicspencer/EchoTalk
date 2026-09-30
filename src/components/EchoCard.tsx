@@ -288,7 +288,7 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
           </div>
         </div>
       ) : (
-        <div className={`echo-card-texte-wrap ${!texteDeplie && texteTronque ? 'replie' : ''}`}>
+        <div className={`echo-card-texte-wrap ${!texteDeplie ? 'replie' : ''} ${texteTronque ? 'a-fondu' : ''}`}>
           <p
             ref={texteRef}
             className={`echo-card-text ${estSupprime ? 'contenu-supprime' : ''}`}
