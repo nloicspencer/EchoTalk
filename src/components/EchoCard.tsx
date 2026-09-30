@@ -21,6 +21,13 @@ interface Props { echo: Echo; delayIndex?: number; }
 
 export default function EchoCard({ echo, delayIndex = 0 }: Props) {
   const [masquerReps, setMasquerReps] = useState(false);
+  // Réduction des Échos longs (30/09/2026) — repliés par défaut au-delà
+  // d'environ 5 lignes, avec un bouton "Lire la suite" pour déplier sur
+  // place. texteTronque mesure si le contenu dépasse réellement la hauteur
+  // repliée (pour ne montrer le bouton que quand il sert à quelque chose).
+  const [texteDeplie, setTexteDeplie] = useState(false);
+  const [texteTronque, setTexteTronque] = useState(false);
+  const texteRef = useRef<HTMLParagraphElement>(null);
   const [showRepForm, setShowRepForm] = useState(false);
   const [repContenu, setRepContenu] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,6 +66,15 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
       fermerEchoExpire(echo.id).catch(() => {});
     }
   }, [echo.id, echo.type, estExpire, echo.estOuvert]);
+
+  // Mesure si le texte dépasse la hauteur repliée (~5 lignes) — le bouton
+  // "Lire la suite" n'apparaît que si le contenu déborde réellement.
+  // Mesuré à l'état replié (texteDeplie=false au montage), donc valide.
+  useEffect(() => {
+    if (texteRef.current) {
+      setTexteTronque(texteRef.current.scrollHeight > texteRef.current.clientHeight + 2);
+    }
+  }, [echo.contenu]);
 
   // Anime brièvement chaque compteur de réaction quand sa valeur change.
   useEffect(() => {
@@ -272,7 +288,21 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
           </div>
         </div>
       ) : (
-        <p className={`echo-card-text ${estSupprime ? 'contenu-supprime' : ''}`}>{echo.contenu}</p>
+        <div className={`echo-card-texte-wrap ${!texteDeplie && texteTronque ? 'replie' : ''}`}>
+          <p
+            ref={texteRef}
+            className={`echo-card-text ${estSupprime ? 'contenu-supprime' : ''}`}
+          >
+            {echo.contenu}
+          </p>
+        </div>
+      )}
+
+      {texteTronque && !estSupprime && (
+        <button className="btn-lire-suite" onClick={() => setTexteDeplie(!texteDeplie)}>
+          <i className={`ti ${texteDeplie ? 'ti-chevron-up' : 'ti-chevron-down'}`} aria-hidden="true" />
+          {' '}{texteDeplie ? 'Réduire' : 'Lire la suite'}
+        </button>
       )}
 
       {echo.modifie && !estSupprime && (

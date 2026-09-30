@@ -44,19 +44,64 @@
   color: var(--et-text-3);
 }
 
+/* Conteneur autour de .echo-card-text : porte le repli (max-height +
+   dégradé de fondu) pour ne jamais couper le texte à la hache. */
+.echo-card-texte-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
 .echo-card-text {
   font-family: var(--et-font-echo);
   font-style: italic;
   font-size: 0.9125rem;
   line-height: 1.75;
   color: var(--et-text-1);
-  margin-bottom: 12px;
+  margin-bottom: 0;
   /* Point 2 du programme (30/09/2026) — préserve les retours à la ligne
      tapés dans PublierEcho.tsx (le textarea les acceptait déjà, seul
      l'affichage les ignorait faute de cette règle) ; pre-wrap garde aussi
      le retour à la ligne automatique normal sur les lignes trop longues. */
   white-space: pre-wrap;
 }
+
+/* Repli des Échos longs (30/09/2026, même jour) — hauteur ~5 lignes,
+   dégradé de fondu plutôt qu'une coupure nette en plein milieu d'une
+   phrase, pour rester cohérent avec le ton de l'appli (une pause de
+   lecture, pas une troncature brutale). */
+.echo-card-texte-wrap.replie .echo-card-text {
+  max-height: 8.2rem;
+  overflow: hidden;
+}
+
+.echo-card-texte-wrap.replie::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.4rem;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.92) 80%);
+  pointer-events: none;
+  border-radius: 0 0 var(--et-radius-md) var(--et-radius-md);
+}
+
+.btn-lire-suite {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: -4px 0 12px;
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--et-accent);
+  cursor: pointer;
+}
+
+.btn-lire-suite:hover { text-decoration: underline; }
 
 .echo-card-text.contenu-supprime { color: var(--et-text-3); }
 
