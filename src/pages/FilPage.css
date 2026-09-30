@@ -5,13 +5,21 @@
    du Fil. Le padding-top (au lieu du margin-top sur .fil-header) évite le
    collapse de marge classique avec un parent position:sticky ; le fond
    ci-dessous couvre l'interstice entre les deux bandeaux pendant le scroll,
-   pour qu'aucun contenu ne soit visible "à travers" en dessous. */
+   pour qu'aucun contenu ne soit visible "à travers" en dessous. Couleur
+   alignée sur --et-bg (le départ du dégradé du body) pour se fondre au
+   mieux ; une ombre portée douce en bas du bloc transforme la frontière
+   inévitable avec le dégradé en un effet d'élévation volontaire plutôt
+   qu'un décalage de couleur — reproduire le dégradé fixe à l'identique
+   sur cet élément n'est pas fiable sur Safari iOS (background-attachment:
+   fixed y est mal supporté), donc écarté volontairement. */
 .fil-sticky-top {
   position: sticky;
   top: 0;
   z-index: 30;
   padding-top: 20px;
-  background: var(--et-bg, #FAF8FC);
+  padding-bottom: 6px;
+  background: var(--et-bg, #EDE8F5);
+  box-shadow: 0 6px 12px -6px rgba(42, 31, 61, 0.16);
 }
 
 /* En-tête — bandeau 50/50 : logo EchoTalk à gauche (aligné à gauche,
