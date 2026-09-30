@@ -1,16 +1,21 @@
-.fil-page { padding-top: 0; }
+/* L'espacement du haut de page (auparavant en padding-top sur le conteneur
+   sticky) est déplacé ici : il n'existe qu'une fois, avant que l'encart ne
+   devienne fixe, jamais pendant le scroll — sinon un espace transparent
+   laissait voir le Fil défiler au-dessus de l'encart une fois collé en haut. */
+.fil-page { padding-top: 20px; }
 
 /* Conteneur fixe au scroll (30/09/2026, révisé le même jour après retour
    visuel) — logo EchoTalk et puits communauté fusionnés en UN SEUL encart
    (Option A validée) plutôt que deux cartes séparées avec un espace entre
    elles. Plus de fond à faire coïncider avec le dégradé de la page : c'est
    la bordure violette de l'encart qui marque la limite, et le Fil défile
-   masqué derrière quand il passe sous ce bloc sticky. */
+   masqué derrière quand il passe sous ce bloc sticky. Collé à top:0 sans
+   padding-top propre, pour qu'aucun espace transparent ne subsiste
+   au-dessus de l'encart une fois qu'il est fixé. */
 .fil-sticky-top {
   position: sticky;
   top: 0;
   z-index: 30;
-  padding-top: 20px;
   padding-bottom: 12px;
 }
 
