@@ -1,25 +1,36 @@
 .fil-page { padding-top: 0; }
 
-/* Conteneur fixe au scroll (30/09/2026) — regroupe le bandeau EchoTalk et
-   le puits communauté pour qu'ils restent visibles pendant le défilement
-   du Fil. Le padding-top (au lieu du margin-top sur .fil-header) évite le
-   collapse de marge classique avec un parent position:sticky ; le fond
-   ci-dessous couvre l'interstice entre les deux bandeaux pendant le scroll,
-   pour qu'aucun contenu ne soit visible "à travers" en dessous. Couleur
-   alignée sur --et-bg (le départ du dégradé du body) pour se fondre au
-   mieux ; une ombre portée douce en bas du bloc transforme la frontière
-   inévitable avec le dégradé en un effet d'élévation volontaire plutôt
-   qu'un décalage de couleur — reproduire le dégradé fixe à l'identique
-   sur cet élément n'est pas fiable sur Safari iOS (background-attachment:
-   fixed y est mal supporté), donc écarté volontairement. */
+/* Conteneur fixe au scroll (30/09/2026, révisé le même jour après retour
+   visuel) — logo EchoTalk et puits communauté fusionnés en UN SEUL encart
+   (Option A validée) plutôt que deux cartes séparées avec un espace entre
+   elles. Plus de fond à faire coïncider avec le dégradé de la page : c'est
+   la bordure violette de l'encart qui marque la limite, et le Fil défile
+   masqué derrière quand il passe sous ce bloc sticky. */
 .fil-sticky-top {
   position: sticky;
   top: 0;
   z-index: 30;
   padding-top: 20px;
-  padding-bottom: 6px;
-  background: var(--et-bg, #EDE8F5);
-  box-shadow: 0 6px 12px -6px rgba(42, 31, 61, 0.16);
+  padding-bottom: 12px;
+}
+
+/* Encart unique — remplace les anciens fonds/bordures indépendants de
+   .fil-header et .fil-community-counter, désormais de simples zones de
+   contenu à l'intérieur de ce même encart. */
+.fil-bandeau-encart {
+  margin: 0 16px;
+  border-radius: var(--et-radius-lg);
+  border: 1px solid var(--et-border-hover);
+  background: var(--et-surface);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  box-shadow: var(--et-shadow-sm);
+}
+
+/* Séparateur fin entre les deux zones à l'intérieur de l'encart. */
+.fil-bandeau-divider {
+  height: 0.5px;
+  background: var(--et-border);
 }
 
 /* En-tête — bandeau 50/50 : logo EchoTalk à gauche (aligné à gauche,
@@ -28,12 +39,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 16px 12px;
   padding: 12px 14px;
-  background: var(--et-surface);
-  border: 0.5px solid var(--et-border);
-  border-radius: var(--et-radius-md);
-  backdrop-filter: blur(8px);
   box-sizing: border-box;
 }
 
@@ -85,12 +91,13 @@
   color: var(--et-text-3);
 }
 
-/* Puits communauté */
+/* Puits communauté — garde son propre dégradé violet à l'intérieur de
+   l'encart, plus de marge/coins arrondis propres puisqu'il ne forme plus
+   une carte indépendante (c'est le conteneur .fil-bandeau-encart qui a
+   maintenant les coins arrondis et la marge extérieure). */
 .fil-community-counter {
-  margin: 0 16px 12px;
   padding: 14px 18px;
   background: linear-gradient(135deg, #C4B4E0, #B0A0D0);
-  border-radius: var(--et-radius-md);
   display: flex;
   align-items: center;
   gap: 14px;
