@@ -51,6 +51,11 @@
   line-height: 1.75;
   color: var(--et-text-1);
   margin-bottom: 12px;
+  /* Point 2 du programme (30/09/2026) — préserve les retours à la ligne
+     tapés dans PublierEcho.tsx (le textarea les acceptait déjà, seul
+     l'affichage les ignorait faute de cette règle) ; pre-wrap garde aussi
+     le retour à la ligne automatique normal sur les lignes trop longues. */
+  white-space: pre-wrap;
 }
 
 .echo-card-text.contenu-supprime { color: var(--et-text-3); }
@@ -229,6 +234,7 @@
   font-size: 0.875rem;
   line-height: 1.65;
   color: var(--et-text-1);
+  white-space: pre-wrap;
 }
 
 .rep-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
