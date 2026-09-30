@@ -32,16 +32,20 @@ function libelle(n: Notification): string {
   }
 }
 
-// Vers où chaque type de notification renvoie, une fois cliqué (30/09/2026) :
+// Vers où chaque type de notification renvoie, une fois cliqué (30/09/2026,
+// révisé le même jour) : d'abord vers la page publique /e/{id}, mais un
+// service worker actif intercepte cette route et sert la coquille de l'app
+// en cache — on reste donc DANS l'app, ce qui évite le problème et donne
+// une navigation plus cohérente de toute façon.
 // - Réactions et décisions sur une EchoRep déjà connue de son auteur·e ->
-//   la page publique de l'écho concerné (/e/{id}), qui existe pour
-//   n'importe quel écho, lu sans compte.
+//   le Fil, en ciblant l'écho précis (voir FilPage.tsx, lecture de
+//   ?echo={id} et défilement automatique).
 // - EchoRep en attente de validation, et Écho-Bouteille reçue -> l'onglet
 //   EchoProfil, seul endroit de l'app où ces deux actions se traitent
 //   (ValidationEchoReps et EchoBouteille y sont tous les deux affichés).
 // - Modération -> pas de lien : l'écho concerné peut avoir été masqué ou
 //   supprimé, un lien y mènerait souvent vers une page vide.
-type CibleLien = { type: 'externe'; href: string } | { type: 'interne'; to: string } | null;
+type CibleLien = { type: 'interne'; to: string } | null;
 
 function cibleLien(n: Notification): CibleLien {
   switch (n.type) {
@@ -51,7 +55,7 @@ function cibleLien(n: Notification): CibleLien {
     case 'coeurBrise':
     case 'echoRepValidee':
     case 'echoRepRefusee':
-      return n.echoId ? { type: 'externe', href: `/e/${n.echoId}` } : null;
+      return n.echoId ? { type: 'interne', to: `/?echo=${n.echoId}` } : null;
     case 'echoRep':
     case 'echoBouteille':
       return { type: 'interne', to: '/profil' };
@@ -113,21 +117,11 @@ export default function NotificationsPage() {
             const className = `notification-item ${n.lu ? '' : 'non-lue'}`;
             const marquerLue = () => !n.lu && marquerCommeLue(n.id);
 
-            if (cible?.type === 'interne') {
+            if (cible) {
               return (
                 <Link key={n.id} to={cible.to} className={className} onClick={marquerLue}>
                   {contenuItem}
                 </Link>
-              );
-            }
-            if (cible?.type === 'externe') {
-              return (
-                <a
-                  key={n.id} href={cible.href} className={className}
-                  target="_blank" rel="noopener noreferrer" onClick={marquerLue}
-                >
-                  {contenuItem}
-                </a>
               );
             }
             return (

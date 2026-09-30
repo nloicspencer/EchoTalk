@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import EchoCard from '../components/EchoCard';
 import EchoSolidaireModal from '../components/EchoSolidaireModal';
 import EncartPublicitaireHeader from '../components/EncartPublicitaireHeader';
@@ -6,9 +9,9 @@ import JarreIcon from '../components/JarreIcon';
 import JournalLegues from '../components/JournalLegues';
 import PublierEcho from '../components/PublierEcho';
 import { useAuth } from '../context/AuthContext';
-import { useEchos, useEchoSolidaire } from '../hooks/useEchos';
+import { useEchos, useEchoSolidaire, convertEcho } from '../hooks/useEchos';
 import { useCompteurGlobalJarres } from '../hooks/useReactions';
-import { CATEGORIES } from '../types';
+import { CATEGORIES, Echo } from '../types';
 import { FEATURES } from '../config/appVersion';
 import './FilPage.css';
 
@@ -19,6 +22,55 @@ export default function FilPage() {
   const { echos, loading, loadingMore, hasMore, chargerPlus, ajouterEchoLocalement } = useEchos();
   const echoSolidaire = useEchoSolidaire();
   const { profile } = useAuth();
+
+  // Écho ciblé (30/09/2026) — quand on arrive depuis une notification
+  // (lien "/?echo={id}"), on affiche cet écho précis en évidence tout en
+  // haut du Fil, qu'il fasse partie ou non des 30 derniers déjà chargés
+  // par pagination. On le récupère séparément par une lecture directe,
+  // plutôt que d'essayer de le retrouver dans `echos` (souvent absent s'il
+  // est ancien) ou de complexifier la pagination existante.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const echoCibleId = searchParams.get('echo');
+  const [echoCible, setEchoCible] = useState<Echo | null>(null);
+  const [echoCibleLoading, setEchoCibleLoading] = useState(false);
+  const [echoCibleIntrouvable, setEchoCibleIntrouvable] = useState(false);
+  const echoCibleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!echoCibleId) {
+      setEchoCible(null);
+      setEchoCibleIntrouvable(false);
+      return;
+    }
+    setEchoCibleLoading(true);
+    setEchoCibleIntrouvable(false);
+    getDoc(doc(db, 'echos', echoCibleId))
+      .then((snap) => {
+        if (snap.exists()) {
+          setEchoCible(convertEcho(snap.id, snap.data() as Record<string, unknown>));
+        } else {
+          setEchoCible(null);
+          setEchoCibleIntrouvable(true);
+        }
+      })
+      .catch(() => {
+        setEchoCible(null);
+        setEchoCibleIntrouvable(true);
+      })
+      .finally(() => setEchoCibleLoading(false));
+  }, [echoCibleId]);
+
+  useEffect(() => {
+    if (echoCible && echoCibleRef.current) {
+      echoCibleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [echoCible]);
+
+  const fermerEchoCible = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('echo');
+    setSearchParams(next, { replace: true });
+  };
 
   // Compteur global indépendant de la pagination — reste exact même si le
   // Fil n'affiche qu'une fraction de l'historique des Échos.
@@ -161,6 +213,22 @@ export default function FilPage() {
           vient de publier soi-même, sans attendre un rafraîchissement de
           page — ne concerne que ses propres publications. */}
       {profile && <PublierEcho profile={profile} onEchoPublie={ajouterEchoLocalement} />}
+
+      {echoCibleId && (
+        <div className="fil-echo-cible" ref={echoCibleRef}>
+          <div className="fil-echo-cible-header">
+            <span>📍 Écho ouvert depuis une notification</span>
+            <button onClick={fermerEchoCible}>✕ Retour au Fil</button>
+          </div>
+          {echoCibleLoading ? (
+            <div className="loading">Chargement...</div>
+          ) : echoCible ? (
+            <EchoCard echo={echoCible} />
+          ) : echoCibleIntrouvable ? (
+            <p className="vide">Cet écho n'est plus disponible.</p>
+          ) : null}
+        </div>
+      )}
 
       <div className="fil-list">
         {loading ? (
