@@ -54,6 +54,7 @@ const LIMITE_PAGE = 50;
 export function useNotifications(uid: string | undefined) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erreur, setErreur] = useState('');
 
   useEffect(() => {
     if (!uid) {
@@ -62,16 +63,29 @@ export function useNotifications(uid: string | undefined) {
       return;
     }
     setLoading(true);
+    setErreur('');
     const q = query(
       collection(db, 'notifications'),
       where('destinataireId', '==', uid),
       orderBy('createdAt', 'desc'),
       limit(LIMITE_PAGE)
     );
-    const unsub = onSnapshot(q, (snap) => {
-      setNotifications(snap.docs.map((d) => convertNotification(d.id, d.data())));
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setNotifications(snap.docs.map((d) => convertNotification(d.id, d.data())));
+        setLoading(false);
+      },
+      (err) => {
+        // Sans ce callback d'erreur, un souci Firestore (ex. index composite
+        // manquant sur destinataireId+createdAt) échouait en silence : le
+        // callback de succès n'était jamais rappelé, et la page restait
+        // bloquée en "Chargement..." indéfiniment, sans aucun message.
+        console.error('[useNotifications] erreur de lecture', err);
+        setErreur(err.message || 'Impossible de charger les notifications pour le moment.');
+        setLoading(false);
+      }
+    );
     return unsub;
   }, [uid]);
 
@@ -89,7 +103,7 @@ export function useNotifications(uid: string | undefined) {
     await batch.commit();
   };
 
-  return { notifications, loading, nonLues, marquerCommeLue, marquerToutesCommeLues };
+  return { notifications, loading, erreur, nonLues, marquerCommeLue, marquerToutesCommeLues };
 }
 
 // Compteur léger pour la cloche de NavBar.tsx : une requête `where(lu==false)`

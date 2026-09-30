@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
+import { creerNotification } from './useNotifications';
 
 export interface EchoBouteille {
   id: string;
@@ -53,6 +54,14 @@ export async function envoyerEchoBouteille(
     expediteurId, expediteurPseudo, destinataireId, contenu,
     statut: 'envoyee',
     createdAt: serverTimestamp(), expiresAt, lu: false,
+  });
+  // Notification (30/09/2026) — le destinataire vient d'être tiré au sort
+  // et reçoit sa bouteille immédiatement dans ce cas (contenu non signalé
+  // par la modération automatique). expediteurPseudo omis volontairement :
+  // l'anonymat de l'expéditeur fait partie du principe de l'Écho-Bouteille.
+  await creerNotification({
+    destinataireId, type: 'echoBouteille',
+    expediteurId, contenuApercu: contenu,
   });
   return 'envoyee';
 }
@@ -168,6 +177,13 @@ export async function validerEchoBouteille(bouteilleId: string, expediteurId: st
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await updateDoc(doc(db, 'echos_bouteille', bouteilleId), {
     destinataireId, statut: 'envoyee', expiresAt,
+  });
+  // Notification (30/09/2026) — cas où la bouteille avait d'abord été mise
+  // en attente de modération : le destinataire n'est tiré au sort qu'ici,
+  // une fois le contenu validé.
+  await creerNotification({
+    destinataireId, type: 'echoBouteille',
+    expediteurId,
   });
 }
 

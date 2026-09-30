@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { Notification, NotificationType } from '../types';
@@ -11,6 +12,7 @@ const ICONES: Record<NotificationType, string> = {
   echoRep: '🔓',
   echoRepValidee: '✅',
   echoRepRefusee: '🚫',
+  echoBouteille: '🍾',
   moderation: '🛡️',
 };
 
@@ -24,14 +26,43 @@ function libelle(n: Notification): string {
     case 'echoRep': return `${pseudo} souhaite répondre à votre Écho Ouvert — en attente de votre validation.`;
     case 'echoRepValidee': return 'Votre réponse à un Écho Ouvert a été validée.';
     case 'echoRepRefusee': return 'Votre réponse à un Écho Ouvert n\'a pas été retenue.';
+    case 'echoBouteille': return 'Vous avez reçu un Écho-Bouteille.';
     case 'moderation': return n.contenuApercu || 'Une action de modération concerne un de vos échos.';
     default: return 'Nouvelle notification.';
   }
 }
 
+// Vers où chaque type de notification renvoie, une fois cliqué (30/09/2026) :
+// - Réactions et décisions sur une EchoRep déjà connue de son auteur·e ->
+//   la page publique de l'écho concerné (/e/{id}), qui existe pour
+//   n'importe quel écho, lu sans compte.
+// - EchoRep en attente de validation, et Écho-Bouteille reçue -> l'onglet
+//   EchoProfil, seul endroit de l'app où ces deux actions se traitent
+//   (ValidationEchoReps et EchoBouteille y sont tous les deux affichés).
+// - Modération -> pas de lien : l'écho concerné peut avoir été masqué ou
+//   supprimé, un lien y mènerait souvent vers une page vide.
+type CibleLien = { type: 'externe'; href: string } | { type: 'interne'; to: string } | null;
+
+function cibleLien(n: Notification): CibleLien {
+  switch (n.type) {
+    case 'jarreBleue':
+    case 'jarreRose':
+    case 'coeur':
+    case 'coeurBrise':
+    case 'echoRepValidee':
+    case 'echoRepRefusee':
+      return n.echoId ? { type: 'externe', href: `/e/${n.echoId}` } : null;
+    case 'echoRep':
+    case 'echoBouteille':
+      return { type: 'interne', to: '/profil' };
+    default:
+      return null;
+  }
+}
+
 export default function NotificationsPage() {
   const { profile } = useAuth();
-  const { notifications, loading, nonLues, marquerCommeLue, marquerToutesCommeLues } = useNotifications(profile?.uid);
+  const { notifications, loading, erreur, nonLues, marquerCommeLue, marquerToutesCommeLues } = useNotifications(profile?.uid);
 
   return (
     <div className="notifications-page">
@@ -50,6 +81,11 @@ export default function NotificationsPage() {
 
       {loading ? (
         <div className="notifications-vide">Chargement...</div>
+      ) : erreur ? (
+        <div className="notifications-vide">
+          <span>⚠️</span>
+          <p>Impossible de charger les notifications pour le moment. Réessaie dans un instant.</p>
+        </div>
       ) : notifications.length === 0 ? (
         <div className="notifications-vide">
           <span>🔔</span>
@@ -57,25 +93,49 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div className="notifications-liste">
-          {notifications.map((n) => (
-            <button
-              key={n.id}
-              className={`notification-item ${n.lu ? '' : 'non-lue'}`}
-              onClick={() => !n.lu && marquerCommeLue(n.id)}
-            >
-              <span className="notification-icone" aria-hidden="true">{ICONES[n.type]}</span>
-              <span className="notification-corps">
-                <span className="notification-texte">{libelle(n)}</span>
-                {n.type !== 'moderation' && n.contenuApercu && (
-                  <span className="notification-apercu">« {n.contenuApercu} »</span>
-                )}
-                <span className="notification-date">
-                  {n.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          {notifications.map((n) => {
+            const cible = cibleLien(n);
+            const contenuItem = (
+              <>
+                <span className="notification-icone" aria-hidden="true">{ICONES[n.type]}</span>
+                <span className="notification-corps">
+                  <span className="notification-texte">{libelle(n)}</span>
+                  {n.type !== 'moderation' && n.contenuApercu && (
+                    <span className="notification-apercu">« {n.contenuApercu} »</span>
+                  )}
+                  <span className="notification-date">
+                    {n.createdAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </span>
-              </span>
-              {!n.lu && <span className="notification-point" aria-hidden="true" />}
-            </button>
-          ))}
+                {!n.lu && <span className="notification-point" aria-hidden="true" />}
+              </>
+            );
+            const className = `notification-item ${n.lu ? '' : 'non-lue'}`;
+            const marquerLue = () => !n.lu && marquerCommeLue(n.id);
+
+            if (cible?.type === 'interne') {
+              return (
+                <Link key={n.id} to={cible.to} className={className} onClick={marquerLue}>
+                  {contenuItem}
+                </Link>
+              );
+            }
+            if (cible?.type === 'externe') {
+              return (
+                <a
+                  key={n.id} href={cible.href} className={className}
+                  target="_blank" rel="noopener noreferrer" onClick={marquerLue}
+                >
+                  {contenuItem}
+                </a>
+              );
+            }
+            return (
+              <button key={n.id} className={className} onClick={marquerLue}>
+                {contenuItem}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

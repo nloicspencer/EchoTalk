@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, getDoc, Timestamp, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { creerNotification } from '../hooks/useNotifications';
 import './ValidationEchoReps.css';
 
 interface RepEnAttente {
@@ -70,10 +71,22 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
       createdAt: serverTimestamp(), modifie: false, supprime: false,
     });
     await updateDoc(doc(db, 'echos', rep.echoId), { placesOccupees: echo.placesOccupees + 1 });
+    // Notification (30/09/2026) — ce composant gère l'acceptation/refus
+    // directement (il ne passe pas par validerEchoRep() de
+    // useModeration.ts), donc la notification à l'auteur·e de la
+    // proposition est créée ici.
+    await creerNotification({
+      destinataireId: rep.auteurId, type: 'echoRepValidee',
+      echoId: rep.echoId, contenuApercu: rep.contenu,
+    });
   };
 
   const handleRefuser = async (rep: RepEnAttente) => {
     await updateDoc(doc(db, 'echoreps_attente', rep.id), { statut: 'refuse' });
+    await creerNotification({
+      destinataireId: rep.auteurId, type: 'echoRepRefusee',
+      echoId: rep.echoId, contenuApercu: rep.contenu,
+    });
   };
 
   if (enAttente.length === 0) return null;

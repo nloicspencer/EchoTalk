@@ -110,6 +110,10 @@ export type NotificationType =
   // la proposition une fois la décision prise (voir validerEchoRep dans
   // useModeration.ts).
   | 'echoRep' | 'echoRepValidee' | 'echoRepRefusee'
+  // 'echoBouteille' : une Écho-Bouteille vient d'être reçue (tirage au
+  // sort effectué, que ce soit immédiatement à l'envoi ou après
+  // validation de modération — voir useEchoBouteille.ts).
+  | 'echoBouteille'
   | 'moderation';
 
 export interface Notification {

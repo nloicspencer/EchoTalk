@@ -104,6 +104,15 @@
 
 .notification-item:hover { border-color: var(--et-border-hover); }
 
+/* Reset nécessaire : notification-item est parfois un <a>/<Link> (quand la
+   notification a une cible cliquable), qui porte par défaut un
+   soulignement et une couleur de lien — indésirables ici, l'item doit
+   rester visuellement identique qu'il soit <button>, <a> ou <Link>. */
+a.notification-item, a.notification-item:visited {
+  text-decoration: none;
+  color: inherit;
+}
+
 .notification-item.non-lue {
   background: rgba(123,94,167,0.06);
   border-color: rgba(123,94,167,0.22);
