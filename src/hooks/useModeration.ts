@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
+import { creerNotification } from './useNotifications';
 
 export interface Signalement {
   id: string; echoId: string; echoRepId?: string;
@@ -64,8 +65,14 @@ export async function verifierActiviteSuspecte(userId: string, pseudo: string) {
   }
 }
 
+// destinataireId (30/09/2026, optionnel) : le propriétaire de l'Écho
+// Ouvert, notifié qu'une nouvelle proposition attend sa validation. Reste
+// optionnel pour ne pas casser un appelant existant qui ne le fournirait
+// pas — dans ce cas, la proposition est bien créée, seule la notification
+// n'est pas envoyée.
 export async function soumettreEchoRep(
-  echoId: string, echoContenu: string, auteurId: string, auteurPseudo: string, contenu: string
+  echoId: string, echoContenu: string, auteurId: string, auteurPseudo: string, contenu: string,
+  destinataireId?: string
 ) {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await analyserEtSignaler(echoId, auteurId, auteurPseudo, contenu, 'echorep');
@@ -73,6 +80,13 @@ export async function soumettreEchoRep(
     echoId, echoContenu: echoContenu.slice(0, 100), auteurId, auteurPseudo, contenu,
     createdAt: serverTimestamp(), expiresAt, statut: 'en_attente',
   });
+  if (destinataireId) {
+    await creerNotification({
+      destinataireId, type: 'echoRep',
+      expediteurId: auteurId, expediteurPseudo: auteurPseudo,
+      echoId, contenuApercu: contenu,
+    });
+  }
   return ref.id;
 }
 
@@ -88,6 +102,13 @@ export async function validerEchoRep(
     });
     await updateDoc(doc(db, 'echos', echoId), { placesOccupees: placesOccupees + 1 });
   }
+  // Notifie l'auteur·e de la proposition (auteurId, déjà disponible ici)
+  // de la décision prise — qu'elle soit positive ou négative, pour éviter
+  // qu'iel reste dans l'incertitude après une simple absence de réponse.
+  await creerNotification({
+    destinataireId: auteurId, type: accepter ? 'echoRepValidee' : 'echoRepRefusee',
+    echoId, contenuApercu: contenu,
+  });
 }
 
 export function useEchoRepsEnAttente(proprietaireId: string) {
@@ -144,6 +165,21 @@ export async function modererEcho(
   await addDoc(collection(db, 'historique_moderation'), {
     echoId, action, raison, moderateurId, createdAt: serverTimestamp(),
   });
+
+  // Notifie l'auteur·e de l'écho modéré (30/09/2026) — récupère
+  // auteurId au passage puisqu'il n'est pas fourni en paramètre ici.
+  const echoSnap = await getDoc(doc(db, 'echos', echoId));
+  if (echoSnap.exists()) {
+    const auteurId = echoSnap.data().auteurId as string | undefined;
+    if (auteurId) {
+      await creerNotification({
+        destinataireId: auteurId, type: 'moderation', echoId,
+        contenuApercu: action === 'masquer'
+          ? `Votre écho a été masqué par la modération. Raison : ${raison}`
+          : `Votre écho a été supprimé par la modération. Raison : ${raison}`,
+      });
+    }
+  }
 }
 
 // ── Masquer une EchoRep (réversible) ────────────────────

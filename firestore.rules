@@ -218,6 +218,29 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Notifications (30/09/2026) — un document par événement (réaction,
+    // EchoRep, modération) adressé à un destinataire précis.
+    match /notifications/{id} {
+      // Lecture strictement privée : seul le destinataire (ou un
+      // modérateur/admin, pour du support) peut voir ses notifications —
+      // jamais l'expéditeur ni un tiers.
+      allow read: if estProprietaire(resource.data.destinataireId) || estModerateurOuAdmin();
+      // Création ouverte à tout utilisateur connecté : n'importe qui qui
+      // réagit à un écho ou répond à un Écho Ouvert doit pouvoir créer la
+      // notification adressée à l'auteur — comme pour /reactions. On exige
+      // seulement que le champ destinataireId soit bien renseigné ; c'est
+      // creerNotification() côté client qui garantit qu'on ne se notifie
+      // jamais soi-même.
+      allow create: if estConnecte()
+        && request.resource.data.destinataireId is string
+        && request.resource.data.destinataireId.size() > 0;
+      // Mise à jour réservée au destinataire, et seulement pour marquer
+      // "lu" — aucun autre champ ne doit pouvoir être modifié après coup.
+      allow update: if estProprietaire(resource.data.destinataireId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lu']);
+      allow delete: if estProprietaire(resource.data.destinataireId) || estModerateurOuAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

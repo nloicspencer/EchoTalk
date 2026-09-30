@@ -58,6 +58,21 @@
   align-items: center;
   justify-content: center;
   height: 22px;
+  position: relative;
 }
 
 .nav-label { font-size: 0.625rem; }
+
+/* Point rouge de notifications non lues (30/09/2026) — posé sur l'icône
+   cloche, jamais sur le label, pour rester lisible même en très petite
+   taille d'écran. */
+.nav-badge {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E5484D;
+  border: 1.5px solid rgba(237, 232, 245, 0.95);
+}

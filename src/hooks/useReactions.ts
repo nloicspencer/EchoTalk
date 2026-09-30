@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot, updateDoc, getDoc, increment, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { creerNotification } from './useNotifications';
 
 const PLAFOND_JARRES = 50;
 
@@ -62,7 +63,17 @@ export async function acquerirPack(
   await updateDoc(doc(db, 'users', uid), { [champ]: increment(quantite) });
 }
 
-export async function donnerJarreBleu(echoId: string, uid: string, stockActuel: number, jarresActuelles: number) {
+// Cible optionnelle de notification (30/09/2026) — l'auteur de l'écho
+// réagi. Optionnelle pour ne pas casser un appelant existant qui ne la
+// fournirait pas ; sans elle, la réaction fonctionne toujours, seule la
+// notification n'est pas créée. creerNotification() évite déjà de se
+// notifier soi-même, donc pas besoin de le revérifier ici.
+interface CibleNotification { auteurId: string; auteurPseudo: string; contenuApercu?: string }
+
+export async function donnerJarreBleu(
+  echoId: string, uid: string, stockActuel: number, jarresActuelles: number,
+  destinataire?: CibleNotification, expediteurPseudo?: string
+) {
   if (stockActuel <= 0) throw new Error('Stock de jarres bleues épuisé.');
   await updateDoc(doc(db, 'users', uid), { stockJarresBleues: increment(-1) });
   await updateDoc(doc(db, 'echos', echoId), { jarresBleues: jarresActuelles + 1 });
@@ -70,23 +81,47 @@ export async function donnerJarreBleu(echoId: string, uid: string, stockActuel: 
     auteurId: uid, echoId, type: 'jarreBleu', createdAt: serverTimestamp(),
   });
   await updateDoc(doc(db, 'stats', 'global'), { totalJarresBleues: increment(1) });
+  if (destinataire) {
+    await creerNotification({
+      destinataireId: destinataire.auteurId, type: 'jarreBleue',
+      expediteurId: uid, expediteurPseudo, echoId, contenuApercu: destinataire.contenuApercu,
+    });
+  }
 }
 
-export async function donnerJarreRose(echoId: string, uid: string, stockActuel: number, jarresActuelles: number) {
+export async function donnerJarreRose(
+  echoId: string, uid: string, stockActuel: number, jarresActuelles: number,
+  destinataire?: CibleNotification, expediteurPseudo?: string
+) {
   if (stockActuel <= 0) throw new Error('Stock de jarres roses épuisé.');
   await updateDoc(doc(db, 'users', uid), { stockJarresRoses: increment(-1) });
   await updateDoc(doc(db, 'echos', echoId), { jarresRoses: jarresActuelles + 1 });
   await addDoc(collection(db, 'reactions'), {
     auteurId: uid, echoId, type: 'jarreRose', createdAt: serverTimestamp(),
   });
+  if (destinataire) {
+    await creerNotification({
+      destinataireId: destinataire.auteurId, type: 'jarreRose',
+      expediteurId: uid, expediteurPseudo, echoId, contenuApercu: destinataire.contenuApercu,
+    });
+  }
 }
 
-export async function donnerCoeur(echoId: string, uid: string, type: 'coeur' | 'coeurBrise', valeurActuelle: number) {
+export async function donnerCoeur(
+  echoId: string, uid: string, type: 'coeur' | 'coeurBrise', valeurActuelle: number,
+  destinataire?: CibleNotification, expediteurPseudo?: string
+) {
   const champ = type === 'coeur' ? 'coeurs' : 'coeursBrises';
   await updateDoc(doc(db, 'echos', echoId), { [champ]: valeurActuelle + 1 });
   await addDoc(collection(db, 'reactions'), {
     auteurId: uid, echoId, type, createdAt: serverTimestamp(),
   });
+  if (destinataire) {
+    await creerNotification({
+      destinataireId: destinataire.auteurId, type,
+      expediteurId: uid, expediteurPseudo, echoId, contenuApercu: destinataire.contenuApercu,
+    });
+  }
 }
 
 export function useCompteurGlobalJarres() {

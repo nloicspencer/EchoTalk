@@ -98,6 +98,34 @@ export const OISEAUX = [
   'Tourterelle',
 ];
 
+// Notifications (30/09/2026) — déclenchées quand quelqu'un d'autre
+// interagit avec vous : réaction sur un de vos échos, réponse à votre
+// Écho Ouvert, ou action de modération vous concernant. On ne se notifie
+// jamais soi-même (voir creerNotification dans useNotifications.ts).
+export type NotificationType =
+  | 'jarreBleue' | 'jarreRose' | 'coeur' | 'coeurBrise'
+  // 'echoRep' : nouvelle proposition d'EchoRep reçue par le·la
+  // propriétaire de l'Écho Ouvert, en attente de sa validation.
+  // 'echoRepValidee'/'echoRepRefusee' : réponse envoyée à l'auteur·e de
+  // la proposition une fois la décision prise (voir validerEchoRep dans
+  // useModeration.ts).
+  | 'echoRep' | 'echoRepValidee' | 'echoRepRefusee'
+  | 'moderation';
+
+export interface Notification {
+  id: string;
+  destinataireId: string;
+  type: NotificationType;
+  expediteurId?: string;
+  expediteurPseudo?: string;
+  echoId?: string;
+  // Court aperçu du contenu concerné (extrait de l'écho, ou message de
+  // modération) — tronqué à 140 caractères à l'écriture.
+  contenuApercu?: string;
+  createdAt: Date;
+  lu: boolean;
+}
+
 // VILLES retiré : remplacé par un import dynamique de src/data/communes.json
 // (32 625 communes françaises réelles, chargé uniquement au moment de
 // l'inscription, pas à chaque chargement de l'application — voir

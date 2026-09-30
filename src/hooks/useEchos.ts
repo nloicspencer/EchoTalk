@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
+import { creerNotification } from './useNotifications';
 import { Echo, EchoType, Tonalite } from '../types';
 
 // Correction du 21/08/2026 : cette fonction convertissait déjà createdAt,
@@ -258,7 +259,11 @@ export async function supprimerEcho(echo: Echo) {
 
 export async function publierEchoRep(
   echoId: string, auteurId: string, auteurPseudo: string, contenu: string,
-  placesOccupees: number, placesMax: number, estProprietaire: boolean, echoContenu: string = ''
+  placesOccupees: number, placesMax: number, estProprietaire: boolean, echoContenu: string = '',
+  // Propriétaire de l'Écho Ouvert (30/09/2026) — transmis à
+  // soumettreEchoRep() pour le notifier qu'une proposition attend sa
+  // validation. Optionnel pour ne pas casser un appelant existant.
+  proprietaireId?: string
 ) {
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
   const existing = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
@@ -268,7 +273,7 @@ export async function publierEchoRep(
   if (estProprietaire) {
     await addDoc(repsRef, { auteurId, auteurPseudo, contenu, createdAt: serverTimestamp(), modifie: false, supprime: false });
   } else {
-    await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu);
+    await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu, proprietaireId);
     throw new Error('VALIDATION_REQUISE');
   }
 }

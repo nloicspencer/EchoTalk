@@ -122,7 +122,8 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
     if (!profile || estSupprime) return;
     setReactionErreur('');
     try {
-      await donnerJarreBleu(echo.id, profile.uid, stock.jarresBleues, echo.jarresBleues || 0);
+      await donnerJarreBleu(echo.id, profile.uid, stock.jarresBleues, echo.jarresBleues || 0,
+        { auteurId: echo.auteurId, auteurPseudo: echo.auteurPseudo, contenuApercu: echo.contenu }, profile.pseudo);
     } catch (e: unknown) {
       setReactionErreur(e instanceof Error ? e.message : 'Erreur');
       setTimeout(() => setReactionErreur(''), 3000);
@@ -133,7 +134,8 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
     if (!profile) return;
     setReactionErreur('');
     try {
-      await donnerJarreRose(echo.id, profile.uid, stock.jarresRoses, echo.jarresRoses || 0);
+      await donnerJarreRose(echo.id, profile.uid, stock.jarresRoses, echo.jarresRoses || 0,
+        { auteurId: echo.auteurId, auteurPseudo: echo.auteurPseudo, contenuApercu: echo.contenu }, profile.pseudo);
     } catch (e: unknown) {
       setReactionErreur(e instanceof Error ? e.message : 'Erreur');
       setTimeout(() => setReactionErreur(''), 3000);
@@ -145,7 +147,8 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
     setReactionErreur('');
     try {
       const reactionType = type === 'coeurs' ? 'coeur' : 'coeurBrise';
-      await donnerCoeur(echo.id, profile.uid, reactionType, echo[type] || 0);
+      await donnerCoeur(echo.id, profile.uid, reactionType, echo[type] || 0,
+        { auteurId: echo.auteurId, auteurPseudo: echo.auteurPseudo, contenuApercu: echo.contenu }, profile.pseudo);
     } catch (e: unknown) {
       setReactionErreur(e instanceof Error ? e.message : 'Erreur');
       setTimeout(() => setReactionErreur(''), 3000);
@@ -170,7 +173,7 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
     setLoading(true); setErreur('');
     try {
       await publierEchoRep(echo.id, profile.uid, profile.pseudo, repContenu,
-        echo.placesOccupees ?? 0, echo.placesMax ?? 0, estProprietaire);
+        echo.placesOccupees ?? 0, echo.placesMax ?? 0, estProprietaire, echo.contenu, echo.auteurId);
       setRepContenu(''); setShowRepForm(false);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Erreur';

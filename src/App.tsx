@@ -16,6 +16,7 @@ const ModerationPage = lazy(() => import('./pages/ModerationPage'));
 const ModerationDetressePage = lazy(() => import('./pages/ModerationDetressePage'));
 const DecouvertePage = lazy(() => import('./pages/DecouvertePage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 function ChargementPage() {
   return (
@@ -35,6 +36,7 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<FilPage />} />
             <Route path="/decouverte" element={<DecouvertePage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/profil" element={<ProfilPage />} />
             <Route path="/identite" element={<IdentitePage />} />
             <Route path="/admin" element={<AdminPage />} />
