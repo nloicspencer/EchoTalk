@@ -105,6 +105,9 @@
   background: linear-gradient(135deg, #C4B4E0, #B0A0D0);
   display: flex;
   align-items: center;
+  /* Jarre + texte centrés ensemble au milieu du bandeau (14/10/2026) —
+     avant, le groupe était calé à gauche. */
+  justify-content: center;
   gap: 14px;
 }
 
@@ -112,6 +115,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
+  justify-content: center;
+  text-align: center;
   gap: 4px;
 }
 
@@ -131,6 +136,7 @@
 
 .fil-community-sub {
   width: 100%;
+  text-align: center;
   font-family: var(--et-font-echo);
   font-style: italic;
   font-size: 0.75rem;
