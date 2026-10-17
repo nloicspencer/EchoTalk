@@ -37,11 +37,21 @@ export function convertEcho(id: string, data: Record<string, unknown>): Echo {
   } as Echo;
 }
 
+// Position d'un écho dans le Fil (17/10/2026) : remonteeAt (publication ou
+// dernière réouverture), et createdAt si le champ manque encore.
+export function dateFil(e: Echo): number {
+  return (e.remonteeAt ?? e.createdAt).getTime();
+}
+
+// serverTimestamps: 'estimate' (17/10/2026) : pendant l'enregistrement d'une
+// écriture, un serverTimestamp vaut null dans le snapshot local. Avec
+// 'estimate', il vaut l'heure locale estimée : un écho qu'on vient de
+// rouvrir remonte tout de suite, sans redescendre un instant.
 export function filtrerEchosVisibles(docs: QueryDocumentSnapshot<DocumentData>[]): Echo[] {
   const maintenant = Date.now();
   const heures24 = 24 * 60 * 60 * 1000;
   return docs
-    .map((d) => convertEcho(d.id, d.data() as Record<string, unknown>))
+    .map((d) => convertEcho(d.id, d.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>))
     .filter(e => {
       if (e.masque) return false;
       if (e.supprime && e.suppressionAt) {
@@ -74,9 +84,7 @@ export function useEchos(pageSize = 30) {
       const majVisibles = filtrerEchosVisibles(snap.docs);
       setEchos(prev => {
         const sansCeChunk = prev.filter(e => !ids.includes(e.id));
-        return [...sansCeChunk, ...majVisibles].sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-        );
+        return [...sansCeChunk, ...majVisibles].sort((a, b) => dateFil(b) - dateFil(a));
       });
     });
     chunkUnsubsRef.current.set(chunkIndex, unsub);
@@ -84,7 +92,10 @@ export function useEchos(pageSize = 30) {
 
   const chargerPage = async (cursor: QueryDocumentSnapshot<DocumentData> | null) => {
     const contraintes = cursor ? [startAfter(cursor)] : [];
-    const q = query(echosCollection, orderBy('createdAt', 'desc'), ...contraintes, limit(pageSize));
+    // Tri sur remonteeAt (17/10/2026, étape 2) : un Écho Ouvert réouvert
+    // remonte en tête. Tous les échos existants ont reçu ce champ (bouton
+    // Maintenance de la page admin), et publierEcho() l'écrit désormais.
+    const q = query(echosCollection, orderBy('remonteeAt', 'desc'), ...contraintes, limit(pageSize));
     const snap = await getDocs(q);
     if (snap.docs.length > 0) {
       const nouveaux = filtrerEchosVisibles(snap.docs);
@@ -97,9 +108,7 @@ export function useEchos(pageSize = 30) {
       setEchos(prev => {
         const idsPresents = new Set(prev.map(e => e.id));
         const ajouts = nouveaux.filter(e => !idsPresents.has(e.id));
-        return [...prev, ...ajouts].sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-        );
+        return [...prev, ...ajouts].sort((a, b) => dateFil(b) - dateFil(a));
       });
     }
     setHasMore(snap.docs.length === pageSize);
@@ -133,7 +142,7 @@ export function useEchos(pageSize = 30) {
   const ajouterEchoLocalement = (echo: Echo) => {
     setEchos(prev => {
       if (prev.some(e => e.id === echo.id)) return prev;
-      return [echo, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return [echo, ...prev].sort((a, b) => dateFil(b) - dateFil(a));
     });
     // Temps réel pour son propre Écho (17/10/2026) : inséré localement, il
     // n'appartenait à aucun abonnement, donc ses réactions ne se mettaient
