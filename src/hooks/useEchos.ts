@@ -29,6 +29,10 @@ export function convertEcho(id: string, data: Record<string, unknown>): Echo {
     solidaireTermineAt: data.solidaireTermineAt instanceof Timestamp ? data.solidaireTermineAt.toDate() : undefined,
     solidaireJusquau: data.solidaireJusquau instanceof Timestamp ? data.solidaireJusquau.toDate() : undefined,
     solidaireDepuis: data.solidaireDepuis instanceof Timestamp ? data.solidaireDepuis.toDate() : undefined,
+    // Remontée dans le Fil (17/10/2026) : absent tant que l'écho n'a pas
+    // été rempli (anciens échos) ou que le serverTimestamp est en attente.
+    // Tout tri doit alors retomber sur createdAt.
+    remonteeAt: data.remonteeAt instanceof Timestamp ? data.remonteeAt.toDate() : undefined,
     reouverturesRestantes: data.reouverturesRestantes !== undefined ? data.reouverturesRestantes : 3,
   } as Echo;
 }
@@ -240,6 +244,10 @@ export async function publierEcho(params: PublierEchoParams) {
     createdAt: serverTimestamp(), jarresBleues: 0, coeurs: 0, coeursBrises: 0,
     estSolidaire: false, modifie: false, supprime: false, masque: false,
     decouvrable: params.decouvrable ?? false,
+    // Position de l'écho dans le Fil (17/10/2026) : égale à la date de
+    // publication, puis remise à l'heure à chaque réouverture d'un Écho
+    // Ouvert (voir toggleEchoOuvert). createdAt, lui, ne bouge jamais.
+    remonteeAt: serverTimestamp(),
     ...(params.type === 'ouvert' && {
       placesMax: params.placesMax ?? 6, placesOccupees: 0,
       periodicitéJours: params.periodicitéJours ?? 6, ouvertureCount: 1,
@@ -325,6 +333,9 @@ export async function toggleEchoOuvert(
     estOuvert: true, reouverturesRestantes: reouverturesRestantes - 1,
     clotureManuellement: false, fermeAutomatiquement: false,
     periodicitéJours, expiresAt,
+    // Remontée en tête du Fil (17/10/2026) : seule la réouverture fait
+    // remonter l'écho. La fermeture ne touche pas à remonteeAt.
+    remonteeAt: serverTimestamp(),
   });
 }
 

@@ -10,6 +10,10 @@ export interface Echo {
   type: EchoType;
   categorie: string;
   createdAt: Date;
+  // Position dans le Fil (17/10/2026) : date de publication, puis date de
+  // la dernière réouverture pour un Écho Ouvert. Absent sur les anciens
+  // échos tant qu'ils n'ont pas été remplis : retomber alors sur createdAt.
+  remonteeAt?: Date;
   // Réactions
   jarresBleues: number;
   coeurs: number;
