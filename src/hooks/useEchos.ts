@@ -50,6 +50,10 @@ export function filtrerEchosVisibles(docs: QueryDocumentSnapshot<DocumentData>[]
     });
 }
 
+// Attention (17/10/2026) : chaque page est ensuite écoutée en temps réel par
+// une requête where(documentId(), 'in', ids). L'opérateur 'in' accepte au
+// maximum 30 valeurs. Ne jamais passer pageSize au-dessus de 30 sans
+// découper les IDs en paquets de 30 dans abonnerChunk().
 export function useEchos(pageSize = 30) {
   const [echos, setEchos] = useState<Echo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,9 +87,16 @@ export function useEchos(pageSize = 30) {
       const ids = snap.docs.map(d => d.id);
       abonnerChunk(prochainChunkRef.current++, ids);
       lastDocRef.current = snap.docs[snap.docs.length - 1];
-      setEchos(prev => [...prev, ...nouveaux].sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-      ));
+      // Anti-doublons (17/10/2026) : si l'abonnement temps réel de cette
+      // page a déjà répondu avant ce setEchos, les mêmes échos seraient
+      // sinon ajoutés une seconde fois (clés React en double dans le Fil).
+      setEchos(prev => {
+        const idsPresents = new Set(prev.map(e => e.id));
+        const ajouts = nouveaux.filter(e => !idsPresents.has(e.id));
+        return [...prev, ...ajouts].sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+        );
+      });
     }
     setHasMore(snap.docs.length === pageSize);
   };
@@ -120,6 +131,11 @@ export function useEchos(pageSize = 30) {
       if (prev.some(e => e.id === echo.id)) return prev;
       return [echo, ...prev].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     });
+    // Temps réel pour son propre Écho (17/10/2026) : inséré localement, il
+    // n'appartenait à aucun abonnement, donc ses réactions ne se mettaient
+    // pas à jour avant un rechargement. On l'abonne seul, comme une page
+    // d'un écho.
+    abonnerChunk(prochainChunkRef.current++, [echo.id]);
   };
 
   return { echos, loading, loadingMore, hasMore, chargerPlus, ajouterEchoLocalement };
