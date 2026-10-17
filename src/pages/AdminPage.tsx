@@ -7,14 +7,18 @@ import {
   Echolegue, getSemaineISO, retirerDuJournal, selectionnerEcholegue,
   useEcholeguesSemaines, useSemainesEcholegues
 } from '../hooks/useEcholegue';
+import { creerNotification } from '../hooks/useNotifications';
 import { db } from '../services/firebase';
 import './AdminPage.css';
 
 const APERCU_RECIT = 70;
 const APERCU_LECON = 45;
 
-interface EchoCandidат {
-  id: string; auteurPseudo: string; contenu: string;
+// Renommé le 17/10/2026 : l'ancien nom contenait deux lettres cyrilliques
+// ("а" et "т") à la place de "a" et "t", invisibles à l'œil mais
+// introuvables par une recherche sur "EchoCandidat".
+interface EchoCandidat {
+  id: string; auteurId: string; auteurPseudo: string; contenu: string;
   jarresBleues: number; jarresRoses: number; coeurs: number;
   createdAt: Date; estSolidaire: boolean; type: string;
 }
@@ -72,7 +76,7 @@ function HistoriqueCompact({ historique }: { historique: Echolegue['historiqueSe
 export default function AdminPage() {
   const { user, profile } = useAuth();
   const estAdmin = profile?.role === 'admin';
-  const [candidats, setCandidats] = useState<EchoCandidат[]>([]);
+  const [candidats, setCandidats] = useState<EchoCandidat[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -126,13 +130,13 @@ export default function AdminPage() {
     debutMois.setDate(1); debutMois.setHours(0, 0, 0, 0);
     const q = query(collection(db, 'echos'), where('createdAt', '>=', Timestamp.fromDate(debutMois)));
     const snap = await getDocs(q);
-    const echos: EchoCandidат[] = [];
+    const echos: EchoCandidat[] = [];
     snap.docs.forEach(d => {
       const data = d.data();
       if (data.supprime || data.estSolidaire) return;
       const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-      const echo: EchoCandidат = {
-        id: d.id, auteurPseudo: data.auteurPseudo, contenu: data.contenu,
+      const echo: EchoCandidat = {
+        id: d.id, auteurId: data.auteurId, auteurPseudo: data.auteurPseudo, contenu: data.contenu,
         jarresBleues: data.jarresBleues || 0, jarresRoses: data.jarresRoses || 0,
         coeurs: data.coeurs || 0, createdAt, estSolidaire: false, type: data.type,
       };
@@ -143,13 +147,38 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const validerEchoSolidaire = async (echoId: string) => {
+  const validerEchoSolidaire = async (echo: EchoCandidat) => {
     try {
-      if (echoSolidaireActuel) await updateDoc(doc(db, 'echos', echoSolidaireActuel.id), { estSolidaire: false });
+      // 17/10/2026 : solidaireTermineAt ajouté ici aussi. Remplacer l'Écho
+      // Solidaire actuel le termine, exactement comme "Retirer" ou
+      // l'expiration automatique (useEchoSolidaire), qui posent déjà ce
+      // champ. Sans lui, l'auteur·e de l'Écho remplacé ne voyait pas le
+      // bandeau de récupération dans ProfilPage.tsx.
+      if (echoSolidaireActuel) {
+        await updateDoc(doc(db, 'echos', echoSolidaireActuel.id), { estSolidaire: false, solidaireTermineAt: new Date() });
+      }
       const maintenant = new Date();
       const dans1mois = new Date(maintenant);
       dans1mois.setMonth(dans1mois.getMonth() + 1);
-      await updateDoc(doc(db, 'echos', echoId), { estSolidaire: true, solidaireDepuis: maintenant, solidaireJusquau: dans1mois });
+      await updateDoc(doc(db, 'echos', echo.id), { estSolidaire: true, solidaireDepuis: maintenant, solidaireJusquau: dans1mois });
+
+      // Notification (17/10/2026) : l'auteur·e apprend que son écho devient
+      // l'Écho Solidaire du mois. Pas d'expéditeur : la sélection vient de
+      // l'équipe, pas d'une personne. Une erreur de notification ne doit
+      // jamais faire échouer la sélection elle-même.
+      if (echo.auteurId) {
+        try {
+          await creerNotification({
+            destinataireId: echo.auteurId,
+            type: 'echoSolidaire',
+            echoId: echo.id,
+            contenuApercu: echo.contenu || undefined,
+          });
+        } catch (err) {
+          console.error('[validerEchoSolidaire] notification non créée', err);
+        }
+      }
+
       afficher('✅ Écho Solidaire mis à jour.');
       chargerDonnees();
     } catch { afficher('❌ Erreur lors de la mise à jour.'); }
@@ -259,7 +288,7 @@ export default function AdminPage() {
                       <span>{formatDateHeure(echo.createdAt)}</span>
                     </div>
                   </div>
-                  <button className="btn-valider" onClick={() => validerEchoSolidaire(echo.id)}>Définir</button>
+                  <button className="btn-valider" onClick={() => validerEchoSolidaire(echo)}>Définir</button>
                 </div>
               ))}
           </div>

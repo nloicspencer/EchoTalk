@@ -118,7 +118,11 @@ export type NotificationType =
   // 'echolegueSelectionnee' (17/10/2026) : l'Écholègue de l'auteur·e vient
   // d'entrer dans le Journal des Lègues (voir selectionnerEcholegue dans
   // useEcholegue.ts). Sans expéditeur : la sélection vient du Journal.
-  | 'echolegueSelectionnee';
+  | 'echolegueSelectionnee'
+  // 'echoSolidaire' (17/10/2026) : l'écho de l'auteur·e vient d'être
+  // choisi comme Écho Solidaire du mois (voir validerEchoSolidaire dans
+  // AdminPage.tsx). Sans expéditeur : la sélection vient de l'équipe.
+  | 'echoSolidaire';
 
 export interface Notification {
   id: string;

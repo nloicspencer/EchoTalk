@@ -15,6 +15,7 @@ const ICONES: Record<NotificationType, string> = {
   echoBouteille: '🍾',
   moderation: '🛡️',
   echolegueSelectionnee: '📜',
+  echoSolidaire: '🫶',
 };
 
 function libelle(n: Notification): string {
@@ -30,6 +31,7 @@ function libelle(n: Notification): string {
     case 'echoBouteille': return 'Vous avez reçu un Écho-Bouteille.';
     case 'moderation': return n.contenuApercu || 'Une action de modération concerne un de vos échos.';
     case 'echolegueSelectionnee': return 'Votre Écholègue figure dans le Journal des Lègues.';
+    case 'echoSolidaire': return 'Votre écho a été choisi comme Écho Solidaire du mois.';
     default: return 'Nouvelle notification.';
   }
 }
@@ -47,6 +49,7 @@ function libelle(n: Notification): string {
 //   (ValidationEchoReps et EchoBouteille y sont tous les deux affichés).
 // - Écholègue sélectionné (17/10/2026) -> le Fil, où le Journal des Lègues
 //   est affiché.
+// - Écho Solidaire du mois (17/10/2026) -> le Fil, sur l'écho choisi.
 // - Modération -> pas de lien : l'écho concerné peut avoir été masqué ou
 //   supprimé, un lien y mènerait souvent vers une page vide.
 type CibleLien = { type: 'interne'; to: string } | null;
@@ -59,6 +62,7 @@ function cibleLien(n: Notification): CibleLien {
     case 'coeurBrise':
     case 'echoRepValidee':
     case 'echoRepRefusee':
+    case 'echoSolidaire':
       return n.echoId ? { type: 'interne', to: `/?echo=${n.echoId}` } : null;
     case 'echoRep':
     case 'echoBouteille':
