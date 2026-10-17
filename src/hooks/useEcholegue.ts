@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
+import { creerNotification } from './useNotifications';
 
 export interface SelectionHistorique {
   semaine: string;
@@ -149,8 +150,22 @@ export async function signalerEcholegue(
   });
 }
 
+// Notification de sélection (17/10/2026) : l'auteur est prévenu que son
+// Écholègue entre dans le Journal des Lègues. On lit le document avant la
+// mise à jour pour connaître l'auteur et pour savoir s'il était déjà
+// sélectionné cette semaine : arrayUnion ne change rien en base dans ce
+// cas, il ne faut donc pas notifier une seconde fois. Pas d'expéditeur :
+// la sélection vient du Journal, pas d'une personne. Une erreur de
+// notification ne doit jamais bloquer la sélection elle-même.
 export async function selectionnerEcholegue(echolegueId: string, semaine: string) {
-  await updateDoc(doc(db, 'echolegues', echolegueId), {
+  const ref = doc(db, 'echolegues', echolegueId);
+  const snap = await getDoc(ref);
+  const semainesDeja = snap.exists() && Array.isArray(snap.data().semainesSelectionnees)
+    ? (snap.data().semainesSelectionnees as string[])
+    : [];
+  const dejaSelectionne = semainesDeja.includes(semaine);
+
+  await updateDoc(ref, {
     nbSelections: increment(1),
     historiqueSelections: arrayUnion({
       semaine,
@@ -158,6 +173,21 @@ export async function selectionnerEcholegue(echolegueId: string, semaine: string
     }),
     semainesSelectionnees: arrayUnion(semaine),
   });
+
+  if (snap.exists() && !dejaSelectionne) {
+    const data = snap.data();
+    if (typeof data.auteurId === 'string' && data.auteurId) {
+      try {
+        await creerNotification({
+          destinataireId: data.auteurId,
+          type: 'echolegueSelectionnee',
+          contenuApercu: (data.lecon as string) || (data.recit as string) || undefined,
+        });
+      } catch (err) {
+        console.error('[selectionnerEcholegue] notification non créée', err);
+      }
+    }
+  }
 }
 
 export async function retirerDuJournal(legue: Echolegue, semaine: string) {

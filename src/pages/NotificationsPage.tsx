@@ -14,6 +14,7 @@ const ICONES: Record<NotificationType, string> = {
   echoRepRefusee: '🚫',
   echoBouteille: '🍾',
   moderation: '🛡️',
+  echolegueSelectionnee: '📜',
 };
 
 function libelle(n: Notification): string {
@@ -28,6 +29,7 @@ function libelle(n: Notification): string {
     case 'echoRepRefusee': return 'Votre réponse à un Écho Ouvert n\'a pas été retenue.';
     case 'echoBouteille': return 'Vous avez reçu un Écho-Bouteille.';
     case 'moderation': return n.contenuApercu || 'Une action de modération concerne un de vos échos.';
+    case 'echolegueSelectionnee': return 'Votre Écholègue figure dans le Journal des Lègues.';
     default: return 'Nouvelle notification.';
   }
 }
@@ -43,6 +45,8 @@ function libelle(n: Notification): string {
 // - EchoRep en attente de validation, et Écho-Bouteille reçue -> l'onglet
 //   EchoProfil, seul endroit de l'app où ces deux actions se traitent
 //   (ValidationEchoReps et EchoBouteille y sont tous les deux affichés).
+// - Écholègue sélectionné (17/10/2026) -> le Fil, où le Journal des Lègues
+//   est affiché.
 // - Modération -> pas de lien : l'écho concerné peut avoir été masqué ou
 //   supprimé, un lien y mènerait souvent vers une page vide.
 type CibleLien = { type: 'interne'; to: string } | null;
@@ -59,6 +63,8 @@ function cibleLien(n: Notification): CibleLien {
     case 'echoRep':
     case 'echoBouteille':
       return { type: 'interne', to: '/profil' };
+    case 'echolegueSelectionnee':
+      return { type: 'interne', to: '/' };
     default:
       return null;
   }

@@ -114,7 +114,11 @@ export type NotificationType =
   // sort effectué, que ce soit immédiatement à l'envoi ou après
   // validation de modération — voir useEchoBouteille.ts).
   | 'echoBouteille'
-  | 'moderation';
+  | 'moderation'
+  // 'echolegueSelectionnee' (17/10/2026) : l'Écholègue de l'auteur·e vient
+  // d'entrer dans le Journal des Lègues (voir selectionnerEcholegue dans
+  // useEcholegue.ts). Sans expéditeur : la sélection vient du Journal.
+  | 'echolegueSelectionnee';
 
 export interface Notification {
   id: string;
