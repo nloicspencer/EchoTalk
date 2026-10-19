@@ -1,0 +1,65 @@
+/* Tags @pseudonyme (19/10/2026) */
+
+.mentions-zone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mentions-zone textarea { box-sizing: border-box; }
+
+/* Panneau de suggestions placé SOUS la zone de texte, dans le flux de la
+   page (pas en surimpression) : sur mobile il ne passe jamais sous la
+   carte suivante du Fil, ni hors de l'écran. */
+.mentions-panneau {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: rgba(250, 247, 255, 0.98);
+  border: 0.5px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  box-shadow: var(--et-shadow-md);
+  max-height: 220px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.mentions-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--et-radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--et-font-ui);
+  transition: background 0.12s;
+}
+
+.mentions-option:hover,
+.mentions-option:focus { background: rgba(123, 94, 167, 0.1); outline: none; }
+
+.mentions-option-tag { font-size: 0.875rem; font-weight: 500; color: var(--et-accent); }
+.mentions-option-pseudo { font-size: 0.7rem; color: var(--et-text-3); }
+
+.mentions-info {
+  margin: 0;
+  padding: 6px 8px;
+  font-family: var(--et-font-ui);
+  font-size: 0.75rem;
+  color: var(--et-text-3);
+}
+
+/* Pseudo tagué dans un texte publié : mis en couleur, sans lien. */
+.mention-tag {
+  color: var(--et-accent);
+  font-weight: 500;
+  background: rgba(123, 94, 167, 0.08);
+  border-radius: 4px;
+  padding: 0 2px;
+}

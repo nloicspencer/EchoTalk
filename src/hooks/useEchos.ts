@@ -8,7 +8,8 @@ import {
 import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
 import { creerNotification } from './useNotifications';
-import { Echo, EchoType, Tonalite } from '../types';
+import { notifierMentions, nouvellesMentions } from './useMentions';
+import { Echo, EchoType, Mention, Tonalite } from '../types';
 
 // Correction du 21/08/2026 : cette fonction convertissait déjà createdAt,
 // expiresAt, updatedAt et suppressionAt de Timestamp Firestore vers de
@@ -189,6 +190,7 @@ interface EchoRepBrute {
   modifie?: boolean;
   masque?: boolean;
   suppressionAt?: Date;
+  mentions?: Mention[];
 }
 
 export function useEchoReps(echoId: string) {
@@ -212,6 +214,7 @@ export function useEchoReps(echoId: string) {
             supprime: data.supprime as boolean | undefined,
             modifie: data.modifie as boolean | undefined,
             masque: data.masque as boolean | undefined,
+            mentions: Array.isArray(data.mentions) ? (data.mentions as Mention[]) : undefined,
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
             updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
             suppressionAt: data.suppressionAt
@@ -242,6 +245,9 @@ interface PublierEchoParams {
   contenu: string; auteurId: string; auteurPseudo: string;
   tonalite: Tonalite; type: EchoType; placesMax?: 3 | 6 | 8; periodicitéJours?: 2 | 6 | 10;
   decouvrable?: boolean;
+  // Tags @pseudonyme (19/10/2026) : uniquement ceux encore présents dans
+  // le texte (voir mentionsPresentes dans useMentions.ts).
+  mentions?: Mention[];
 }
 
 export async function publierEcho(params: PublierEchoParams) {
@@ -257,6 +263,7 @@ export async function publierEcho(params: PublierEchoParams) {
     // publication, puis remise à l'heure à chaque réouverture d'un Écho
     // Ouvert (voir toggleEchoOuvert). createdAt, lui, ne bouge jamais.
     remonteeAt: serverTimestamp(),
+    mentions: params.mentions ?? [],
     ...(params.type === 'ouvert' && {
       placesMax: params.placesMax ?? 6, placesOccupees: 0,
       periodicitéJours: params.periodicitéJours ?? 6, ouvertureCount: 1,
@@ -264,12 +271,37 @@ export async function publierEcho(params: PublierEchoParams) {
     }),
   });
   await analyserEtSignaler(echoRef.id, params.auteurId, params.auteurPseudo, params.contenu, 'echo');
+  await notifierMentions(params.mentions ?? [], {
+    expediteurId: params.auteurId, expediteurPseudo: params.auteurPseudo,
+    echoId: echoRef.id, texte: params.contenu,
+  });
   return echoRef;
 }
 
-export async function modifierEcho(echoId: string, nouveauContenu: string, createdAt: Date) {
+interface ContexteModification {
+  anciennes: Mention[] | undefined;
+  auteurId: string;
+  auteurPseudo: string;
+}
+
+// mentions/contexte (19/10/2026) : optionnels pour ne pas casser un
+// appelant existant. Seules les personnes taguées PENDANT la modification
+// sont notifiées, jamais une seconde fois celles déjà taguées.
+export async function modifierEcho(
+  echoId: string, nouveauContenu: string, createdAt: Date,
+  mentions?: Mention[], contexte?: ContexteModification
+) {
   if (Date.now() - createdAt.getTime() > 24 * 60 * 60 * 1000) throw new Error('Le délai de modification de 24h est dépassé.');
-  await updateDoc(doc(db, 'echos', echoId), { contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp() });
+  await updateDoc(doc(db, 'echos', echoId), {
+    contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp(),
+    ...(mentions !== undefined && { mentions }),
+  });
+  if (mentions && contexte) {
+    await notifierMentions(nouvellesMentions(mentions, contexte.anciennes), {
+      expediteurId: contexte.auteurId, expediteurPseudo: contexte.auteurPseudo,
+      echoId, texte: nouveauContenu,
+    });
+  }
 }
 
 export async function supprimerEcho(echo: Echo) {
@@ -296,7 +328,13 @@ export async function publierEchoRep(
   // Propriétaire de l'Écho Ouvert (30/09/2026) — transmis à
   // soumettreEchoRep() pour le notifier qu'une proposition attend sa
   // validation. Optionnel pour ne pas casser un appelant existant.
-  proprietaireId?: string
+  proprietaireId?: string,
+  // Tags @pseudonyme (19/10/2026). EchoRep du propriétaire : publiée tout
+  // de suite, les personnes taguées sont notifiées tout de suite.
+  // EchoRep d'un participant : les tags sont conservés avec la proposition
+  // et notifiés seulement si le propriétaire l'accepte (voir
+  // ValidationEchoReps.tsx).
+  mentions: Mention[] = []
 ) {
   const repsRef = collection(db, 'echos', echoId, 'echoreps');
   const existing = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
@@ -304,16 +342,29 @@ export async function publierEchoRep(
     throw new Error('Plus de places disponibles dans cet écho');
   }
   if (estProprietaire) {
-    await addDoc(repsRef, { auteurId, auteurPseudo, contenu, createdAt: serverTimestamp(), modifie: false, supprime: false });
+    await addDoc(repsRef, { auteurId, auteurPseudo, contenu, mentions, createdAt: serverTimestamp(), modifie: false, supprime: false });
+    await notifierMentions(mentions, { expediteurId: auteurId, expediteurPseudo: auteurPseudo, echoId, texte: contenu });
   } else {
-    await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu, proprietaireId);
+    await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu, proprietaireId, mentions);
     throw new Error('VALIDATION_REQUISE');
   }
 }
 
-export async function modifierEchoRep(echoId: string, repId: string, nouveauContenu: string, createdAt: Date) {
+export async function modifierEchoRep(
+  echoId: string, repId: string, nouveauContenu: string, createdAt: Date,
+  mentions?: Mention[], contexte?: ContexteModification
+) {
   if (Date.now() - createdAt.getTime() > 60 * 60 * 1000) throw new Error('Le délai de modification de 60 minutes est dépassé.');
-  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), { contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp() });
+  await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
+    contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp(),
+    ...(mentions !== undefined && { mentions }),
+  });
+  if (mentions && contexte) {
+    await notifierMentions(nouvellesMentions(mentions, contexte.anciennes), {
+      expediteurId: contexte.auteurId, expediteurPseudo: contexte.auteurPseudo,
+      echoId, texte: nouveauContenu,
+    });
+  }
 }
 
 export async function supprimerEchoRep(echoId: string, repId: string, auteurId: string, placesOccupees: number, estProprietaire: boolean) {

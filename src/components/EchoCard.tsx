@@ -11,9 +11,11 @@ import {
     useEchoReps,
 } from '../hooks/useEchos';
 import { signalerContenu } from '../hooks/useModeration';
+import { mentionsPresentes } from '../hooks/useMentions';
 import { donnerCoeur, donnerJarreBleu, donnerJarreRose, useStockJarres } from '../hooks/useReactions';
-import { Echo } from '../types';
+import { Echo, Mention } from '../types';
 import BoutonPartage from './BoutonPartage';
+import { TexteAvecMentions, ZoneSaisieMentions } from './Mentions';
 import './EchoCard.css';
 import JarreIcon from './JarreIcon';
 
@@ -36,6 +38,10 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
   const [editContenu, setEditContenu] = useState(echo.contenu);
   const [editRepId, setEditRepId] = useState<string | null>(null);
   const [editRepContenu, setEditRepContenu] = useState('');
+  // Tags @pseudonyme (19/10/2026) — un état par zone de saisie.
+  const [repMentions, setRepMentions] = useState<Mention[]>([]);
+  const [editMentions, setEditMentions] = useState<Mention[]>([]);
+  const [editRepMentions, setEditRepMentions] = useState<Mention[]>([]);
   const [reactionErreur, setReactionErreur] = useState('');
   const [signalementFait, setSignalementFait] = useState(false);
   const [showReouvrirChoix, setShowReouvrirChoix] = useState(false);
@@ -158,7 +164,9 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
   const handleModifierEcho = async () => {
     if (!editContenu.trim()) return;
     try {
-      await modifierEcho(echo.id, editContenu, echo.createdAt);
+      await modifierEcho(echo.id, editContenu, echo.createdAt, mentionsPresentes(editContenu, editMentions), {
+        anciennes: echo.mentions, auteurId: echo.auteurId, auteurPseudo: echo.auteurPseudo,
+      });
       setEditEcho(false);
     } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
@@ -173,22 +181,25 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
     setLoading(true); setErreur('');
     try {
       await publierEchoRep(echo.id, profile.uid, profile.pseudo, repContenu,
-        echo.placesOccupees ?? 0, echo.placesMax ?? 0, estProprietaire, echo.contenu, echo.auteurId);
-      setRepContenu(''); setShowRepForm(false);
+        echo.placesOccupees ?? 0, echo.placesMax ?? 0, estProprietaire, echo.contenu, echo.auteurId,
+        mentionsPresentes(repContenu, repMentions));
+      setRepContenu(''); setRepMentions([]); setShowRepForm(false);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Erreur';
       if (msg === 'VALIDATION_REQUISE') {
         setErreur('✅ Votre EchoRep est en attente de validation par le propriétaire.');
-        setRepContenu('');
+        setRepContenu(''); setRepMentions([]);
         setTimeout(() => { setShowRepForm(false); setErreur(''); }, 3000);
       } else { setErreur(msg); }
     } finally { setLoading(false); }
   };
 
-  const handleModifierRep = async (repId: string, createdAt: Date) => {
-    if (!editRepContenu.trim()) return;
+  const handleModifierRep = async (repId: string, createdAt: Date, anciennes: Mention[] | undefined) => {
+    if (!editRepContenu.trim() || !profile) return;
     try {
-      await modifierEchoRep(echo.id, repId, editRepContenu, createdAt);
+      await modifierEchoRep(echo.id, repId, editRepContenu, createdAt, mentionsPresentes(editRepContenu, editRepMentions), {
+        anciennes, auteurId: profile.uid, auteurPseudo: profile.pseudo,
+      });
       setEditRepId(null);
     } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erreur'); }
   };
@@ -284,7 +295,11 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
 
       {editEcho ? (
         <div className="edit-echo-form">
-          <textarea value={editContenu} onChange={e => setEditContenu(e.target.value)} rows={4} autoFocus />
+          <ZoneSaisieMentions
+            value={editContenu} onChange={setEditContenu}
+            mentions={editMentions} onMentionsChange={setEditMentions}
+            exclureUid={profile?.uid} rows={4} autoFocus
+          />
           <div className="edit-actions">
             <button onClick={() => setEditEcho(false)}>Annuler</button>
             <button className="btn-save" onClick={handleModifierEcho}>Enregistrer</button>
@@ -296,7 +311,7 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
             ref={texteRef}
             className={`echo-card-text ${estSupprime ? 'contenu-supprime' : ''}`}
           >
-            {echo.contenu}
+            <TexteAvecMentions texte={echo.contenu} mentions={estSupprime ? undefined : echo.mentions} />
           </p>
         </div>
       )}
@@ -317,7 +332,7 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
       {estProprietaire && !estSupprime && !editEcho && (
         <div className="echo-auteur-actions">
           {peutModifierEcho() && (
-            <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); }}>
+            <button className="btn-edit" onClick={() => { setEditEcho(true); setEditContenu(echo.contenu); setEditMentions(echo.mentions ?? []); }}>
               <i className="ti ti-pencil" aria-hidden="true" /> Modifier
             </button>
           )}
@@ -402,16 +417,22 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
                 <div key={rep.id} className={`echorep-item ${rep.supprime ? 'rep-supprimee' : ''}`}>
                   {editRepId === rep.id ? (
                     <div className="edit-rep-form">
-                      <textarea value={editRepContenu} onChange={e => setEditRepContenu(e.target.value)} rows={3} autoFocus />
+                      <ZoneSaisieMentions
+                        value={editRepContenu} onChange={setEditRepContenu}
+                        mentions={editRepMentions} onMentionsChange={setEditRepMentions}
+                        exclureUid={profile?.uid} rows={3} autoFocus
+                      />
                       <div className="edit-actions">
                         <button onClick={() => setEditRepId(null)}>Annuler</button>
-                        <button className="btn-save" onClick={() => handleModifierRep(rep.id, rep.createdAt)}>Enregistrer</button>
+                        <button className="btn-save" onClick={() => handleModifierRep(rep.id, rep.createdAt, rep.mentions)}>Enregistrer</button>
                       </div>
                     </div>
                   ) : (
                     <>
                       {!rep.supprime && <span className="echorep-pseudo">{rep.auteurPseudo}</span>}
-                      <p className="echorep-contenu">{rep.contenu}</p>
+                      <p className="echorep-contenu">
+                        <TexteAvecMentions texte={rep.contenu} mentions={rep.supprime ? undefined : rep.mentions} />
+                      </p>
                       {rep.modifie && !rep.supprime && (
                         <span className="mention-modifie">
                           <i className="ti ti-pencil" aria-hidden="true" style={{fontSize:'11px'}} /> Modifié
@@ -425,7 +446,7 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
                           {profile?.uid === rep.auteurId && !rep.supprime && estReellementOuvert && (
                             <>
                               {peutModifierRep(rep.createdAt) && (
-                                <button className="btn-edit-sm" onClick={() => { setEditRepId(rep.id); setEditRepContenu(rep.contenu); }}>
+                                <button className="btn-edit-sm" onClick={() => { setEditRepId(rep.id); setEditRepContenu(rep.contenu); setEditRepMentions(rep.mentions ?? []); }}>
                                   <i className="ti ti-pencil" aria-hidden="true" />
                                 </button>
                               )}
@@ -459,7 +480,12 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
                 </button>
               ) : (
                 <div className="echorep-input">
-                  <textarea placeholder="Votre EchoRep..." value={repContenu} onChange={e => setRepContenu(e.target.value)} rows={3} autoFocus />
+                  <ZoneSaisieMentions
+                    placeholder="Votre EchoRep... (@ pour mentionner quelqu'un)"
+                    value={repContenu} onChange={setRepContenu}
+                    mentions={repMentions} onMentionsChange={setRepMentions}
+                    exclureUid={profile?.uid} rows={3} autoFocus
+                  />
                   {erreur && <p className="rep-erreur">{erreur}</p>}
                   <div className="echorep-actions">
                     <button onClick={() => { setShowRepForm(false); setErreur(''); }}>Annuler</button>

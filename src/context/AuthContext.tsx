@@ -11,6 +11,7 @@ import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/fires
 import { auth, db } from '../services/firebase';
 import { OISEAUX, UserProfile } from '../types';
 import { verifierSuspension } from '../hooks/useModeration';
+import { cleRecherche } from '../hooks/useMentions';
 import { VERSION_DOCUMENTS_LEGAUX } from '../constants/documentsLegaux';
 
 // La liste des communes (32 625 entrées, ~517 Ko) n'est chargée qu'au
@@ -166,8 +167,12 @@ function useAuthState(): AuthContextValue {
       // du compte, utilisé par tirerDestinataireAleatoire() (Écho-Bouteille)
       // pour piocher un destinataire au hasard sans jamais avoir à lire
       // toute la collection annuaire, même à grande échelle.
+      // pseudo + cle (19/10/2026) : servent à l'autocomplétion des tags
+      // @pseudonyme (voir useMentions.ts). cle = pseudo en minuscules,
+      // sans accents ni espaces, pour la recherche par préfixe.
       await setDoc(doc(db, 'annuaire', cred.user.uid), {
         uid: cred.user.uid, banni: false, alea: Math.random(),
+        pseudo, cle: cleRecherche(pseudo),
       });
       console.log('setDoc annuaire réussi !');
     } catch (e) {

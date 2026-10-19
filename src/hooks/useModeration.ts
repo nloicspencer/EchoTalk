@@ -6,6 +6,8 @@ import {
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
 import { creerNotification } from './useNotifications';
+import { notifierMentions } from './useMentions';
+import { Mention } from '../types';
 
 export interface Signalement {
   id: string; echoId: string; echoRepId?: string;
@@ -20,6 +22,7 @@ export interface EchoRepEnAttente {
   id: string; echoId: string; echoTitre: string;
   auteurId: string; auteurPseudo: string; contenu: string;
   createdAt: Date; expiresAt: Date;
+  mentions: Mention[];
 }
 
 export async function signalerContenu(
@@ -72,13 +75,16 @@ export async function verifierActiviteSuspecte(userId: string, pseudo: string) {
 // n'est pas envoyée.
 export async function soumettreEchoRep(
   echoId: string, echoContenu: string, auteurId: string, auteurPseudo: string, contenu: string,
-  destinataireId?: string
+  destinataireId?: string,
+  // Tags @pseudonyme (19/10/2026) : conservés avec la proposition, mais
+  // personne n'est notifié tant qu'elle n'est pas acceptée.
+  mentions: Mention[] = []
 ) {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await analyserEtSignaler(echoId, auteurId, auteurPseudo, contenu, 'echorep');
   const ref = await addDoc(collection(db, 'echoreps_attente'), {
     echoId, echoContenu: echoContenu.slice(0, 100), auteurId, auteurPseudo, contenu,
-    createdAt: serverTimestamp(), expiresAt, statut: 'en_attente',
+    mentions, createdAt: serverTimestamp(), expiresAt, statut: 'en_attente',
   });
   if (destinataireId) {
     await creerNotification({
@@ -92,15 +98,17 @@ export async function soumettreEchoRep(
 
 export async function validerEchoRep(
   attenteId: string, echoId: string, auteurId: string, auteurPseudo: string,
-  contenu: string, placesOccupees: number, placesMax: number, accepter: boolean
+  contenu: string, placesOccupees: number, placesMax: number, accepter: boolean,
+  mentions: Mention[] = []
 ) {
   await updateDoc(doc(db, 'echoreps_attente', attenteId), { statut: accepter ? 'accepte' : 'refuse' });
   if (accepter) {
     if (placesOccupees >= placesMax) throw new Error('Plus de places disponibles');
     await addDoc(collection(db, 'echos', echoId, 'echoreps'), {
-      auteurId, auteurPseudo, contenu, createdAt: serverTimestamp(), modifie: false, supprime: false,
+      auteurId, auteurPseudo, contenu, mentions, createdAt: serverTimestamp(), modifie: false, supprime: false,
     });
     await updateDoc(doc(db, 'echos', echoId), { placesOccupees: placesOccupees + 1 });
+    await notifierMentions(mentions, { expediteurId: auteurId, expediteurPseudo: auteurPseudo, echoId, texte: contenu });
   }
   // Notifie l'auteur·e de la proposition (auteurId, déjà disponible ici)
   // de la décision prise — qu'elle soit positive ou négative, pour éviter
@@ -127,6 +135,7 @@ export function useEchoRepsEnAttente(proprietaireId: string) {
             auteurId: data.auteurId, auteurPseudo: data.auteurPseudo, contenu: data.contenu,
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
             expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : new Date(),
+            mentions: Array.isArray(data.mentions) ? (data.mentions as Mention[]) : [],
           });
         }
       }

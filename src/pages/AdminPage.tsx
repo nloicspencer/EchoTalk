@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, query, Timestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import JarreIcon from '../components/JarreIcon';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import {
   useEcholeguesSemaines, useSemainesEcholegues
 } from '../hooks/useEcholegue';
 import { creerNotification } from '../hooks/useNotifications';
+import { cleRecherche } from '../hooks/useMentions';
 import { db } from '../services/firebase';
 import './AdminPage.css';
 
@@ -80,6 +81,7 @@ export default function AdminPage() {
   const [candidats, setCandidats] = useState<EchoCandidat[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [preparationEnCours, setPreparationEnCours] = useState(false);
 
   // Écho Solidaire actuel : hook temps réel dédié (déjà scalable — filtre
   // estSolidaire==true directement côté serveur), plutôt que de le
@@ -189,6 +191,57 @@ export default function AdminPage() {
   // 19/10/2026, une fois tous les échos remplis et le Fil passé sur
   // remonteeAt. publierEcho() écrit ce champ pour chaque nouvel écho.
 
+  // Préparation des tags @pseudonyme (19/10/2026) — étape temporaire.
+  // L'autocomplétion cherche les pseudos dans `annuaire` (champs pseudo +
+  // cle). Les nouveaux comptes les reçoivent à l'inscription
+  // (AuthContext.tsx) ; ce bouton les ajoute aux comptes existants.
+  // - annuaire existant : seuls pseudo et cle sont ajoutés.
+  // - annuaire absent (comptes créés avant l'Écho-Bouteille) : il est créé
+  //   complet, comme à l'inscription (banni repris de la suspension).
+  // Sans risque à relancer : un compte déjà à jour est ignoré.
+  const preparerAnnuaire = async () => {
+    if (!confirm('Préparer l\'annuaire des pseudos pour les tags @ ?')) return;
+    setPreparationEnCours(true);
+    try {
+      const [usersSnap, annuaireSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'annuaire')),
+      ]);
+      const annuaire = new Map<string, Record<string, unknown>>();
+      annuaireSnap.docs.forEach(d => annuaire.set(d.id, d.data()));
+      const ecritures: { id: string; donnees: Record<string, unknown>; creer: boolean }[] = [];
+      usersSnap.docs.forEach(u => {
+        const data = u.data();
+        const pseudo = data.pseudo;
+        if (typeof pseudo !== 'string' || !pseudo) return;
+        const cle = cleRecherche(pseudo);
+        const existant = annuaire.get(u.id);
+        if (existant) {
+          if (existant.pseudo === pseudo && existant.cle === cle) return;
+          ecritures.push({ id: u.id, donnees: { pseudo, cle }, creer: false });
+        } else {
+          const banni = !!(data.suspension && data.suspension.banni);
+          ecritures.push({ id: u.id, donnees: { uid: u.id, banni, alea: Math.random(), pseudo, cle }, creer: true });
+        }
+      });
+      for (let i = 0; i < ecritures.length; i += 450) {
+        const batch = writeBatch(db);
+        ecritures.slice(i, i + 450).forEach(e => {
+          const ref = doc(db, 'annuaire', e.id);
+          if (e.creer) batch.set(ref, e.donnees); else batch.update(ref, e.donnees);
+        });
+        await batch.commit();
+      }
+      const crees = ecritures.filter(e => e.creer).length;
+      afficher(`✅ ${ecritures.length} compte(s) préparé(s) sur ${usersSnap.size}${crees ? `, dont ${crees} ajouté(s) à l'annuaire` : ''}.`);
+    } catch (err) {
+      console.error('[preparerAnnuaire]', err);
+      afficher('❌ Erreur pendant la préparation.');
+    } finally {
+      setPreparationEnCours(false);
+    }
+  };
+
   const retirerEchoSolidaireActuel = async () => {
     if (!echoSolidaireActuel) return;
     await updateDoc(doc(db, 'echos', echoSolidaireActuel.id), { estSolidaire: false, solidaireTermineAt: new Date() });
@@ -260,6 +313,16 @@ export default function AdminPage() {
 
         {/* Colonne gauche */}
         <div className="admin-colonne">
+          {/* Maintenance temporaire (19/10/2026) — à retirer une fois
+              l'annuaire préparé et les tags @ vérifiés. */}
+          <div className="admin-section">
+            <h2>🛠️ Maintenance</h2>
+            <p className="admin-note">Prépare les pseudos des comptes existants pour les tags @. Sans risque à relancer.</p>
+            <button className="btn-aleatoire" onClick={preparerAnnuaire} disabled={preparationEnCours}>
+              {preparationEnCours ? 'Préparation...' : 'Préparer les tags @'}
+            </button>
+          </div>
+
           <div className="admin-section">
             <h2>Écho Solidaire actuel</h2>
             {echoSolidaireActuel ? (

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, getDoc, Timestamp, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { creerNotification } from '../hooks/useNotifications';
+import { notifierMentions } from '../hooks/useMentions';
+import { Mention } from '../types';
+import { TexteAvecMentions } from './Mentions';
 import './ValidationEchoReps.css';
 
 interface RepEnAttente {
@@ -13,6 +16,7 @@ interface RepEnAttente {
   contenu: string;
   createdAt: Date;
   expiresAt: Date;
+  mentions: Mention[];
 }
 
 interface Props {
@@ -39,6 +43,7 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
               auteurId: data.auteurId, auteurPseudo: data.auteurPseudo, contenu: data.contenu,
               createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
               expiresAt: data.expiresAt instanceof Timestamp ? data.expiresAt.toDate() : new Date(),
+              mentions: Array.isArray(data.mentions) ? (data.mentions as Mention[]) : [],
             });
             echodata[data.echoId] = {
               contenu: echoRef.data().contenu,
@@ -68,7 +73,7 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
     await updateDoc(doc(db, 'echoreps_attente', rep.id), { statut: 'accepte' });
     await addDoc(collection(db, 'echos', rep.echoId, 'echoreps'), {
       auteurId: rep.auteurId, auteurPseudo: rep.auteurPseudo, contenu: rep.contenu,
-      createdAt: serverTimestamp(), modifie: false, supprime: false,
+      mentions: rep.mentions, createdAt: serverTimestamp(), modifie: false, supprime: false,
     });
     await updateDoc(doc(db, 'echos', rep.echoId), { placesOccupees: echo.placesOccupees + 1 });
     // Notification (30/09/2026) — ce composant gère l'acceptation/refus
@@ -78,6 +83,13 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
     await creerNotification({
       destinataireId: rep.auteurId, type: 'echoRepValidee',
       echoId: rep.echoId, contenuApercu: rep.contenu,
+    });
+    // Tags @pseudonyme (19/10/2026) : les personnes taguées dans la
+    // proposition ne sont prévenues qu'ici, une fois la réponse acceptée.
+    // De la part de l'auteur·e de l'EchoRep, pas du propriétaire.
+    await notifierMentions(rep.mentions, {
+      expediteurId: rep.auteurId, expediteurPseudo: rep.auteurPseudo,
+      echoId: rep.echoId, texte: rep.contenu,
     });
   };
 
@@ -105,7 +117,7 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
               Écho : "{(echoData[rep.echoId]?.contenu || rep.echoContenu).slice(0, 60)}..."
             </div>
             <div className="validation-auteur">{rep.auteurPseudo}</div>
-            <p className="validation-contenu">{rep.contenu}</p>
+            <p className="validation-contenu"><TexteAvecMentions texte={rep.contenu} mentions={rep.mentions} /></p>
             <div className="validation-footer">
               <span className="validation-timer">
                 <i className="ti ti-clock" aria-hidden="true" /> {tempsRestant(rep.expiresAt)}

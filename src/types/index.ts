@@ -1,6 +1,13 @@
 export type EchoType = 'libre' | 'ouvert';
 export type Tonalite = 'soleil' | 'pluie';
 
+// Tag @pseudonyme (19/10/2026) : personne taguée dans un Écho ou une
+// EchoRep, choisie dans la liste de suggestions (voir useMentions.ts).
+export interface Mention {
+  uid: string;
+  pseudo: string;
+}
+
 export interface Echo {
   id: string;
   contenu: string;
@@ -14,6 +21,9 @@ export interface Echo {
   // la dernière réouverture pour un Écho Ouvert. Absent sur les anciens
   // échos tant qu'ils n'ont pas été remplis : retomber alors sur createdAt.
   remonteeAt?: Date;
+  // Personnes taguées (19/10/2026), 5 au maximum. Absent sur les échos
+  // publiés avant les tags.
+  mentions?: Mention[];
   // Réactions
   jarresBleues: number;
   coeurs: number;
@@ -126,7 +136,10 @@ export type NotificationType =
   // 'echoSolidaire' (17/10/2026) : l'écho de l'auteur·e vient d'être
   // choisi comme Écho Solidaire du mois (voir validerEchoSolidaire dans
   // AdminPage.tsx). Sans expéditeur : la sélection vient de l'équipe.
-  | 'echoSolidaire';
+  | 'echoSolidaire'
+  // 'mention' (19/10/2026) : quelqu'un vous a tagué·e dans un Écho ou une
+  // EchoRep (voir notifierMentions dans useMentions.ts).
+  | 'mention';
 
 export interface Notification {
   id: string;

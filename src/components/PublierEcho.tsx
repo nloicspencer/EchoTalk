@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { publierEcho } from '../hooks/useEchos';
-import { UserProfile, EchoType, Tonalite, Echo } from '../types';
+import { UserProfile, EchoType, Tonalite, Echo, Mention } from '../types';
 import { FEATURES } from '../config/appVersion';
+import { mentionsPresentes } from '../hooks/useMentions';
+import { ZoneSaisieMentions } from './Mentions';
 import './PublierEcho.css';
 
 interface Props {
@@ -17,6 +19,8 @@ interface Props {
 export default function PublierEcho({ profile, onEchoPublie }: Props) {
   const [ouvert, setOuvert] = useState(false);
   const [contenu, setContenu] = useState('');
+  // Tags @pseudonyme (19/10/2026)
+  const [mentions, setMentions] = useState<Mention[]>([]);
   const [tonalite, setTonalite] = useState<Tonalite>('soleil');
   const [decouvrable, setDecouvrable] = useState(false);
   const [type, setType] = useState<EchoType>('libre');
@@ -32,7 +36,10 @@ export default function PublierEcho({ profile, onEchoPublie }: Props) {
       // ancien état résiduel, on retombe toujours sur 'libre' tant que le flag
       // ECHO_OUVERT est désactivé.
       const typeEffectif: EchoType = FEATURES.ECHO_OUVERT ? type : 'libre';
+      // Seuls les tags encore présents dans le texte comptent.
+      const mentionsFinales = mentionsPresentes(contenu, mentions);
       const echoRef = await publierEcho({
+        mentions: mentionsFinales,
         contenu,
         auteurId: profile.uid,
         auteurPseudo: profile.pseudo,
@@ -69,6 +76,7 @@ export default function PublierEcho({ profile, onEchoPublie }: Props) {
           supprime: false,
           masque: false,
           decouvrable,
+          mentions: mentionsFinales,
           ...(typeEffectif === 'ouvert' && {
             placesMax,
             placesOccupees: 0,
@@ -83,6 +91,7 @@ export default function PublierEcho({ profile, onEchoPublie }: Props) {
       }
 
       setContenu('');
+      setMentions([]);
       setDecouvrable(false);
       setOuvert(false);
     } finally {
@@ -99,10 +108,15 @@ export default function PublierEcho({ profile, onEchoPublie }: Props) {
         </button>
       ) : (
         <div className="publier-form">
-          <textarea
-            placeholder="Partage un écho..."
+          {/* Tags @pseudonyme (19/10/2026) : la zone de saisie propose des
+              pseudos dès qu'on tape « @ » suivi de deux lettres. */}
+          <ZoneSaisieMentions
+            placeholder="Partage un écho... (@ pour mentionner quelqu'un)"
             value={contenu}
-            onChange={(e) => setContenu(e.target.value)}
+            onChange={setContenu}
+            mentions={mentions}
+            onMentionsChange={setMentions}
+            exclureUid={profile.uid}
             rows={4}
             autoFocus
           />
