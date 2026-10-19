@@ -136,7 +136,7 @@ export async function publierEcholegue(
     nbSelections: 0, historiqueSelections: [], semainesSelectionnees: [], masque: false,
   });
   await ajusterCompteurSemaine(getSemaineISO(), 1);
-  if (resultat.mineur) {
+  if (resultat.mineur || resultat.numeroDissimule) {
     await addDoc(collection(db, 'signalements'), {
       echolegueId: refPublie.id,
       auteurSignalementId: 'systeme',

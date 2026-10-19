@@ -59,7 +59,7 @@ export async function envoyerEchoBouteille(
     statut: 'envoyee',
     createdAt: serverTimestamp(), expiresAt, lu: false,
   });
-  if (resultat.mineur) {
+  if (resultat.mineur || resultat.numeroDissimule) {
     await addDoc(collection(db, 'signalements'), {
       echoBouteilleId: refEnvoyee.id,
       auteurSignalementId: 'systeme',

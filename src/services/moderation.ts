@@ -26,6 +26,13 @@ import { OISEAUX } from '../types';
 //    Le prénom (« je m'appelle Marie ») n'est plus repéré : il ne permet
 //    pas d'identifier quelqu'un.
 //
+// 4. NUMÉRO DISSIMULÉ (`numeroDissimule`, 19/10/2026) — chiffres semés
+//    dans une phrase anodine qui, mis bout à bout, forment un numéro
+//    (« ma chambre est libre 07, appelle-moi pour 09 la voir… »).
+//    Conséquence : simple signalement, rien n'est masqué — une phrase
+//    ordinaire peut, par hasard, contenir des nombres qui forment un
+//    numéro. L'agent IA, lui, juge le sens et masque si c'est voulu.
+//
 // Aucune expression n'a le drapeau /g : avec /g, .test() garde en mémoire
 // sa position d'une analyse à l'autre, et un numéro pouvait passer s'il
 // arrivait juste après un autre message repéré (défaut constaté le
@@ -58,6 +65,7 @@ export interface ResultatAnalyse {
   coordonnees: boolean;
   inapproprie: boolean;
   mineur: boolean;
+  numeroDissimule: boolean;
 }
 
 // Minuscules, sans accents, apostrophes et tirets typographiques unifiés.
@@ -141,6 +149,28 @@ function detecterCoordonnees(n: string): string | null {
   return null;
 }
 
+// Chiffres semés : on retire d'abord ce qui est manifestement autre chose
+// qu'un morceau de numéro (dates, heures, années), puis on cherche une
+// suite de nombres consécutifs dans le texte qui, collés, donnent
+// exactement un numéro français (10 chiffres commençant par 01 à 09, ou
+// 33 + 9 chiffres).
+function detecterNumeroDissimule(n: string): boolean {
+  const nettoye = n
+    .replace(/\d{1,2}\s*[/.-]\s*\d{1,2}(?:\s*[/.-]\s*\d{2,4})?/g, ' ')  // dates 05/07, 05/07/2026
+    .replace(/\d{1,2}\s*h(?:\s*\d{1,2})?(?![a-z])/g, ' ')                 // heures 14h, 14h30 (pas « 05 habite »)
+    .replace(/(?<!\d)(?:19|20)\d{2}(?!\d)/g, ' ');                        // années 1958, 2026
+  const groupes = (nettoye.match(/\d+/g) || []).filter((g) => g.length <= 8);
+  for (let i = 0; i < groupes.length; i++) {
+    let suite = '';
+    for (let j = i; j < groupes.length; j++) {
+      suite += groupes[j];
+      if (j > i && (/^0[1-9]\d{8}$/.test(suite) || /^33[1-9]\d{8}$/.test(suite))) return true;
+      if (suite.length >= 11) break;
+    }
+  }
+  return false;
+}
+
 function detecterMineur(n: string): boolean {
   // « j'ai 15 ans » (de 10 à 17 ans), mais pas « j'ai 15 ans de mariage ».
   if (/(?<![a-z])j'?\s?ai\s+1[0-7]\s*ans(?![a-z])(?!\s+(?:de|d'|que|qu'|depuis|deja|dans))/.test(n)) return true;
@@ -161,12 +191,17 @@ export function analyserContenu(contenu: string): ResultatAnalyse {
   const mineur = detecterMineur(n);
   if (mineur) raisons.push('Mineur possible (âge de moins de 18 ans mentionné)');
 
+  // Seulement si aucun numéro « visible » n'a déjà été repéré.
+  const numeroDissimule = !coordonnees && detecterNumeroDissimule(n);
+  if (numeroDissimule) raisons.push('Numéro possiblement dissimulé (chiffres répartis dans le texte)');
+
   return {
     flagge: raisons.length > 0,
     raisons,
     coordonnees: !!coordonnees,
     inapproprie: !!mot,
     mineur,
+    numeroDissimule,
   };
 }
 
