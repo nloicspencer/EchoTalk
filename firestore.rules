@@ -165,8 +165,13 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/echos/$(resource.data.echoId)).data.auteurId == request.auth.uid;
       }
       allow read: if estConnecte();
+      // Statut à la création (19/10/2026) : une proposition naît toujours
+      // « analyse_en_cours » (ou « en_attente_moderation » si le filtre de
+      // l'appli y a vu des coordonnées). Impossible de la créer directement
+      // « en_attente », c'est-à-dire visible du propriétaire sans analyse.
       allow create: if estConnecte()
-        && request.resource.data.auteurId == request.auth.uid;
+        && request.resource.data.auteurId == request.auth.uid
+        && request.resource.data.statut in ['analyse_en_cours', 'en_attente_moderation'];
       allow update: if estConnecte()
         && (estProprietaireEchoConcerne() || estModerateurOuAdmin());
       allow delete: if estModerateurOuAdmin();

@@ -94,23 +94,30 @@ export async function soumettreEchoRep(
   // Le propriétaire ne la voit donc jamais dans sa liste de validation (qui
   // ne lit que « en_attente »), et n'est pas notifié : il ne doit pas
   // recevoir les coordonnées de quelqu'un d'autre.
-  const statut = analyse.coordonnees ? 'en_attente_moderation' : 'en_attente';
+  //
+  // Analyse IA avant affichage (19/10/2026) : une proposition est un
+  // échange quasi direct entre deux personnes identifiables par leur
+  // pseudo. Elle est donc créée avec le statut « analyse_en_cours » :
+  // invisible pour le propriétaire, sans notification. La Cloud Function
+  // modererPropositionEchoRep l'analyse, puis la passe en « en_attente »
+  // (et prévient le propriétaire) ou en « en_attente_moderation » si l'IA
+  // y trouve des coordonnées (numéro dissimulé, invitation à se parler
+  // ailleurs…). Le propriétaire ne voit jamais une proposition non analysée.
+  const statut = analyse.coordonnees ? 'en_attente_moderation' : 'analyse_en_cours';
   const ref = await addDoc(collection(db, 'echoreps_attente'), {
     echoId, echoContenu: echoContenu.slice(0, 100), auteurId, auteurPseudo, contenu,
     mentions, createdAt: serverTimestamp(), expiresAt, statut,
+    // Propriétaire de l'Écho, pour que la Cloud Function le prévienne
+    // sans relire l'Écho.
+    proprietaireId: destinataireId ?? null,
   });
   // Signalement créé APRÈS la proposition, pour y noter son identifiant :
   // c'est ce qui permet au modérateur de la rétablir.
   if (analyse.flagge) {
     await analyserEtSignaler(echoId, auteurId, auteurPseudo, contenu, 'echorep', undefined, { echoRepAttenteId: ref.id });
   }
-  if (destinataireId && !analyse.coordonnees) {
-    await creerNotification({
-      destinataireId, type: 'echoRep',
-      expediteurId: auteurId, expediteurPseudo: auteurPseudo,
-      echoId, contenuApercu: contenu,
-    });
-  }
+  // Plus de notification ici (19/10/2026) : le propriétaire est prévenu par
+  // la Cloud Function, une fois l'analyse IA terminée.
   return ref.id;
 }
 

@@ -453,3 +453,96 @@ export const modererEchoRepModifiee = onDocumentUpdated(
     }
   }
 );
+
+// ============================================================
+// 3) PROPOSITIONS D'ECHOREP — analyse IA AVANT affichage (19/10/2026)
+// Une proposition d'EchoRep est un échange quasi direct entre deux
+// personnes identifiables par leur pseudo. Elle est créée par l'appli avec
+// le statut « analyse_en_cours » (invisible pour le propriétaire de
+// l'Écho, sans notification). Cette fonction l'analyse, puis :
+//   - coordonnées repérées -> « en_attente_moderation » : le propriétaire
+//     ne la voit jamais ; le modérateur peut la rétablir ;
+//   - sinon -> « en_attente » : elle apparaît dans la liste de validation
+//     du propriétaire, qui est prévenu à ce moment-là.
+// Si l'IA échoue (panne, crédits épuisés), la proposition est libérée
+// quand même : le filtre de l'appli l'a déjà vérifiée, et elle ne doit
+// jamais rester bloquée.
+// ============================================================
+export const modererPropositionEchoRep = onDocumentCreated(
+  {
+    document: "echoreps_attente/{attenteId}",
+    secrets: [ANTHROPIC_API_KEY],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+    if (data.statut !== "analyse_en_cours") return;
+
+    const attenteId = event.params.attenteId;
+    const contenu = (data.contenu || "").toString().trim();
+
+    let analyse: AnalyseIA | null = null;
+    try {
+      if (contenu) {
+        analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `modererPropositionEchoRep:${attenteId}`);
+      }
+    } catch (err) {
+      console.error("[modererPropositionEchoRep]", attenteId, "échec de l'IA, proposition libérée quand même", err);
+    }
+
+    try {
+      if (analyse && (analyse.probleme || analyse.detresse)) {
+        await db.collection("signalements").add({
+          echoId: data.echoId || null,
+          echoRepId: null,
+          echoRepAttenteId: attenteId,
+          auteurSignalementId: "ia",
+          auteurContenuId: data.auteurId,
+          auteurContenuPseudo: data.auteurPseudo,
+          contenu,
+          raison: analyse.probleme
+            ? `Détecté par l'IA : ${analyse.categorie}`
+            : "Signal de détresse détecté par l'IA — à évaluer par un humain",
+          raisonsAlgo: analyse.probleme ? [analyse.categorie] : [],
+          type: analyse.detresse && !analyse.probleme ? "detresse" : "echorep",
+          source: "ia",
+          statut: "en_attente",
+          coordonnees: analyse.probleme && analyse.categorie === "coordonnees",
+          createdAt: new Date(),
+        });
+      }
+
+      if (analyse && analyse.probleme && analyse.categorie === "coordonnees") {
+        await snap.ref.update({ statut: "en_attente_moderation" });
+        console.log("[modererPropositionEchoRep]", attenteId, "-> retenue (coordonnées)");
+        return;
+      }
+
+      await snap.ref.update({ statut: "en_attente" });
+      console.log("[modererPropositionEchoRep]", attenteId, "-> libérée, visible du propriétaire");
+
+      // Notification au propriétaire de l'Écho, maintenant seulement.
+      let proprietaireId: string | null = data.proprietaireId || null;
+      if (!proprietaireId && data.echoId) {
+        const echo = await db.collection("echos").doc(data.echoId).get();
+        proprietaireId = echo.exists ? (echo.data()?.auteurId ?? null) : null;
+      }
+      if (proprietaireId && proprietaireId !== data.auteurId) {
+        await db.collection("notifications").add({
+          destinataireId: proprietaireId,
+          type: "echoRep",
+          expediteurId: data.auteurId ?? null,
+          expediteurPseudo: data.auteurPseudo ?? null,
+          echoId: data.echoId ?? null,
+          contenuApercu: contenu ? contenu.slice(0, 140) : null,
+          createdAt: new Date(),
+          lu: false,
+        });
+      }
+    } catch (err) {
+      console.error("[modererPropositionEchoRep]", attenteId, "erreur", err);
+    }
+  }
+);

@@ -29,12 +29,21 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
 
   useEffect(() => {
     if (!proprietaireId) return;
-    const q = query(collection(db, 'echoreps_attente'), where('statut', '==', 'en_attente'));
+    // « analyse_en_cours » (19/10/2026) : proposition pas encore analysée par
+    // l'IA, normalement invisible. Filet de sécurité : si elle est restée
+    // dans cet état plus de 5 minutes (Cloud Functions arrêtées, crédits
+    // Anthropic épuisés…), elle s'affiche quand même, pour ne jamais rester
+    // bloquée. Le filtre de l'appli l'a déjà vérifiée à l'envoi.
+    const q = query(collection(db, 'echoreps_attente'), where('statut', 'in', ['en_attente', 'analyse_en_cours']));
     const unsub = onSnapshot(q, async (snap) => {
       const items: RepEnAttente[] = [];
       const echodata: typeof echoData = {};
       for (const d of snap.docs) {
         const data = d.data();
+        if (data.statut === 'analyse_en_cours') {
+          const creeLe = data.createdAt instanceof Timestamp ? data.createdAt.toDate().getTime() : Date.now();
+          if (Date.now() - creeLe < 5 * 60 * 1000) continue;
+        }
         try {
           const echoRef = await getDoc(doc(db, 'echos', data.echoId));
           if (echoRef.exists() && echoRef.data().auteurId === proprietaireId) {
