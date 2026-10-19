@@ -214,6 +214,9 @@
 
 .jl-modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 
+/* Partage + Signaler regroupés à gauche, Fermer à droite (19/10/2026) */
+.jl-modal-footer-gauche { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
 .jl-btn-signaler {
   display: inline-flex; align-items: center; gap: 4px;
   background: none; border: none; font-family: var(--et-font-ui);

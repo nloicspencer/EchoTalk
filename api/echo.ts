@@ -98,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .map(r => `
           <div style="background:rgba(123,94,167,0.06);border-radius:10px;padding:12px;margin-bottom:8px;">
             <strong style="color:#7C6AF7;">${echapperHtml((r.auteurPseudo || '').toString())}</strong>
-            <p style="font-style:italic;margin:4px 0 0;">${echapperHtml((r.contenu || '').toString())}</p>
+            <p style="font-style:italic;margin:4px 0 0;white-space:pre-wrap;overflow-wrap:break-word;">${echapperHtml((r.contenu || '').toString())}</p>
           </div>`)
         .join('');
     }
@@ -132,7 +132,7 @@ ${robotsTag}
   .logo { text-align:center; font-style:italic; font-size:1.5rem; color:#7C6AF7; margin-bottom:1.5rem; }
   .carte { background:#fff; border:0.5px solid #E4DCF5; border-left:3px solid #7C6AF7; border-radius:12px; padding:16px; }
   .pseudo { font-weight:600; color:#2E2A3D; }
-  .contenu { font-style:italic; line-height:1.75; margin:12px 0; }
+  .contenu { font-style:italic; line-height:1.75; margin:12px 0; white-space:pre-wrap; overflow-wrap:break-word; }
   .cta { text-align:center; margin-top:1.5rem; padding:1.25rem; background:rgba(123,94,167,0.08); border-radius:12px; }
   .cta a { display:inline-block; margin-top:0.75rem; padding:0.75rem 1.5rem; background:#7C6AF7; color:#fff; border-radius:10px; text-decoration:none; font-weight:600; }
 </style>

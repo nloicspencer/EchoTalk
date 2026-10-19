@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/e/:echoId", "destination": "/api/echo?id=:echoId" },
+    { "source": "/l/:legueId", "destination": "/api/echolegue?id=:legueId" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Echolegue, getSemaineISO, signalerEcholegue, useJournalLegues } from '../hooks/useEcholegue';
+import BoutonPartage from './BoutonPartage';
 import './JournalLegues.css';
 
 function getStorageKey(): string {
@@ -116,14 +117,26 @@ export default function JournalLegues() {
               <p>{ouvert.lecon}</p>
             </div>
             <div className="jl-modal-footer">
-              <button
-                className={`jl-btn-signaler ${signales.has(ouvert.id) ? 'signale' : ''}`}
-                onClick={() => handleSignaler(ouvert)}
-                disabled={signales.has(ouvert.id) || !profile}
-              >
-                <i className="ti ti-flag" aria-hidden="true" />
-                {signales.has(ouvert.id) ? 'Signalé' : 'Signaler'}
-              </button>
+              {/* Partage (19/10/2026) — même bouton que sur les Échos, vers la
+                  page publique /l/{id} servie par api/echolegue.ts. Le texte
+                  de partage reprend la leçon, sans pseudo : l'Écholègue
+                  reste anonyme hors de l'appli comme dedans. */}
+              <div className="jl-modal-footer-gauche">
+                <BoutonPartage
+                  titre="EchoTalk"
+                  texte={`"${ouvert.lecon.length > 80 ? `${ouvert.lecon.slice(0, 80)}…` : ouvert.lecon}" — un Écholègue partagé sur EchoTalk`}
+                  url={`https://echotalk.fr/l/${ouvert.id}`}
+                  libelle="Partager"
+                />
+                <button
+                  className={`jl-btn-signaler ${signales.has(ouvert.id) ? 'signale' : ''}`}
+                  onClick={() => handleSignaler(ouvert)}
+                  disabled={signales.has(ouvert.id) || !profile}
+                >
+                  <i className="ti ti-flag" aria-hidden="true" />
+                  {signales.has(ouvert.id) ? 'Signalé' : 'Signaler'}
+                </button>
+              </div>
               <button className="jl-btn-fermer" onClick={() => setOuvert(null)}>Fermer</button>
             </div>
           </div>

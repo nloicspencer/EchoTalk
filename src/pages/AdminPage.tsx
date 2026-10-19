@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, Timestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, query, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import JarreIcon from '../components/JarreIcon';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ import './AdminPage.css';
 
 const APERCU_RECIT = 70;
 const APERCU_LECON = 45;
+const APERCU_CANDIDAT = 80;
 
 // Renommé le 17/10/2026 : l'ancien nom contenait deux lettres cyrilliques
 // ("а" et "т") à la place de "a" et "t", invisibles à l'œil mais
@@ -79,7 +80,6 @@ export default function AdminPage() {
   const [candidats, setCandidats] = useState<EchoCandidat[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [remplissageEnCours, setRemplissageEnCours] = useState(false);
 
   // Écho Solidaire actuel : hook temps réel dédié (déjà scalable — filtre
   // estSolidaire==true directement côté serveur), plutôt que de le
@@ -185,35 +185,9 @@ export default function AdminPage() {
     } catch { afficher('❌ Erreur lors de la mise à jour.'); }
   };
 
-  // Remplissage de remonteeAt (17/10/2026) — étape temporaire avant de trier
-  // le Fil sur remonteeAt. Firestore exclut d'une requête triée tout
-  // document qui n'a pas le champ de tri : sans ce remplissage, les anciens
-  // échos disparaîtraient du Fil. On copie createdAt dans remonteeAt pour
-  // chaque écho qui ne l'a pas encore. Sans risque à relancer : un écho
-  // déjà rempli est ignoré. Par lots de 450 (limite Firestore : 500
-  // écritures par lot).
-  const remplirRemonteeAt = async () => {
-    if (!confirm('Remplir remonteeAt pour tous les échos qui ne l\'ont pas encore ?')) return;
-    setRemplissageEnCours(true);
-    try {
-      const snap = await getDocs(collection(db, 'echos'));
-      const aTraiter = snap.docs.filter(d =>
-        d.data().remonteeAt === undefined && d.data().createdAt instanceof Timestamp
-      );
-      const sansDate = snap.docs.filter(d => !(d.data().createdAt instanceof Timestamp)).length;
-      for (let i = 0; i < aTraiter.length; i += 450) {
-        const batch = writeBatch(db);
-        aTraiter.slice(i, i + 450).forEach(d => batch.update(d.ref, { remonteeAt: d.data().createdAt }));
-        await batch.commit();
-      }
-      afficher(`✅ ${aTraiter.length} écho(s) mis à jour sur ${snap.size}.${sansDate ? ` ${sansDate} sans date de création, ignoré(s).` : ''}`);
-    } catch (err) {
-      console.error('[remplirRemonteeAt]', err);
-      afficher('❌ Erreur pendant le remplissage.');
-    } finally {
-      setRemplissageEnCours(false);
-    }
-  };
+  // Remplissage de remonteeAt (17/10/2026) : bouton de maintenance retiré le
+  // 19/10/2026, une fois tous les échos remplis et le Fil passé sur
+  // remonteeAt. publierEcho() écrit ce champ pour chaque nouvel écho.
 
   const retirerEchoSolidaireActuel = async () => {
     if (!echoSolidaireActuel) return;
@@ -286,16 +260,6 @@ export default function AdminPage() {
 
         {/* Colonne gauche */}
         <div className="admin-colonne">
-          {/* Maintenance temporaire (17/10/2026) — à retirer une fois le
-              Fil passé sur remonteeAt et vérifié. */}
-          <div className="admin-section">
-            <h2>🛠️ Maintenance</h2>
-            <p className="admin-note">Prépare les échos existants à la remontée dans le Fil. Sans risque à relancer.</p>
-            <button className="btn-aleatoire" onClick={remplirRemonteeAt} disabled={remplissageEnCours}>
-              {remplissageEnCours ? 'Remplissage...' : 'Remplir remonteeAt'}
-            </button>
-          </div>
-
           <div className="admin-section">
             <h2>Écho Solidaire actuel</h2>
             {echoSolidaireActuel ? (
@@ -322,7 +286,9 @@ export default function AdminPage() {
                   <div className="admin-rang">#{i + 1}</div>
                   <div className="admin-echo-content">
                     <span className="admin-pseudo">{echo.auteurPseudo}</span>
-                    <p className="admin-contenu">{(echo.contenu || '').slice(0, 80)}{(echo.contenu || '').length > 80 ? '...' : ''}</p>
+                    {/* Lecture complète (19/10/2026) : même « Lire plus /
+                        Réduire » que les Écholègues de la Bibliothèque. */}
+                    <TexteTronque texte={echo.contenu || ''} limite={APERCU_CANDIDAT} className="admin-contenu" />
                     <div className="admin-stats">
                       <JarreIcon color="blue" size="s" /> {echo.jarresBleues}
                       <span>❤️ {echo.coeurs}</span>
