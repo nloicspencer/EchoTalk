@@ -26,7 +26,11 @@ export async function envoyerEchoBouteille(
 ): Promise<'envoyee' | 'en_attente_moderation'> {
   const resultat = analyserContenu(contenu);
 
-  if (resultat.flagge) {
+  // Mise en attente (19/10/2026) : seulement pour des coordonnées
+  // personnelles ou un contenu inapproprié. Un simple signal « mineur
+  // possible » envoie normalement la bouteille, avec un signalement à
+  // vérifier (plus bas).
+  if (resultat.coordonnees || resultat.inapproprie) {
     const ref = await addDoc(collection(db, 'echos_bouteille'), {
       expediteurId, expediteurPseudo,
       destinataireId: null, contenu,
@@ -50,11 +54,23 @@ export async function envoyerEchoBouteille(
   if (!destinataireId) throw new Error('Aucun autre utilisateur disponible pour le moment.');
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await addDoc(collection(db, 'echos_bouteille'), {
+  const refEnvoyee = await addDoc(collection(db, 'echos_bouteille'), {
     expediteurId, expediteurPseudo, destinataireId, contenu,
     statut: 'envoyee',
     createdAt: serverTimestamp(), expiresAt, lu: false,
   });
+  if (resultat.mineur) {
+    await addDoc(collection(db, 'signalements'), {
+      echoBouteilleId: refEnvoyee.id,
+      auteurSignalementId: 'systeme',
+      auteurContenuId: expediteurId,
+      auteurContenuPseudo: expediteurPseudo,
+      contenu, raison: 'Détecté automatiquement',
+      raisonsAlgo: resultat.raisons,
+      type: 'echo_bouteille', source: 'algorithme',
+      statut: 'en_attente', createdAt: serverTimestamp(),
+    });
+  }
   // Notification (30/09/2026) — le destinataire vient d'être tiré au sort
   // et reçoit sa bouteille immédiatement dans ce cas (contenu non signalé
   // par la modération automatique). expediteurPseudo omis volontairement :

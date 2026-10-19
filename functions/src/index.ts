@@ -1,7 +1,7 @@
-import { onDocumentCreated, onDocumentDeleted } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, DocumentData, DocumentReference } from "firebase-admin/firestore";
 import Anthropic from "@anthropic-ai/sdk";
 
 initializeApp();
@@ -106,7 +106,7 @@ export const categoriserEcho = onDocumentCreated(
 
 interface AnalyseIA {
   probleme: boolean;
-  categorie: "harcelement" | "haine" | "menace" | "illegal" | "spam" | "aucun";
+  categorie: "harcelement" | "haine" | "menace" | "illegal" | "spam" | "coordonnees" | "aucun";
   detresse: boolean;
 }
 
@@ -130,13 +130,16 @@ Ton rôle est STRICTEMENT limité à la sécurité et à la bienveillance entre 
 - menaces réelles et sérieuses envers autrui (pas l'humour, pas l'hyperbole)
 - contenu illégal
 - spam ou contenu commercial déguisé
+- coordonnées personnelles (catégorie "coordonnees") : tout moyen de contacter ou de retrouver quelqu'un en dehors d'EchoTalk. Numéro de téléphone (même écrit en lettres, découpé ou déguisé : "zéro six…", "06 point 12…"), adresse e-mail (même écrite "arobase", "point com"), pseudo ou compte de réseau social ou de messagerie proposé (Instagram, Snapchat, WhatsApp, Telegram, TikTok, Discord…), lien vers un profil ou un site personnel, adresse postale, ou invitation explicite à poursuivre l'échange ailleurs ("écris-moi en privé ailleurs", "on continue sur insta ?"). EchoTalk est anonyme : ces échanges n'y ont pas leur place.
+
+Ne compte PAS comme coordonnées : citer un réseau social en passant sans proposer de contact ("j'ai vu ça sur Instagram"), un prénom seul, une ville seule, un âge. Les mentions de la forme @OiseauVille (ex : @PélicanToulouse, @HirondelleParis) sont des pseudonymes internes à EchoTalk, jamais des coordonnées.
 
 Tu ne dois JAMAIS signaler : la tristesse, la détresse personnelle, le doute, le mal-être, la solitude, les pensées difficiles exprimées sur soi-même. C'est le contenu légitime et central de cette plateforme — ne le traite jamais comme un problème. La distinction clé : une personne qui parle de SA PROPRE tristesse ou détresse n'est jamais un problème ; une personne qui s'adresse à quelqu'un d'autre pour le rabaisser, l'insulter ou lui manquer de respect l'est, même avec des mots simples.
 
 Séparément, indique si le message contient un signal de détresse réelle et explicite avec un danger immédiat pour la personne elle-même (pas juste de la tristesse ordinaire) — ceci sert uniquement à proposer des ressources d'aide plus tard, ce n'est pas une modération.
 
 Réponds UNIQUEMENT avec un JSON valide, sans aucun texte autour, sans balises markdown, au format exact :
-{"probleme": true ou false, "categorie": "harcelement" ou "haine" ou "menace" ou "illegal" ou "spam" ou "aucun", "detresse": true ou false}`,
+{"probleme": true ou false, "categorie": "harcelement" ou "haine" ou "menace" ou "illegal" ou "spam" ou "coordonnees" ou "aucun", "detresse": true ou false}`,
     messages: [{ role: "user", content: contenu }],
   });
 
@@ -184,6 +187,9 @@ async function creerSignalementIA(params: {
     raisonsAlgo: [params.categorie],
     type: params.collection === "echos" ? "echo" : "echo_bouteille",
     source: "ia",
+    // Contenu masqué ou retenu automatiquement : la page de modération
+    // propose « Rétablir » (19/10/2026).
+    coordonnees: params.categorie === "coordonnees",
     statut: "en_attente",
     createdAt: new Date(),
   });
@@ -211,6 +217,62 @@ async function creerAlerteDetresse(params: {
   });
 }
 
+// Masquage automatique des coordonnées personnelles (19/10/2026).
+// Quand l'IA repère des coordonnées (catégorie "coordonnees"), le contenu
+// est masqué tout de suite, en attendant la vérification d'un modérateur,
+// sans notifier son auteur. Le filtre de l'appli (src/services/moderation.ts)
+// masque déjà les cas évidents dès la publication ; l'IA rattrape ici les
+// formes déguisées qu'aucune liste ne peut prévoir, et les contenus écrits
+// sans passer par l'appli.
+const RAISON_MASQUAGE_COORDONNEES =
+  "Coordonnées personnelles détectées par l'IA (masquage automatique en attente de vérification)";
+
+// Écho : analyse, signalement, masquage si coordonnées, alerte détresse.
+async function modererDocEcho(
+  echoId: string,
+  data: DocumentData,
+  ref: DocumentReference,
+  contexteLog: string
+) {
+  const contenu = (data.contenu || "").toString().trim();
+  // Un écho supprimé porte un texte de remplacement (« Écho supprimé… ») :
+  // rien à analyser.
+  if (!contenu || data.supprime) {
+    console.log(`[${contexteLog}]`, echoId, "contenu vide ou supprimé, aucune analyse.");
+    return;
+  }
+
+  const analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `${contexteLog}:${echoId}`);
+
+  if (analyse.probleme) {
+    await creerSignalementIA({
+      contenuId: echoId,
+      collection: "echos",
+      auteurId: data.auteurId,
+      auteurPseudo: data.auteurPseudo,
+      contenu,
+      categorie: analyse.categorie,
+    });
+    console.log(`[${contexteLog}]`, echoId, "-> signalement créé, catégorie:", analyse.categorie);
+
+    if (analyse.categorie === "coordonnees" && !data.masque) {
+      await ref.update({ masque: true, raisonModeration: RAISON_MASQUAGE_COORDONNEES });
+      console.log(`[${contexteLog}]`, echoId, "-> masqué (coordonnées)");
+    }
+  }
+
+  if (analyse.detresse) {
+    await creerAlerteDetresse({
+      contenuId: echoId,
+      collection: "echos",
+      auteurId: data.auteurId,
+      auteurPseudo: data.auteurPseudo,
+      contenu,
+    });
+    console.log(`[${contexteLog}]`, echoId, "-> alerte détresse créée");
+  }
+}
+
 export const modererEcho = onDocumentCreated(
   {
     document: "echos/{echoId}",
@@ -220,40 +282,34 @@ export const modererEcho = onDocumentCreated(
   async (event) => {
     const snap = event.data;
     if (!snap) return;
-    const data = snap.data();
-    const contenu = (data.contenu || "").toString().trim();
-    if (!contenu) {
-      console.log("[modererEcho]", event.params.echoId, "contenu vide, aucune analyse effectuée. data:", JSON.stringify(data));
-      return;
-    }
-
     try {
-      const analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `modererEcho:${event.params.echoId}`);
-
-      if (analyse.probleme) {
-        await creerSignalementIA({
-          contenuId: event.params.echoId,
-          collection: "echos",
-          auteurId: data.auteurId,
-          auteurPseudo: data.auteurPseudo,
-          contenu,
-          categorie: analyse.categorie,
-        });
-        console.log("[modererEcho]", event.params.echoId, "-> signalement créé, catégorie:", analyse.categorie);
-      }
-
-      if (analyse.detresse) {
-        await creerAlerteDetresse({
-          contenuId: event.params.echoId,
-          collection: "echos",
-          auteurId: data.auteurId,
-          auteurPseudo: data.auteurPseudo,
-          contenu,
-        });
-        console.log("[modererEcho]", event.params.echoId, "-> alerte détresse créée");
-      }
+      await modererDocEcho(event.params.echoId, snap.data(), snap.ref, "modererEcho");
     } catch (err) {
       console.error("Erreur modération IA Écho", event.params.echoId, err);
+    }
+  }
+);
+
+// Écho modifié (19/10/2026) : avant, une modification n'était jamais
+// analysée. Ce déclencheur se lance à CHAQUE mise à jour d'un Écho
+// (réaction, catégorie, réouverture…), mais s'arrête immédiatement si le
+// texte n'a pas changé : l'IA n'est appelée que pour une vraie
+// modification du contenu.
+export const modererEchoModifie = onDocumentUpdated(
+  {
+    document: "echos/{echoId}",
+    secrets: [ANTHROPIC_API_KEY],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const avant = event.data?.before.data();
+    const apres = event.data?.after.data();
+    if (!avant || !apres || !event.data) return;
+    if ((avant.contenu || "") === (apres.contenu || "")) return;
+    try {
+      await modererDocEcho(event.params.echoId, apres, event.data.after.ref, "modererEchoModifie");
+    } catch (err) {
+      console.error("Erreur modération IA Écho modifié", event.params.echoId, err);
     }
   }
 );
@@ -287,6 +343,14 @@ export const modererEchoBouteille = onDocumentCreated(
           categorie: analyse.categorie,
         });
         console.log("[modererEchoBouteille]", event.params.bouteilleId, "-> signalement créé, catégorie:", analyse.categorie);
+
+        // Coordonnées : la bouteille est retirée de la boîte du
+        // destinataire (seules les bouteilles « envoyee » y sont
+        // affichées) et repasse en attente de modération.
+        if (analyse.categorie === "coordonnees" && data.statut !== "en_attente_moderation") {
+          await snap.ref.update({ statut: "en_attente_moderation" });
+          console.log("[modererEchoBouteille]", event.params.bouteilleId, "-> remise en attente (coordonnées)");
+        }
       }
 
       if (analyse.detresse) {
@@ -305,6 +369,54 @@ export const modererEchoBouteille = onDocumentCreated(
   }
 );
 
+// EchoRep : analyse, signalement, masquage si coordonnées.
+async function modererDocEchoRep(
+  echoId: string,
+  repId: string,
+  data: DocumentData,
+  ref: DocumentReference,
+  contexteLog: string
+) {
+  const contenu = (data.contenu || "").toString().trim();
+  if (!contenu || data.supprime) {
+    console.log(`[${contexteLog}]`, repId, "contenu vide ou supprimé, aucune analyse.");
+    return;
+  }
+
+  const analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `${contexteLog}:${repId}`);
+
+  if (analyse.probleme || analyse.detresse) {
+    await db.collection("signalements").add({
+      echoId,
+      echoRepId: repId,
+      auteurSignalementId: "ia",
+      auteurContenuId: data.auteurId,
+      auteurContenuPseudo: data.auteurPseudo,
+      contenu,
+      raison: analyse.probleme
+        ? `Détecté par l'IA : ${analyse.categorie}`
+        : "Signal de détresse détecté par l'IA — à évaluer par un humain",
+      type: analyse.detresse && !analyse.probleme ? "detresse" : "echo_rep",
+      source: "ia",
+      coordonnees: analyse.probleme && analyse.categorie === "coordonnees",
+      statut: "en_attente",
+      createdAt: new Date(),
+    });
+    console.log(`[${contexteLog}]`, repId, "-> signalement créé:", analyse);
+  } else {
+    console.log(`[${contexteLog}]`, repId, "-> aucun signalement, décision:", analyse);
+  }
+
+  if (analyse.probleme && analyse.categorie === "coordonnees" && !data.masque) {
+    await ref.update({
+      masque: true,
+      raisonModeration: RAISON_MASQUAGE_COORDONNEES,
+      masqueAt: new Date(),
+    });
+    console.log(`[${contexteLog}]`, repId, "-> masquée (coordonnées)");
+  }
+}
+
 export const modererEchoRep = onDocumentCreated(
   {
     document: "echos/{echoId}/echoreps/{repId}",
@@ -314,38 +426,30 @@ export const modererEchoRep = onDocumentCreated(
   async (event) => {
     const snap = event.data;
     if (!snap) return;
-    const data = snap.data();
-    const contenu = (data.contenu || "").toString().trim();
-    if (!contenu) {
-      console.log("[modererEchoRep]", event.params.repId, "contenu vide, aucune analyse effectuée. data:", JSON.stringify(data));
-      return;
-    }
-
     try {
-      const analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `modererEchoRep:${event.params.repId}`);
-
-      if (analyse.probleme || analyse.detresse) {
-        await db.collection("signalements").add({
-          echoId: event.params.echoId,
-          echoRepId: event.params.repId,
-          auteurSignalementId: "ia",
-          auteurContenuId: data.auteurId,
-          auteurContenuPseudo: data.auteurPseudo,
-          contenu,
-          raison: analyse.probleme
-            ? `Détecté par l'IA : ${analyse.categorie}`
-            : "Signal de détresse détecté par l'IA — à évaluer par un humain",
-          type: analyse.detresse && !analyse.probleme ? "detresse" : "echo_rep",
-          source: "ia",
-          statut: "en_attente",
-          createdAt: new Date(),
-        });
-        console.log("[modererEchoRep]", event.params.repId, "-> signalement créé:", analyse);
-      } else {
-        console.log("[modererEchoRep]", event.params.repId, "-> aucun signalement, décision:", analyse);
-      }
+      await modererDocEchoRep(event.params.echoId, event.params.repId, snap.data(), snap.ref, "modererEchoRep");
     } catch (err) {
       console.error("Erreur modération IA EchoRep", event.params.repId, err);
+    }
+  }
+);
+
+// EchoRep modifiée (19/10/2026) : même principe que modererEchoModifie.
+export const modererEchoRepModifiee = onDocumentUpdated(
+  {
+    document: "echos/{echoId}/echoreps/{repId}",
+    secrets: [ANTHROPIC_API_KEY],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const avant = event.data?.before.data();
+    const apres = event.data?.after.data();
+    if (!avant || !apres || !event.data) return;
+    if ((avant.contenu || "") === (apres.contenu || "")) return;
+    try {
+      await modererDocEchoRep(event.params.echoId, event.params.repId, apres, event.data.after.ref, "modererEchoRepModifiee");
+    } catch (err) {
+      console.error("Erreur modération IA EchoRep modifiée", event.params.repId, err);
     }
   }
 );

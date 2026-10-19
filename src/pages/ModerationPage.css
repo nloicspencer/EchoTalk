@@ -415,3 +415,32 @@
   white-space: nowrap;
 }
 .btn-soutenir:hover { background: #5B8DEF; color: white; }
+
+/* Masquage automatique des coordonnées personnelles (19/10/2026) */
+.modo-masque-auto {
+  font-size: 0.8rem;
+  font-family: var(--et-font-ui);
+  color: #8B6420;
+  background: rgba(196,154,82,0.12);
+  border: 0.5px solid rgba(196,154,82,0.35);
+  border-radius: var(--et-radius-sm);
+  padding: 6px 10px;
+  margin-bottom: 0.75rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.btn-retablir {
+  padding: 5px 12px;
+  border-radius: var(--et-radius-sm);
+  border: 0.5px solid rgba(39,174,96,0.4);
+  background: rgba(39,174,96,0.1);
+  color: #1a7a40;
+  font-size: 0.8rem;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-retablir:hover { background: #27ae60; color: white; }

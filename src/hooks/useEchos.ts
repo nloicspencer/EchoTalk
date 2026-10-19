@@ -9,6 +9,17 @@ import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
 import { creerNotification } from './useNotifications';
 import { notifierMentions, nouvellesMentions } from './useMentions';
+import { analyserContenu, RAISON_MASQUAGE_COORDONNEES } from '../services/moderation';
+
+// Masquage automatique (19/10/2026) : un texte contenant des coordonnées
+// personnelles est enregistré masqué, en attente de vérification par un
+// modérateur, sans notifier l'auteur (choix du 19/10/2026). Les autres
+// détections restent de simples signalements.
+function champsMasquageSiCoordonnees(texte: string): Record<string, unknown> {
+  return analyserContenu(texte).coordonnees
+    ? { masque: true, raisonModeration: RAISON_MASQUAGE_COORDONNEES }
+    : {};
+}
 import { Echo, EchoType, Mention, Tonalite } from '../types';
 
 // Correction du 21/08/2026 : cette fonction convertissait déjà createdAt,
@@ -264,6 +275,7 @@ export async function publierEcho(params: PublierEchoParams) {
     // Ouvert (voir toggleEchoOuvert). createdAt, lui, ne bouge jamais.
     remonteeAt: serverTimestamp(),
     mentions: params.mentions ?? [],
+    ...champsMasquageSiCoordonnees(params.contenu),
     ...(params.type === 'ouvert' && {
       placesMax: params.placesMax ?? 6, placesOccupees: 0,
       periodicitéJours: params.periodicitéJours ?? 6, ouvertureCount: 1,
@@ -292,10 +304,17 @@ export async function modifierEcho(
   mentions?: Mention[], contexte?: ContexteModification
 ) {
   if (Date.now() - createdAt.getTime() > 24 * 60 * 60 * 1000) throw new Error('Le délai de modification de 24h est dépassé.');
+  // Modification (19/10/2026) : le nouveau texte est analysé comme à la
+  // publication. Avant, on pouvait publier un texte anodin puis y ajouter
+  // un numéro par modification, sans aucun contrôle.
   await updateDoc(doc(db, 'echos', echoId), {
     contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp(),
     ...(mentions !== undefined && { mentions }),
+    ...champsMasquageSiCoordonnees(nouveauContenu),
   });
+  if (contexte) {
+    await analyserEtSignaler(echoId, contexte.auteurId, contexte.auteurPseudo, nouveauContenu, 'echo');
+  }
   if (mentions && contexte) {
     await notifierMentions(nouvellesMentions(mentions, contexte.anciennes), {
       expediteurId: contexte.auteurId, expediteurPseudo: contexte.auteurPseudo,
@@ -342,7 +361,13 @@ export async function publierEchoRep(
     throw new Error('Plus de places disponibles dans cet écho');
   }
   if (estProprietaire) {
-    await addDoc(repsRef, { auteurId, auteurPseudo, contenu, mentions, createdAt: serverTimestamp(), modifie: false, supprime: false });
+    // EchoRep du propriétaire (19/10/2026) : analysée elle aussi. Avant,
+    // seules les propositions des participants passaient par le filtre.
+    const repRef = await addDoc(repsRef, {
+      auteurId, auteurPseudo, contenu, mentions, createdAt: serverTimestamp(), modifie: false, supprime: false,
+      ...champsMasquageSiCoordonnees(contenu),
+    });
+    await analyserEtSignaler(echoId, auteurId, auteurPseudo, contenu, 'echorep', repRef.id);
     await notifierMentions(mentions, { expediteurId: auteurId, expediteurPseudo: auteurPseudo, echoId, texte: contenu });
   } else {
     await soumettreEchoRep(echoId, echoContenu, auteurId, auteurPseudo, contenu, proprietaireId, mentions);
@@ -358,7 +383,11 @@ export async function modifierEchoRep(
   await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
     contenu: nouveauContenu, modifie: true, updatedAt: serverTimestamp(),
     ...(mentions !== undefined && { mentions }),
+    ...champsMasquageSiCoordonnees(nouveauContenu),
   });
+  if (contexte) {
+    await analyserEtSignaler(echoId, contexte.auteurId, contexte.auteurPseudo, nouveauContenu, 'echorep', repId);
+  }
   if (mentions && contexte) {
     await notifierMentions(nouvellesMentions(mentions, contexte.anciennes), {
       expediteurId: contexte.auteurId, expediteurPseudo: contexte.auteurPseudo,

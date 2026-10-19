@@ -39,7 +39,10 @@ export async function signalerContenu(
 
 export async function analyserEtSignaler(
   echoId: string, auteurContenuId: string, auteurContenuPseudo: string,
-  contenu: string, type: 'echo' | 'echorep', echoRepId?: string
+  contenu: string, type: 'echo' | 'echorep', echoRepId?: string,
+  // Champs ajoutés au signalement (19/10/2026), ex. echoRepAttenteId pour
+  // une proposition d'EchoRep retenue avant validation.
+  champsSupplementaires: Record<string, unknown> = {}
 ) {
   const resultat = analyserContenu(contenu);
   if (resultat.flagge) {
@@ -48,6 +51,10 @@ export async function analyserEtSignaler(
       auteurContenuId, auteurContenuPseudo, contenu,
       raison: 'Détecté automatiquement', raisonsAlgo: resultat.raisons,
       type, source: 'algorithme', statut: 'en_attente', createdAt: serverTimestamp(),
+      // coordonnees (19/10/2026) : le contenu a été masqué ou retenu
+      // automatiquement — la page de modération propose alors « Rétablir ».
+      coordonnees: resultat.coordonnees,
+      ...champsSupplementaires,
     });
   }
   return resultat;
@@ -81,12 +88,23 @@ export async function soumettreEchoRep(
   mentions: Mention[] = []
 ) {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await analyserEtSignaler(echoId, auteurId, auteurPseudo, contenu, 'echorep');
+  const analyse = analyserContenu(contenu);
+  // Coordonnées personnelles (19/10/2026) : la proposition est enregistrée
+  // avec le statut « en_attente_moderation » au lieu de « en_attente ».
+  // Le propriétaire ne la voit donc jamais dans sa liste de validation (qui
+  // ne lit que « en_attente »), et n'est pas notifié : il ne doit pas
+  // recevoir les coordonnées de quelqu'un d'autre.
+  const statut = analyse.coordonnees ? 'en_attente_moderation' : 'en_attente';
   const ref = await addDoc(collection(db, 'echoreps_attente'), {
     echoId, echoContenu: echoContenu.slice(0, 100), auteurId, auteurPseudo, contenu,
-    mentions, createdAt: serverTimestamp(), expiresAt, statut: 'en_attente',
+    mentions, createdAt: serverTimestamp(), expiresAt, statut,
   });
-  if (destinataireId) {
+  // Signalement créé APRÈS la proposition, pour y noter son identifiant :
+  // c'est ce qui permet au modérateur de la rétablir.
+  if (analyse.flagge) {
+    await analyserEtSignaler(echoId, auteurId, auteurPseudo, contenu, 'echorep', undefined, { echoRepAttenteId: ref.id });
+  }
+  if (destinataireId && !analyse.coordonnees) {
     await creerNotification({
       destinataireId, type: 'echoRep',
       expediteurId: auteurId, expediteurPseudo: auteurPseudo,

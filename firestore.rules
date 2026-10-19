@@ -17,6 +17,15 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'moderateur'];
     }
 
+    // Masquage (19/10/2026) : hors modérateurs, on peut MASQUER un contenu
+    // (masquage automatique des coordonnées personnelles), jamais le
+    // DÉMASQUER. Sans cette règle, l'auteur d'un contenu masqué pouvait le
+    // rétablir lui-même en écrivant directement dans la base.
+    function neDemasquePas() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['masque'])
+        || request.resource.data.masque == true;
+    }
+
     function estAdmin() {
       return estConnecte()
         && 'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data
@@ -87,6 +96,7 @@ service cloud.firestore {
             resource.data.auteurId == request.auth.uid
             && (!modifieLeContenu() || dansLaFenetreDeModification())
             && reouvertureValide()
+            && neDemasquePas()
           )
           || estModerateurOuAdmin()
           || seulsChampsReactionOuPlaces()
@@ -107,7 +117,16 @@ service cloud.firestore {
             || estModerateurOuAdmin()
             || get(/databases/$(database)/documents/echos/$(echoId)).data.auteurId == request.auth.uid
           );
-        allow update, delete: if estConnecte()
+        allow update: if estConnecte()
+          && (
+            estModerateurOuAdmin()
+            || (
+              (resource.data.auteurId == request.auth.uid
+               || get(/databases/$(database)/documents/echos/$(echoId)).data.auteurId == request.auth.uid)
+              && neDemasquePas()
+            )
+          );
+        allow delete: if estConnecte()
           && (
             resource.data.auteurId == request.auth.uid
             || estModerateurOuAdmin()

@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supprimerEchoBouteille, validerEchoBouteille } from '../hooks/useEchoBouteille';
 import { masquerEchoRep, modererCompte, modererEcho, recupererEchoRep } from '../hooks/useModeration';
+import { creerNotification } from '../hooks/useNotifications';
 import { supprimerEcholegue, validerEcholegue } from '../hooks/useEcholegue';
 import { db } from '../services/firebase';
 import './ModerationPage.css';
@@ -30,10 +31,21 @@ interface Signalement {
   id: string; echoId: string; echoRepId?: string; echoBouteilleId?: string;
   auteurContenuId: string; auteurContenuPseudo: string;
   contenu: string; raison: string; raisonsAlgo?: string[];
-  type: string; source: 'utilisateur' | 'algorithme';
+  type: string; source: 'utilisateur' | 'algorithme' | 'ia';
   statut: string; decision?: string; createdAt: Date;
   identiteReelle?: { prenom: string; nom: string; email: string };
+  // Coordonnées personnelles (19/10/2026) : le contenu a été masqué (ou la
+  // proposition d'EchoRep retenue) automatiquement, en attente de décision.
+  coordonnees?: boolean;
+  // Proposition d'EchoRep retenue avant validation (pas encore une EchoRep).
+  echoRepAttenteId?: string;
 }
+
+// Type d'une EchoRep (19/10/2026) : le filtre de l'appli écrit « echorep »,
+// l'agent IA écrit « echo_rep ». Avant, seul « echorep » était reconnu :
+// sur une EchoRep signalée par l'IA, « Masquer » masquait l'Écho parent
+// entier et « Supprimer » ne supprimait rien.
+const estEchoRep = (s: Signalement) => s.type === 'echorep' || s.type === 'echo_rep';
 
 // Écholègue en attente de modération, lu DIRECTEMENT depuis la collection
 // `echolegues` (statut === 'en_attente_moderation') plutôt que via
@@ -102,6 +114,9 @@ export default function ModerationPage() {
         contenu: data.contenu, raison: data.raison, raisonsAlgo: data.raisonsAlgo,
         type: data.type, source: data.source, statut: data.statut,
         decision: data.decision || '',
+        coordonnees: data.coordonnees === true
+          || (Array.isArray(data.raisonsAlgo) && data.raisonsAlgo.includes('coordonnees')),
+        echoRepAttenteId: data.echoRepAttenteId || undefined,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
         identiteReelle,
       } as Signalement;
@@ -157,7 +172,10 @@ export default function ModerationPage() {
   const supprimerContenu = async (s: Signalement) => {
     if (s.type === 'echo_bouteille' && s.echoBouteilleId) {
       await supprimerEchoBouteille(s.echoBouteilleId);
-    } else if (s.type === 'echorep' && s.echoRepId) {
+    } else if (s.echoRepAttenteId) {
+      // Proposition retenue avant validation : elle n'est jamais publiée.
+      await updateDoc(doc(db, 'echoreps_attente', s.echoRepAttenteId), { statut: 'refuse' });
+    } else if (estEchoRep(s) && s.echoRepId) {
       const autresReps = await getDocs(query(
         collection(db, 'echos', s.echoId, 'echoreps'),
         where('auteurId', '==', s.auteurContenuId), where('supprime', '==', false)
@@ -204,7 +222,7 @@ export default function ModerationPage() {
   };
 
   const handleMasquer = async (s: Signalement) => {
-    if (s.type === 'echorep' && s.echoRepId) {
+    if (estEchoRep(s) && s.echoRepId) {
       await masquerEchoRep(s.echoId, s.echoRepId, user!.uid, s.raison);
       await marquerTraite(s.id, 'ÉchoRep masquée — récupérable par admin');
       afficher('✅ ÉchoRep masquée.');
@@ -217,6 +235,50 @@ export default function ModerationPage() {
       await marquerTraite(s.id, 'Écho masqué — récupérable par admin');
       afficher('✅ Écho masqué.');
     }
+  };
+
+  // Masquage automatique (19/10/2026) — deux décisions possibles :
+  //
+  // « Rétablir » : faux positif. Le contenu redevient visible (ou la
+  // proposition d'EchoRep revient dans la liste de validation du
+  // propriétaire, qui est alors prévenu), et le signalement est classé.
+  const handleRetablir = async (s: Signalement) => {
+    if (!confirm('Rétablir ce contenu ? Il redeviendra visible.')) return;
+    try {
+      if (s.echoRepAttenteId) {
+        await updateDoc(doc(db, 'echoreps_attente', s.echoRepAttenteId), { statut: 'en_attente' });
+        const echoSnap = await getDoc(doc(db, 'echos', s.echoId));
+        const proprietaireId = echoSnap.exists() ? (echoSnap.data().auteurId as string | undefined) : undefined;
+        if (proprietaireId) {
+          await creerNotification({
+            destinataireId: proprietaireId, type: 'echoRep',
+            expediteurId: s.auteurContenuId, expediteurPseudo: s.auteurContenuPseudo,
+            echoId: s.echoId, contenuApercu: s.contenu,
+          });
+        }
+      } else if (estEchoRep(s) && s.echoRepId) {
+        await recupererEchoRep(s.echoId, s.echoRepId);
+      } else if (s.type === 'echo' && s.echoId) {
+        await updateDoc(doc(db, 'echos', s.echoId), { masque: false, raisonModeration: null });
+      }
+      await updateDoc(doc(db, 'signalements', s.id), { statut: 'ignore', decision: 'Faux positif — contenu rétabli' });
+      afficher('✅ Contenu rétabli.');
+    } catch { afficher('❌ Erreur lors du rétablissement.'); }
+  };
+
+  // « Confirmer » : le contenu reste masqué. Pas de nouvelle écriture sur le
+  // contenu et pas de notification à l'auteur (choix du 19/10/2026) ; la
+  // décision reste récupérable depuis l'onglet « Traités ».
+  const handleConfirmerMasquage = async (s: Signalement) => {
+    if (s.echoRepAttenteId) {
+      await updateDoc(doc(db, 'echoreps_attente', s.echoRepAttenteId), { statut: 'refuse' });
+      await marquerTraite(s.id, 'Proposition d\'EchoRep bloquée — coordonnées personnelles');
+    } else if (estEchoRep(s)) {
+      await marquerTraite(s.id, 'ÉchoRep masquée — récupérable par admin');
+    } else {
+      await marquerTraite(s.id, 'Écho masqué — récupérable par admin');
+    }
+    afficher('✅ Masquage confirmé.');
   };
 
   const handleSupprimer = async (s: Signalement) => {
@@ -271,11 +333,14 @@ export default function ModerationPage() {
   const enAttenteCount = signalements.filter(s => s.statut === 'en_attente').length;
   const estRecuperable = (s: Signalement) => s.decision?.includes('masqué') || s.decision?.includes('masquée');
   const estBouteille = (s: Signalement) => s.type === 'echo_bouteille';
-  const estBouteilleEnAttente = (s: Signalement) => estBouteille(s) && s.source === 'algorithme' && s.statut === 'en_attente';
+  // Bouteille retenue : par le filtre de l'appli, ou par l'IA quand elle
+  // contient des coordonnées (19/10/2026).
+  const estBouteilleEnAttente = (s: Signalement) => estBouteille(s) && s.statut === 'en_attente'
+    && (s.source === 'algorithme' || !!s.coordonnees);
 
   const typeLabel = (type: string) => {
     if (type === 'echo') return '🕊️ Écho';
-    if (type === 'echorep') return '💬 ÉchoRep';
+    if (type === 'echorep' || type === 'echo_rep') return '💬 ÉchoRep';
     if (type === 'echo_bouteille') return '🍾 Écho-Bouteille';
     if (type === 'echolegue') return '📖 Écholègue';
     return '👤 Compte';
@@ -360,10 +425,10 @@ export default function ModerationPage() {
           : (
             <div className="modo-liste">
               {signalements.map(s => (
-                <div key={s.id} className={`modo-card ${s.source === 'algorithme' ? 'algo' : 'user'}`}>
+                <div key={s.id} className={`modo-card ${s.source === 'utilisateur' ? 'user' : 'algo'}`}>
                   <div className="modo-card-header">
-                    <span className={`modo-source ${s.source}`}>
-                      {s.source === 'algorithme' ? '🤖 Détection auto' : '🚩 Signalement'}
+                    <span className={`modo-source ${s.source === 'utilisateur' ? 'utilisateur' : 'algorithme'}`}>
+                      {s.source === 'algorithme' ? '🤖 Détection auto' : s.source === 'ia' ? '🤖 IA' : '🚩 Signalement'}
                     </span>
                     <span className="modo-type">{typeLabel(s.type)}</span>
                     <span className="modo-date">
@@ -376,6 +441,13 @@ export default function ModerationPage() {
                       <span className="modo-identite">👤 {s.identiteReelle.prenom} {s.identiteReelle.nom} — {s.identiteReelle.email}</span>
                     )}
                   </div>
+                  {s.coordonnees && s.statut === 'en_attente' && !estBouteille(s) && (
+                    <div className="modo-masque-auto">
+                      🔒 {s.echoRepAttenteId
+                        ? 'Proposition retenue automatiquement — coordonnées personnelles. Le propriétaire de l\'Écho ne l\'a pas vue.'
+                        : 'Masqué automatiquement — coordonnées personnelles. Invisible pour tous en attendant ta décision.'}
+                    </div>
+                  )}
                   <p className="modo-contenu">"{s.contenu}"</p>
                   <div className="modo-raison">
                     <strong>Raison :</strong> {s.raison}
@@ -392,6 +464,16 @@ export default function ModerationPage() {
                             ✅ Valider — envoyer
                           </button>
                           <button className="btn-supprimer" onClick={() => handleSupprimer(s)}>Supprimer</button>
+                        </>
+                      ) : s.coordonnees ? (
+                        <>
+                          <button className="btn-retablir" onClick={() => handleRetablir(s)}>↩️ Rétablir (erreur)</button>
+                          <button className="btn-masquer" onClick={() => handleConfirmerMasquage(s)}>
+                            {s.echoRepAttenteId ? 'Confirmer le blocage' : 'Confirmer le masquage'}
+                          </button>
+                          <button className="btn-supprimer" onClick={() => handleSupprimer(s)}>Supprimer</button>
+                          <button className="btn-suspendre-temp" onClick={() => setSuspensionModal({ signalement: s, action: 'temp' })}>Suspendre</button>
+                          <button className="btn-suspendre-def" onClick={() => setSuspensionModal({ signalement: s, action: 'def' })}>Bannir</button>
                         </>
                       ) : (
                         <>

@@ -103,15 +103,17 @@ interface ContexteMention {
   texte: string;
 }
 
-// Notifie les personnes taguées. Jamais si le texte est repéré par la
-// modération automatique : un tag ne doit pas servir à envoyer un contenu
-// problématique directement à quelqu'un. Jamais soi-même (géré par
-// creerNotification). Une notification qui échoue n'empêche ni les autres,
-// ni la publication elle-même.
+// Notifie les personnes taguées. Jamais si le texte contient des
+// coordonnées personnelles ou un contenu inapproprié : un tag ne doit pas
+// servir à envoyer ça directement à quelqu'un. Un simple signal « mineur
+// possible » ne bloque pas la notification (19/10/2026). Jamais soi-même
+// (géré par creerNotification). Une notification qui échoue n'empêche ni
+// les autres, ni la publication elle-même.
 export async function notifierMentions(mentions: Mention[], ctx: ContexteMention) {
   if (!mentions || mentions.length === 0) return;
   try {
-    if (analyserContenu(ctx.texte).flagge) return;
+    const analyse = analyserContenu(ctx.texte);
+    if (analyse.coordonnees || analyse.inapproprie) return;
   } catch {
     return;
   }

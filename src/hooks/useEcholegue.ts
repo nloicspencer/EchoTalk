@@ -105,7 +105,11 @@ export async function publierEcholegue(
   auteurId: string, auteurPseudo: string, recit: string, lecon: string
 ): Promise<'publie' | 'en_attente_moderation'> {
   const resultat = analyserContenu(`${recit} ${lecon}`);
-  if (resultat.flagge) {
+  // Mise en attente (19/10/2026) : seulement pour des coordonnées
+  // personnelles ou un contenu inapproprié. Un simple signal « mineur
+  // possible » publie normalement l'Écholègue, avec un signalement à
+  // vérifier (plus bas).
+  if (resultat.coordonnees || resultat.inapproprie) {
     const ref = await addDoc(collection(db, 'echolegues'), {
       auteurId, auteurPseudo, recit, lecon,
       statut: 'en_attente_moderation',
@@ -125,13 +129,24 @@ export async function publierEcholegue(
     // dans l'index de semaines — ce sera fait lors de validerEcholegue().
     return 'en_attente_moderation';
   }
-  await addDoc(collection(db, 'echolegues'), {
+  const refPublie = await addDoc(collection(db, 'echolegues'), {
     auteurId, auteurPseudo, recit, lecon,
     statut: 'publie',
     createdAt: serverTimestamp(),
     nbSelections: 0, historiqueSelections: [], semainesSelectionnees: [], masque: false,
   });
   await ajusterCompteurSemaine(getSemaineISO(), 1);
+  if (resultat.mineur) {
+    await addDoc(collection(db, 'signalements'), {
+      echolegueId: refPublie.id,
+      auteurSignalementId: 'systeme',
+      auteurContenuId: auteurId, auteurContenuPseudo: auteurPseudo,
+      contenu: recit.slice(0, 200),
+      raison: 'Détecté automatiquement', raisonsAlgo: resultat.raisons,
+      type: 'echolegue', source: 'algorithme',
+      statut: 'en_attente', createdAt: serverTimestamp(),
+    });
+  }
   return 'publie';
 }
 
