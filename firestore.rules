@@ -152,10 +152,17 @@ service cloud.firestore {
             || estModerateurOuAdmin());
       allow create: if estConnecte()
         && request.resource.data.expediteurId == request.auth.uid;
+      // Modification (24/10/2026) : l'expéditeur ne peut plus rien modifier
+      // (il pouvait auparavant, en écrivant directement dans la base, changer
+      // le texte, le destinataire ou le statut d'une bouteille retenue par la
+      // modération). Le destinataire ne peut que la marquer comme lue. La
+      // validation et la suppression restent réservées aux modérateurs.
       allow update: if estConnecte()
-        && (request.auth.uid == resource.data.destinataireId
-            || request.auth.uid == resource.data.expediteurId
-            || estModerateurOuAdmin());
+        && (
+          estModerateurOuAdmin()
+          || (request.auth.uid == resource.data.destinataireId
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lu']))
+        );
       allow delete: if estModerateurOuAdmin();
     }
 
