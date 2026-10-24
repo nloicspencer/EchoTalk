@@ -34,7 +34,14 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
     // dans cet état plus de 5 minutes (Cloud Functions arrêtées, crédits
     // Anthropic épuisés…), elle s'affiche quand même, pour ne jamais rester
     // bloquée. Le filtre de l'appli l'a déjà vérifiée à l'envoi.
-    const q = query(collection(db, 'echoreps_attente'), where('statut', 'in', ['en_attente', 'analyse_en_cours']));
+    // Seulement MES propositions (24/10/2026) : avant, la liste écoutait
+    // toutes les propositions en attente de la plateforme, puis relisait
+    // l'Écho de chacune pour savoir si c'était le mien, à chaque changement.
+    const q = query(
+      collection(db, 'echoreps_attente'),
+      where('proprietaireId', '==', proprietaireId),
+      where('statut', 'in', ['en_attente', 'analyse_en_cours'])
+    );
     const unsub = onSnapshot(q, async (snap) => {
       const items: RepEnAttente[] = [];
       const echodata: typeof echoData = {};

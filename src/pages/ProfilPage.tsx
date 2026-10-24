@@ -1,4 +1,4 @@
-import { deleteDoc, doc, collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { deleteDoc, doc, collection, collectionGroup, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -10,10 +10,11 @@ import JarreIcon from '../components/JarreIcon';
 import PaiementFacadeModal from '../components/PaiementFacadeModal';
 import ValidationEchoReps from '../components/ValidationEchoReps';
 import { useAuth } from '../context/AuthContext';
-import { useEchos } from '../hooks/useEchos';
+import { convertEcho } from '../hooks/useEchos';
 import { acquerirPack, PRIX_PACKS_ROSES, useStockJarres } from '../hooks/useReactions';
 import { db } from '../services/firebase';
 import { FEATURES } from '../config/appVersion';
+import { Echo } from '../types';
 import './ProfilPage.css';
 
 const PLAFOND_JARRES = 50;
@@ -43,7 +44,14 @@ const PACKS = [
 export default function ProfilPage() {
   const { profile, user, deconnexion } = useAuth();
   const stock = useStockJarres(profile?.uid ?? '');
-  const { echos } = useEchos();
+  // Mes Échos (24/10/2026) : lus directement par la requête « auteurId ==
+  // moi » (plus bas), au lieu de charger le Fil entier (useEchos) pour y
+  // chercher les miens. Avant, « Mes Échos » ne montrait que ceux qui
+  // figuraient parmi les 30 derniers publiés sur toute la plateforme : les
+  // plus anciens disparaissaient du profil. Et chaque ouverture du profil
+  // coûtait les lectures et les écoutes de tout le Fil.
+  const [echos, setEchos] = useState<Echo[]>([]);
+  const [mesEchosCharges, setMesEchosCharges] = useState(false);
   const echoSolidaireProprio = FEATURES.ECHO_SOLIDAIRE
     ? echos.find(e => e.estSolidaire && e.auteurId === profile?.uid)
     : undefined;
@@ -73,7 +81,7 @@ export default function ProfilPage() {
     && (!!echoSolidaireProprio || historiqueSolidaire.length > 0);
 
   const mesEchos = echos
-    .filter(e => e.auteurId === profile?.uid && !e.supprime)
+    .filter(e => e.auteurId === profile?.uid && !e.supprime && !e.masque)
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const [mesEchosVisible, setMesEchosVisible] = useState(false);
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
@@ -171,6 +179,8 @@ export default function ProfilPage() {
 
     const qMesEchos = query(collection(db, 'echos'), where('auteurId', '==', profile.uid));
     const unsubMesEchos = onSnapshot(qMesEchos, (snap) => {
+      setEchos(snap.docs.map(d => convertEcho(d.id, d.data() as Record<string, unknown>)));
+      setMesEchosCharges(true);
       let libres = 0, ouverts = 0, jarresBleues = 0, jarresRoses = 0;
       let avecResonance = 0, participantsTotal = 0, total = 0;
       snap.docs.forEach(d => {
@@ -193,22 +203,7 @@ export default function ProfilPage() {
     });
     unsubs.push(unsubMesEchos);
 
-    if (FEATURES.ECHO_OUVERT) {
-      const qTousEchos = query(collection(db, 'echos'), where('type', '==', 'ouvert'));
-      const unsubParticipation = onSnapshot(qTousEchos, async (snap) => {
-        let echosRejoints = 0, echoRepsPubliees = 0;
-        const echosAutres = snap.docs.filter(d => d.data().auteurId !== profile.uid && !d.data().supprime);
-        for (const echoDoc of echosAutres) {
-          const repsRef = collection(db, 'echos', echoDoc.id, 'echoreps');
-          const qMesReps = query(repsRef, where('auteurId', '==', profile.uid));
-          const repsSnap = await getDocs(qMesReps);
-          const repsActives = repsSnap.docs.filter(r => !r.data().supprime);
-          if (repsActives.length > 0) { echosRejoints++; echoRepsPubliees += repsActives.length; }
-        }
-        setStats(prev => ({ ...prev, echosRejoints, echoRepsPubliees }));
-      });
-      unsubs.push(unsubParticipation);
-    }
+    // Participation : voir l'effet dédié plus bas (24/10/2026).
 
     const qReactions = query(collection(db, 'reactions'), where('auteurId', '==', profile.uid));
     const unsubReactions = onSnapshot(qReactions, (snap) => {
@@ -254,6 +249,37 @@ export default function ProfilPage() {
 
     return () => unsubs.forEach(u => u());
   }, [profile?.uid]);
+
+  // Participation (24/10/2026) — UNE seule requête qui va chercher
+  // directement mes EchoReps, où qu'elles soient (collectionGroup), lancée
+  // à l'ouverture du profil. Avant, la page écoutait TOUS les Échos Ouverts
+  // de la plateforme puis interrogeait chacun pour y chercher mes réponses,
+  // et recommençait à chaque réaction sur n'importe quel Écho Ouvert, pour
+  // chaque personne ayant son profil ouvert : l'essentiel des lectures
+  // Firestore de l'appli. Mes réponses dans mes propres Échos ne comptent
+  // pas comme une « participation ».
+  const idsMesEchos = echos.map(e => e.id).sort().join(',');
+  useEffect(() => {
+    if (!profile?.uid || !FEATURES.ECHO_OUVERT || !mesEchosCharges) return;
+    let annule = false;
+    const mesIds = new Set(idsMesEchos ? idsMesEchos.split(',') : []);
+    getDocs(query(collectionGroup(db, 'echoreps'), where('auteurId', '==', profile.uid)))
+      .then((snap) => {
+        if (annule) return;
+        const parEcho = new Map<string, number>();
+        snap.docs.forEach((r) => {
+          if (r.data().supprime) return;
+          const echoId = r.ref.parent.parent?.id;
+          if (!echoId || mesIds.has(echoId)) return;
+          parEcho.set(echoId, (parEcho.get(echoId) || 0) + 1);
+        });
+        let total = 0;
+        parEcho.forEach((n) => { total += n; });
+        setStats(prev => ({ ...prev, echosRejoints: parEcho.size, echoRepsPubliees: total }));
+      })
+      .catch((err) => console.error('[ProfilPage] participation', err));
+    return () => { annule = true; };
+  }, [profile?.uid, idsMesEchos, mesEchosCharges]);
 
   const handleAcquerirPack = async (type: 'bleues' | 'roses', quantite: 5 | 10 | 15) => {
     if (!profile) return;

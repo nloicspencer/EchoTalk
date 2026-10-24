@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   collection, addDoc, serverTimestamp, updateDoc, doc,
-  onSnapshot, query, orderBy, where, getDocs, getDoc, Timestamp
+  onSnapshot, query, where, getDocs, getDoc, Timestamp
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
@@ -148,7 +148,13 @@ export function useEchoRepsEnAttente(proprietaireId: string) {
   const [enAttente, setEnAttente] = useState<EchoRepEnAttente[]>([]);
   useEffect(() => {
     if (!proprietaireId) return;
-    const q = query(collection(db, 'echoreps_attente'), where('statut', '==', 'en_attente'), orderBy('createdAt', 'desc'));
+    // Seulement les propositions adressées à ce propriétaire (24/10/2026),
+    // comme ValidationEchoReps.tsx — exigé par les règles Firestore.
+    const q = query(
+      collection(db, 'echoreps_attente'),
+      where('proprietaireId', '==', proprietaireId),
+      where('statut', '==', 'en_attente')
+    );
     const unsub = onSnapshot(q, async (snap) => {
       const items: EchoRepEnAttente[] = [];
       for (const d of snap.docs) {
@@ -164,6 +170,7 @@ export function useEchoRepsEnAttente(proprietaireId: string) {
           });
         }
       }
+      items.sort((x, y) => y.createdAt.getTime() - x.createdAt.getTime());
       setEnAttente(items);
     });
     return unsub;

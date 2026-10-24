@@ -53,7 +53,10 @@ export default function EchoCard({ echo, delayIndex = 0 }: Props) {
     coeursBrises: echo.coeursBrises ?? 0, jarresRoses: echo.jarresRoses ?? 0,
   });
 
-  const echoReps = useEchoReps(echo.id);
+  // Écoute des EchoReps seulement pour un Écho Ouvert (24/10/2026) : un
+  // Écho Libre n'en a jamais, l'écoute coûtait une lecture inutile par
+  // carte à chaque ouverture du Fil.
+  const echoReps = useEchoReps(echo.type === 'ouvert' ? echo.id : '');
   const { profile } = useAuth();
   const stock = useStockJarres(profile?.uid ?? '');
 
