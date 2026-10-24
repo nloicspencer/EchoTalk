@@ -328,6 +328,17 @@ export const modererEchoModifie = onDocumentUpdated(
     if ((avant.contenu || "") === (apres.contenu || "")) return;
     // Texte remplacé par le masquage : rien à analyser.
     if (apres.contenu === TEXTE_MASQUE) return;
+    // Rétablissement par un modérateur (24/10/2026) : le texte passe de
+    // TEXTE_MASQUE à l'original. La décision humaine a le dernier mot :
+    // sans cette ligne, l'IA réanalysait le texte rétabli et le remasquait,
+    // rendant impossible le rétablissement d'un faux positif de l'IA.
+    if (avant.contenu === TEXTE_MASQUE) return;
+    // Texte rétabli par un modérateur (24/10/2026) : seul un modérateur peut
+    // remplacer « Contenu masqué… » par un autre texte en le démasquant. Sa
+    // décision prime sur l'IA : on ne réanalyse pas, sinon un faux positif
+    // de l'IA serait remasqué aussitôt, sans fin. Une modification
+    // ultérieure par l'auteur reste analysée normalement.
+    if (avant.contenu === TEXTE_MASQUE) return;
     try {
       await modererDocEcho(event.params.echoId, apres, event.data.after.ref, "modererEchoModifie");
     } catch (err) {
@@ -479,6 +490,12 @@ export const modererEchoRepModifiee = onDocumentUpdated(
     if (!avant || !apres || !event.data) return;
     if ((avant.contenu || "") === (apres.contenu || "")) return;
     if (apres.contenu === TEXTE_MASQUE) return;
+    // Rétablissement par un modérateur : pas de nouvelle analyse (voir
+    // modererEchoModifie).
+    if (avant.contenu === TEXTE_MASQUE) return;
+    // Texte rétabli par un modérateur : sa décision prime (voir
+    // modererEchoModifie).
+    if (avant.contenu === TEXTE_MASQUE) return;
     try {
       await modererDocEchoRep(event.params.echoId, event.params.repId, apres, event.data.after.ref, "modererEchoRepModifiee");
     } catch (err) {
