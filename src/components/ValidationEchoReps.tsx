@@ -29,28 +29,22 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
 
   useEffect(() => {
     if (!proprietaireId) return;
-    // « analyse_en_cours » (19/10/2026) : proposition pas encore analysée par
-    // l'IA, normalement invisible. Filet de sécurité : si elle est restée
-    // dans cet état plus de 5 minutes (Cloud Functions arrêtées, crédits
-    // Anthropic épuisés…), elle s'affiche quand même, pour ne jamais rester
-    // bloquée. Le filtre de l'appli l'a déjà vérifiée à l'envoi.
-    // Seulement MES propositions (24/10/2026) : avant, la liste écoutait
-    // toutes les propositions en attente de la plateforme, puis relisait
-    // l'Écho de chacune pour savoir si c'était le mien, à chaque changement.
+    // Seulement MES propositions, et seulement celles validées par l'IA
+    // (statut « en_attente ») — 24/10/2026. Les règles Firestore interdisent
+    // désormais au propriétaire de lire une proposition encore en analyse
+    // ou retenue pour coordonnées. Conséquence assumée : si les Cloud
+    // Functions s'arrêtent, les nouvelles propositions restent en analyse
+    // (invisibles) jusqu'à leur remise en route.
     const q = query(
       collection(db, 'echoreps_attente'),
       where('proprietaireId', '==', proprietaireId),
-      where('statut', 'in', ['en_attente', 'analyse_en_cours'])
+      where('statut', '==', 'en_attente')
     );
     const unsub = onSnapshot(q, async (snap) => {
       const items: RepEnAttente[] = [];
       const echodata: typeof echoData = {};
       for (const d of snap.docs) {
         const data = d.data();
-        if (data.statut === 'analyse_en_cours') {
-          const creeLe = data.createdAt instanceof Timestamp ? data.createdAt.toDate().getTime() : Date.now();
-          if (Date.now() - creeLe < 5 * 60 * 1000) continue;
-        }
         try {
           const echoRef = await getDoc(doc(db, 'echos', data.echoId));
           if (echoRef.exists() && echoRef.data().auteurId === proprietaireId) {

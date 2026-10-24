@@ -136,7 +136,13 @@ service cloud.firestore {
     }
 
     match /echolegues/{id} {
-      allow read: if estConnecte();
+      // Lecture (24/10/2026) : un Écholègue publié est lisible par tous ;
+      // un Écholègue en attente de modération (coordonnées, contenu
+      // inapproprié) ou supprimé, seulement par son auteur et les modérateurs.
+      allow read: if estConnecte()
+        && (resource.data.statut == 'publie'
+            || resource.data.auteurId == request.auth.uid
+            || estModerateurOuAdmin());
       allow create: if estConnecte()
         && request.resource.data.auteurId == request.auth.uid;
       allow update: if estConnecte()
@@ -183,9 +189,13 @@ service cloud.firestore {
       // connecté pouvait lire toutes les propositions, y compris celles
       // retenues pour coordonnées personnelles, en interrogeant la base
       // directement.
+      // Le propriétaire de l'Écho ne lit une proposition qu'une fois validée
+      // par l'IA (« en_attente ») — 24/10/2026. Jamais pendant l'analyse, ni
+      // si elle est retenue pour coordonnées.
       allow read: if estConnecte()
         && (resource.data.auteurId == request.auth.uid
-            || resource.data.proprietaireId == request.auth.uid
+            || (resource.data.proprietaireId == request.auth.uid
+                && resource.data.statut == 'en_attente')
             || estModerateurOuAdmin());
       // Statut à la création (19/10/2026) : une proposition naît toujours
       // « analyse_en_cours » (ou « en_attente_moderation » si le filtre de

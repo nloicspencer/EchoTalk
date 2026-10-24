@@ -207,3 +207,11 @@ export function analyserContenu(contenu: string): ResultatAnalyse {
 
 // Raison enregistrée sur un contenu masqué automatiquement.
 export const RAISON_MASQUAGE_COORDONNEES = 'Coordonnées personnelles détectées (masquage automatique en attente de vérification)';
+
+// Texte de remplacement (24/10/2026) : un Écho ou une EchoRep masqué pour
+// coordonnées voit son texte remplacé par cette phrase. Masquer ne suffisait
+// pas : le texte restait dans la base, lisible par quiconque l'interrogeait
+// directement. L'original est conservé dans le signalement, lisible
+// uniquement par les modérateurs, et « Rétablir » le remet en place.
+// ⚠️ Doit rester identique à TEXTE_MASQUE dans functions/src/index.ts.
+export const TEXTE_MASQUE = 'Contenu masqué en attente de vérification par la modération.';

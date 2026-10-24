@@ -1,7 +1,7 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, DocumentData, DocumentReference } from "firebase-admin/firestore";
+import { getFirestore, DocumentData, DocumentReference, Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import Anthropic from "@anthropic-ai/sdk";
 
 initializeApp();
@@ -224,6 +224,25 @@ async function creerAlerteDetresse(params: {
 // masque déjà les cas évidents dès la publication ; l'IA rattrape ici les
 // formes déguisées qu'aucune liste ne peut prévoir, et les contenus écrits
 // sans passer par l'appli.
+// Texte de remplacement d'un contenu masqué pour coordonnées (24/10/2026) :
+// le texte d'origine ne reste pas dans la base (il est conservé dans le
+// signalement, lisible par les modérateurs seuls).
+// ⚠️ Doit rester identique à TEXTE_MASQUE dans src/services/moderation.ts.
+const TEXTE_MASQUE = "Contenu masqué en attente de vérification par la modération.";
+
+// Efface l'aperçu de texte des notifications liées à un contenu masqué
+// (24/10/2026) : une notification de tag, par exemple, recopiait le texte —
+// et donc les coordonnées — avant que l'IA ne masque le contenu.
+async function effacerApercusNotifications(filtres: Array<[string, string]>) {
+  let q: Query = db.collection("notifications");
+  for (const [champ, valeur] of filtres) q = q.where(champ, "==", valeur);
+  const snap = await q.get();
+  if (snap.empty) return;
+  const batch = db.batch();
+  snap.docs.forEach((d: QueryDocumentSnapshot) => batch.update(d.ref, { contenuApercu: null }));
+  await batch.commit();
+}
+
 const RAISON_MASQUAGE_COORDONNEES =
   "Coordonnées personnelles détectées par l'IA (masquage automatique en attente de vérification)";
 
@@ -256,7 +275,8 @@ async function modererDocEcho(
     console.log(`[${contexteLog}]`, echoId, "-> signalement créé, catégorie:", analyse.categorie);
 
     if (analyse.categorie === "coordonnees" && !data.masque) {
-      await ref.update({ masque: true, raisonModeration: RAISON_MASQUAGE_COORDONNEES });
+      await ref.update({ masque: true, raisonModeration: RAISON_MASQUAGE_COORDONNEES, contenu: TEXTE_MASQUE });
+      await effacerApercusNotifications([["echoId", echoId]]);
       console.log(`[${contexteLog}]`, echoId, "-> masqué (coordonnées)");
     }
   }
@@ -306,6 +326,8 @@ export const modererEchoModifie = onDocumentUpdated(
     const apres = event.data?.after.data();
     if (!avant || !apres || !event.data) return;
     if ((avant.contenu || "") === (apres.contenu || "")) return;
+    // Texte remplacé par le masquage : rien à analyser.
+    if (apres.contenu === TEXTE_MASQUE) return;
     try {
       await modererDocEcho(event.params.echoId, apres, event.data.after.ref, "modererEchoModifie");
     } catch (err) {
@@ -347,8 +369,14 @@ export const modererEchoBouteille = onDocumentCreated(
         // Coordonnées : la bouteille est retirée de la boîte du
         // destinataire (seules les bouteilles « envoyee » y sont
         // affichées) et repasse en attente de modération.
+        // destinataireId remis à vide (24/10/2026) : le destinataire ne peut
+        // plus la lire du tout, même en interrogeant la base directement ;
+        // un modérateur qui la valide tire un nouveau destinataire.
         if (analyse.categorie === "coordonnees" && data.statut !== "en_attente_moderation") {
-          await snap.ref.update({ statut: "en_attente_moderation" });
+          await snap.ref.update({ statut: "en_attente_moderation", destinataireId: null });
+          if (data.destinataireId) {
+            await effacerApercusNotifications([["destinataireId", data.destinataireId], ["type", "echoBouteille"]]);
+          }
           console.log("[modererEchoBouteille]", event.params.bouteilleId, "-> remise en attente (coordonnées)");
         }
       }
@@ -412,7 +440,11 @@ async function modererDocEchoRep(
       masque: true,
       raisonModeration: RAISON_MASQUAGE_COORDONNEES,
       masqueAt: new Date(),
+      contenu: TEXTE_MASQUE,
     });
+    if (data.auteurId) {
+      await effacerApercusNotifications([["echoId", echoId], ["expediteurId", data.auteurId]]);
+    }
     console.log(`[${contexteLog}]`, repId, "-> masquée (coordonnées)");
   }
 }
@@ -446,6 +478,7 @@ export const modererEchoRepModifiee = onDocumentUpdated(
     const apres = event.data?.after.data();
     if (!avant || !apres || !event.data) return;
     if ((avant.contenu || "") === (apres.contenu || "")) return;
+    if (apres.contenu === TEXTE_MASQUE) return;
     try {
       await modererDocEchoRep(event.params.echoId, event.params.repId, apres, event.data.after.ref, "modererEchoRepModifiee");
     } catch (err) {

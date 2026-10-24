@@ -9,7 +9,7 @@ import { db, echosCollection } from '../services/firebase';
 import { analyserEtSignaler, soumettreEchoRep } from './useModeration';
 import { creerNotification } from './useNotifications';
 import { notifierMentions, nouvellesMentions } from './useMentions';
-import { analyserContenu, RAISON_MASQUAGE_COORDONNEES } from '../services/moderation';
+import { analyserContenu, RAISON_MASQUAGE_COORDONNEES, TEXTE_MASQUE } from '../services/moderation';
 
 // Masquage automatique (19/10/2026) : un texte contenant des coordonnées
 // personnelles est enregistré masqué, en attente de vérification par un
@@ -17,7 +17,9 @@ import { analyserContenu, RAISON_MASQUAGE_COORDONNEES } from '../services/modera
 // détections restent de simples signalements.
 function champsMasquageSiCoordonnees(texte: string): Record<string, unknown> {
   return analyserContenu(texte).coordonnees
-    ? { masque: true, raisonModeration: RAISON_MASQUAGE_COORDONNEES }
+    // contenu remplacé (24/10/2026) : le texte d'origine ne reste pas dans
+    // la base ; il est conservé dans le signalement (modérateurs seuls).
+    ? { masque: true, raisonModeration: RAISON_MASQUAGE_COORDONNEES, contenu: TEXTE_MASQUE }
     : {};
 }
 import { Echo, EchoType, Mention, Tonalite } from '../types';

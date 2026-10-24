@@ -15,7 +15,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supprimerEchoBouteille, validerEchoBouteille } from '../hooks/useEchoBouteille';
-import { masquerEchoRep, modererCompte, modererEcho, recupererEchoRep } from '../hooks/useModeration';
+import { masquerEchoRep, modererCompte, modererEcho } from '../hooks/useModeration';
+import { TEXTE_MASQUE } from '../services/moderation';
 import { creerNotification } from '../hooks/useNotifications';
 import { supprimerEcholegue, validerEcholegue } from '../hooks/useEcholegue';
 import { db } from '../services/firebase';
@@ -242,6 +243,25 @@ export default function ModerationPage() {
   // « Rétablir » : faux positif. Le contenu redevient visible (ou la
   // proposition d'EchoRep revient dans la liste de validation du
   // propriétaire, qui est alors prévenu), et le signalement est classé.
+  // Remet un Écho ou une EchoRep masqué en ligne (24/10/2026). Si son texte
+  // a été remplacé par TEXTE_MASQUE (masquage automatique des coordonnées),
+  // l'original est repris du signalement. Un masquage manuel ne touche pas
+  // au texte : seul « masque » est alors levé.
+  const restaurerContenu = async (s: Signalement) => {
+    const ref = estEchoRep(s) && s.echoRepId
+      ? doc(db, 'echos', s.echoId, 'echoreps', s.echoRepId)
+      : s.type === 'echo' && s.echoId ? doc(db, 'echos', s.echoId) : null;
+    if (!ref) return;
+    const snap = await getDoc(ref);
+    const texteRemplace = snap.exists() && snap.data().contenu === TEXTE_MASQUE
+      && !!s.contenu && s.contenu !== TEXTE_MASQUE;
+    await updateDoc(ref, {
+      masque: false, raisonModeration: null,
+      ...(estEchoRep(s) && { masqueAt: null }),
+      ...(texteRemplace && { contenu: s.contenu }),
+    });
+  };
+
   const handleRetablir = async (s: Signalement) => {
     if (!confirm('Rétablir ce contenu ? Il redeviendra visible.')) return;
     try {
@@ -256,10 +276,8 @@ export default function ModerationPage() {
             echoId: s.echoId, contenuApercu: s.contenu,
           });
         }
-      } else if (estEchoRep(s) && s.echoRepId) {
-        await recupererEchoRep(s.echoId, s.echoRepId);
-      } else if (s.type === 'echo' && s.echoId) {
-        await updateDoc(doc(db, 'echos', s.echoId), { masque: false, raisonModeration: null });
+      } else {
+        await restaurerContenu(s);
       }
       await updateDoc(doc(db, 'signalements', s.id), { statut: 'ignore', decision: 'Faux positif — contenu rétabli' });
       afficher('✅ Contenu rétabli.');
@@ -313,11 +331,7 @@ export default function ModerationPage() {
   };
 
   const handleRecuperer = async (s: Signalement) => {
-    if (!s.echoRepId) {
-      await updateDoc(doc(db, 'echos', s.echoId), { masque: false, raisonModeration: null });
-    } else {
-      await recupererEchoRep(s.echoId, s.echoRepId);
-    }
+    await restaurerContenu(s);
     await updateDoc(doc(db, 'signalements', s.id), { decision: 'Contenu récupéré par admin' });
     afficher('✅ Contenu récupéré.');
   };
