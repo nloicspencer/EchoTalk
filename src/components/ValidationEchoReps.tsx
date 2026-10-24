@@ -68,13 +68,13 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
     return unsub;
   }, [proprietaireId]);
 
-  const tempsRestant = (expiresAt: Date) => {
-    const diff = expiresAt.getTime() - Date.now();
-    if (diff <= 0) return 'Expirée';
-    const heures = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${heures}h${minutes}m`;
-  };
+  // 24/10/2026 : le compte à rebours de 24 h (« Expirée ») et la phrase
+  // « acceptées automatiquement à l'expiration » ont été retirés. Aucune
+  // acceptation automatique n'existe (ni dans l'appli, ni côté serveur) :
+  // une proposition attend la décision du propriétaire, sans limite de
+  // temps. On affiche à la place la date de réception.
+  const dateReception = (date: Date) =>
+    date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   const handleAccepter = async (rep: RepEnAttente) => {
     const echo = echoData[rep.echoId];
@@ -116,8 +116,7 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
     <div className="validation-section">
       <h3>EchoReps en attente de validation</h3>
       <p className="validation-note">
-        {enAttente.length} EchoRep{enAttente.length > 1 ? 's' : ''} en attente.
-        Sans réponse, elles seront acceptées automatiquement à l'expiration.
+        {enAttente.length} EchoRep{enAttente.length > 1 ? 's' : ''} en attente de ta décision.
       </p>
       <div className="validation-liste">
         {enAttente.map(rep => (
@@ -129,7 +128,7 @@ export default function ValidationEchoReps({ proprietaireId }: Props) {
             <p className="validation-contenu"><TexteAvecMentions texte={rep.contenu} mentions={rep.mentions} /></p>
             <div className="validation-footer">
               <span className="validation-timer">
-                <i className="ti ti-clock" aria-hidden="true" /> {tempsRestant(rep.expiresAt)}
+                <i className="ti ti-clock" aria-hidden="true" /> Reçue le {dateReception(rep.createdAt)}
               </span>
               <div className="validation-actions">
                 <button className="btn-refuser" onClick={() => handleRefuser(rep)}>
