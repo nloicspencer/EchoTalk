@@ -94,6 +94,20 @@ function useAuthState(): AuthContextValue {
       if (unsubUserRef.current) { unsubUserRef.current(); unsubUserRef.current = null; }
       setUser(u);
       setEmailVerifie(!!u?.emailVerified);
+      // Firebase garde en mémoire l'état du compte au moment de la dernière
+      // connexion : une adresse confirmée entre-temps (lien cliqué ailleurs,
+      // compte de test marqué vérifié par script) resterait « non vérifiée ».
+      // On relit donc l'état réel une fois au démarrage.
+      if (u && !u.emailVerified) {
+        u.reload()
+          .then(async () => {
+            if (u.emailVerified) {
+              await u.getIdToken(true);
+              setEmailVerifie(true);
+            }
+          })
+          .catch(() => {});
+      }
       if (u) {
         const userRef = doc(db, 'users', u.uid);
 
