@@ -1,6 +1,9 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getAuth } from "firebase-admin/auth";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import * as nodemailer from "nodemailer";
+import { createHmac, timingSafeEqual } from "crypto";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, DocumentData, DocumentReference, Query, QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
@@ -788,5 +791,269 @@ export const supprimerComptesNonVerifies = onSchedule(
       pageToken = page.pageToken;
     } while (pageToken);
     console.log("[supprimerComptesNonVerifies] terminé —", supprimes, "compte(s) supprimé(s)");
+  }
+);
+
+// ============================================================
+// E-MAILS D'ECHOTALK (31/10/2026) — envoyés depuis notifications@echotalk.fr
+// (boîte Gandi), par SMTP.
+//
+// Secrets Firebase nécessaires (jamais dans le code ni dans Git) :
+//   SMTP_MOT_DE_PASSE  : mot de passe de la boîte notifications@echotalk.fr
+//   CLE_DESINSCRIPTION : clé secrète qui signe les liens de désinscription
+//                        (empêche de désinscrire quelqu'un d'autre)
+// ============================================================
+const SMTP_MOT_DE_PASSE = defineSecret("SMTP_MOT_DE_PASSE");
+const CLE_DESINSCRIPTION = defineSecret("CLE_DESINSCRIPTION");
+const EXPEDITEUR = "notifications@echotalk.fr";
+const URL_APPLI = "https://echotalk.fr";
+
+function transporteur() {
+  return nodemailer.createTransport({
+    host: "mail.gandi.net",
+    port: 465,
+    secure: true,
+    auth: { user: EXPEDITEUR, pass: SMTP_MOT_DE_PASSE.value() },
+  });
+}
+
+function echapperHtml(t: string): string {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// Gabarit commun : sobre, aux couleurs d'EchoTalk, lisible sans images.
+function gabaritHtml(paragraphes: string[], bouton: { texte: string; url: string }, piedDePage: string): string {
+  const corps = paragraphes.map((p) => `<p style="margin:0 0 14px;line-height:1.6">${p}</p>`).join("");
+  return `<!doctype html><html lang="fr"><body style="margin:0;padding:24px 12px;background:#F5F0FC;font-family:Arial,Helvetica,sans-serif;color:#2E2A3D">
+<div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:14px;padding:28px 24px;border:1px solid #E4DCF2">
+<p style="margin:0 0 18px;font-family:Georgia,serif;font-size:22px;color:#7B5EA7">EchoTalk</p>
+${corps}
+<p style="margin:22px 0"><a href="${bouton.url}" style="display:inline-block;background:#7B5EA7;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">${echapperHtml(bouton.texte)}</a></p>
+<p style="margin:18px 0 0;font-size:12px;color:#6B6B76;line-height:1.5">${piedDePage}</p>
+</div></body></html>`;
+}
+
+// ------------------------------------------------------------
+// 1) E-MAIL DE VÉRIFICATION DE L'ADRESSE
+// Remplace l'e-mail standard de Firebase (dont le texte n'est pas
+// modifiable) : mention des 3 jours, expéditeur @echotalk.fr.
+// L'appli l'appelle à l'inscription et via « Renvoyer l'e-mail » ; en cas
+// d'échec, elle se rabat sur l'e-mail standard de Firebase.
+// ------------------------------------------------------------
+const ATTENTE_ENTRE_ENVOIS_MS = 55 * 1000;
+
+export const envoyerEmailVerification = onCall(
+  {
+    region: "europe-west9",
+    secrets: [SMTP_MOT_DE_PASSE],
+  },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+
+    const compte = await getAuth().getUser(uid);
+    if (compte.emailVerified) return { deja: true };
+    if (!compte.email) throw new HttpsError("failed-precondition", "Aucune adresse e-mail.");
+
+    // Pas plus d'un envoi par minute et par compte. Collection « envois »
+    // inaccessible depuis l'appli (règle par défaut : tout refuser).
+    const suivi = db.collection("envois_verification").doc(uid);
+    const dernier = (await suivi.get()).data()?.dernierEnvoi;
+    if (dernier && Date.now() - dernier.toMillis() < ATTENTE_ENTRE_ENVOIS_MS) {
+      throw new HttpsError("resource-exhausted", "Trop de demandes.");
+    }
+    await suivi.set({ dernierEnvoi: Timestamp.now() });
+
+    const lien = await getAuth().generateEmailVerificationLink(compte.email, { url: `${URL_APPLI}/` });
+    const creation = Date.parse(compte.metadata.creationTime);
+    const avecDelai = !Number.isNaN(creation) && creation >= DEBUT_SUPPRESSION_NON_VERIFIES;
+
+    const paragraphes = [
+      "Bonjour,",
+      "Pour accéder à EchoTalk, confirmez votre adresse e-mail en cliquant sur le bouton ci-dessous.",
+    ];
+    if (avecDelai) {
+      paragraphes.push("Ce lien est valable <strong>3 jours</strong>. Passé ce délai, votre compte et le pseudonyme qui vous a été attribué seront supprimés ; vous pourrez alors vous inscrire à nouveau.");
+    }
+    paragraphes.push("Sur iPhone, le lien s'ouvre dans Safari : une fois l'adresse confirmée, revenez simplement dans EchoTalk.");
+
+    const texte = [
+      "Bonjour,",
+      "",
+      "Pour accéder à EchoTalk, confirmez votre adresse e-mail en ouvrant ce lien :",
+      lien,
+      "",
+      ...(avecDelai ? ["Ce lien est valable 3 jours. Passé ce délai, votre compte et le pseudonyme qui vous a été attribué seront supprimés ; vous pourrez alors vous inscrire à nouveau.", ""] : []),
+      "Sur iPhone, le lien s'ouvre dans Safari : une fois l'adresse confirmée, revenez simplement dans EchoTalk.",
+      "",
+      "Si vous n'êtes pas à l'origine de cette inscription, ignorez cet e-mail.",
+      "",
+      "L'équipe EchoTalk",
+    ].join("\n");
+
+    await transporteur().sendMail({
+      from: `EchoTalk <${EXPEDITEUR}>`,
+      to: compte.email,
+      replyTo: "contact@echotalk.fr",
+      subject: "Confirmez votre adresse e-mail pour EchoTalk",
+      text: texte,
+      html: gabaritHtml(
+        paragraphes,
+        { texte: "Confirmer mon adresse", url: lien },
+        "Si vous n'êtes pas à l'origine de cette inscription, ignorez cet e-mail.<br>L'équipe EchoTalk"
+      ),
+    });
+    return { envoye: true };
+  }
+);
+
+// ------------------------------------------------------------
+// 2) RÉSUMÉ DES NOTIFICATIONS, TOUTES LES 5 HEURES
+// Pour chaque personne ayant reçu des notifications NON LUES depuis le
+// passage précédent : un e-mail récapitulatif. Jamais de texte d'Écho ni
+// de pseudonyme — seulement des nombres par type d'événement.
+// Pas d'e-mail : désinscrits (users/{uid}.resumeEmail == false), adresses
+// non vérifiées, comptes de test @echotalk.com.
+// ------------------------------------------------------------
+const LIBELLES_RESUME: Record<string, [string, string]> = {
+  jarreBleue: ["jarre bleue reçue", "jarres bleues reçues"],
+  jarreRose: ["jarre rose reçue", "jarres roses reçues"],
+  coeur: ["réaction à vos Échos", "réactions à vos Échos"],
+  echoRep: ["réponse à valider sur vos Échos Ouverts", "réponses à valider sur vos Échos Ouverts"],
+  echoRepDecision: ["décision sur une de vos réponses", "décisions sur vos réponses"],
+  echoBouteille: ["Écho-Bouteille reçu", "Écho-Bouteilles reçus"],
+  mention: ["mention de votre pseudonyme", "mentions de votre pseudonyme"],
+  echolegueSelectionnee: ["Écholègue sélectionné pour le Journal des Lègues", "Écholègues sélectionnés pour le Journal des Lègues"],
+  echoSolidaire: ["Écho choisi comme Écho Solidaire du mois", "Échos choisis comme Écho Solidaire du mois"],
+  moderation: ["message de l'équipe de modération", "messages de l'équipe de modération"],
+};
+
+function familleResume(type: string): string {
+  if (type === "coeurBrise") return "coeur";
+  if (type === "echoRepValidee" || type === "echoRepRefusee") return "echoRepDecision";
+  return type;
+}
+
+function signatureDesinscription(uid: string): string {
+  return createHmac("sha256", CLE_DESINSCRIPTION.value()).update(uid).digest("hex").slice(0, 32);
+}
+
+const DOMAINE_COMPTES_TEST = "@echotalk.com";
+const INTERVALLE_RESUME_MS = 5 * 60 * 60 * 1000;
+
+export const envoyerResumesNotifications = onSchedule(
+  {
+    schedule: "every 5 hours",
+    timeZone: "Europe/Paris",
+    region: "europe-west9",
+    secrets: [SMTP_MOT_DE_PASSE, CLE_DESINSCRIPTION],
+  },
+  async () => {
+    const suivi = db.collection("systeme").doc("resume_emails");
+    const maintenant = Timestamp.now();
+    const precedent = (await suivi.get()).data()?.derniereExecution
+      ?? Timestamp.fromMillis(maintenant.toMillis() - INTERVALLE_RESUME_MS);
+
+    const snap = await db.collection("notifications")
+      .where("createdAt", ">", precedent)
+      .where("createdAt", "<=", maintenant)
+      .get();
+
+    // Regroupement par destinataire, notifications non lues seulement.
+    const parPersonne = new Map<string, Map<string, number>>();
+    snap.docs.forEach((d: QueryDocumentSnapshot) => {
+      const n = d.data();
+      if (n.lu === true || typeof n.destinataireId !== "string") return;
+      const famille = familleResume(n.type);
+      if (!LIBELLES_RESUME[famille]) return;
+      const compteur = parPersonne.get(n.destinataireId) ?? new Map<string, number>();
+      compteur.set(famille, (compteur.get(famille) ?? 0) + 1);
+      parPersonne.set(n.destinataireId, compteur);
+    });
+
+    const transport = parPersonne.size > 0 ? transporteur() : null;
+    let envoyes = 0;
+    for (const [uid, compteur] of parPersonne) {
+      try {
+        const fiche = await db.collection("users").doc(uid).get();
+        if (!fiche.exists || fiche.data()?.resumeEmail === false) continue;
+        const compte = await getAuth().getUser(uid);
+        const email = (compte.email || "").toLowerCase();
+        if (!compte.emailVerified || !email || email.endsWith(DOMAINE_COMPTES_TEST)) continue;
+
+        const lignes: string[] = [];
+        compteur.forEach((nombre, famille) => {
+          const [singulier, pluriel] = LIBELLES_RESUME[famille];
+          lignes.push(`${nombre} ${nombre > 1 ? pluriel : singulier}`);
+        });
+        const lienDesinscription = `${URL_APPLI}/desinscription?u=${encodeURIComponent(uid)}&s=${signatureDesinscription(uid)}`;
+        const lienAppli = `${URL_APPLI}/notifications`;
+
+        const texte = [
+          "Bonjour,",
+          "",
+          "Il s'est passé quelque chose pour vous sur EchoTalk :",
+          ...lignes.map((l) => `- ${l}`),
+          "",
+          `Voir mes notifications : ${lienAppli}`,
+          "",
+          "Sur iPhone, ce lien s'ouvre dans Safari. Pour retrouver EchoTalk tel que vous l'avez installé, ouvrez plutôt l'icône EchoTalk de votre écran d'accueil.",
+          "",
+          `Ne plus recevoir ce résumé : ${lienDesinscription}`,
+        ].join("\n");
+
+        await transport!.sendMail({
+          from: `EchoTalk <${EXPEDITEUR}>`,
+          to: email,
+          replyTo: "contact@echotalk.fr",
+          subject: "Du nouveau pour vous sur EchoTalk",
+          text: texte,
+          html: gabaritHtml(
+            [
+              "Bonjour,",
+              "Il s'est passé quelque chose pour vous sur EchoTalk :",
+              `<span style="display:block;padding-left:4px">${lignes.map((l) => `• ${echapperHtml(l)}`).join("<br>")}</span>`,
+              "Sur iPhone, ce lien s'ouvre dans Safari. Pour retrouver EchoTalk tel que vous l'avez installé, ouvrez plutôt l'icône EchoTalk de votre écran d'accueil.",
+            ],
+            { texte: "Voir mes notifications", url: lienAppli },
+            `Vous recevez ce résumé parce que vous avez un compte EchoTalk. <a href="${lienDesinscription}" style="color:#6B6B76">Ne plus recevoir ce résumé</a>`
+          ),
+          headers: {
+            "List-Unsubscribe": `<${lienDesinscription}>, <mailto:contact@echotalk.fr?subject=desinscription>`,
+          },
+        });
+        envoyes++;
+      } catch (err) {
+        console.error("[envoyerResumesNotifications] échec pour", uid, err);
+      }
+    }
+
+    await suivi.set({ derniereExecution: maintenant });
+    console.log("[envoyerResumesNotifications]", envoyes, "résumé(s) envoyé(s) pour", parPersonne.size, "personne(s) concernée(s)");
+  }
+);
+
+// ------------------------------------------------------------
+// 3) DÉSINSCRIPTION DU RÉSUMÉ (lien présent dans chaque e-mail)
+// Appelée par la page echotalk.fr/desinscription, sans connexion : la
+// signature du lien prouve qu'il vient bien d'un de nos e-mails.
+// ------------------------------------------------------------
+export const desinscrireResume = onCall(
+  {
+    region: "europe-west9",
+    secrets: [CLE_DESINSCRIPTION],
+  },
+  async (request) => {
+    const uid = typeof request.data?.u === "string" ? request.data.u : "";
+    const signature = typeof request.data?.s === "string" ? request.data.s : "";
+    const attendue = uid ? signatureDesinscription(uid) : "";
+    const valide = uid.length > 0 && signature.length === attendue.length
+      && timingSafeEqual(Buffer.from(signature), Buffer.from(attendue));
+    if (!valide) throw new HttpsError("invalid-argument", "Lien invalide.");
+
+    const fiche = db.collection("users").doc(uid);
+    if (!(await fiche.get()).exists) return { ok: true };
+    await fiche.update({ resumeEmail: false });
+    return { ok: true };
   }
 );

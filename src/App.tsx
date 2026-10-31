@@ -16,6 +16,7 @@ const DecouvertePage = lazy(() => import('./pages/DecouvertePage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const VerificationEmailPage = lazy(() => import('./pages/VerificationEmailPage'));
+const DesinscriptionPage = lazy(() => import('./pages/DesinscriptionPage'));
 
 function ChargementPage() {
   return (
@@ -122,6 +123,16 @@ export default function App() {
   if (path.startsWith('/pionniers')) {
     window.location.replace('/');
     return null;
+  }
+
+  // Lien « Ne plus recevoir ce résumé » des e-mails (31/10/2026) :
+  // accessible sans être connecté.
+  if (path.startsWith('/desinscription')) {
+    return (
+      <Suspense fallback={<ChargementPage />}>
+        <DesinscriptionPage />
+      </Suspense>
+    );
   }
 
   const basename = path.startsWith('/test') ? '/test' : undefined;

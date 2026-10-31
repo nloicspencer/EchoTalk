@@ -1,4 +1,4 @@
-import { deleteDoc, doc, collection, collectionGroup, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { deleteDoc, doc, collection, collectionGroup, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -134,6 +134,22 @@ export default function ProfilPage() {
       setErreurSuppression('Mot de passe incorrect, ou erreur de connexion.');
     } finally {
       setSuppressionEnCours(false);
+    }
+  };
+
+  // Résumé des notifications par e-mail (31/10/2026) — activé par défaut,
+  // désactivable ici ou par le lien présent dans chaque e-mail.
+  const resumeEmailActif = (profile as { resumeEmail?: boolean } | null)?.resumeEmail !== false;
+  const [majResume, setMajResume] = useState(false);
+  const basculerResumeEmail = async () => {
+    if (!user) return;
+    setMajResume(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { resumeEmail: !resumeEmailActif });
+    } catch (err) {
+      console.error('[ProfilPage] résumé e-mail', err);
+    } finally {
+      setMajResume(false);
     }
   };
 
@@ -615,6 +631,16 @@ export default function ProfilPage() {
         <h3>Identité privée</h3>
         <p className="profil-note">Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.</p>
         <div className="profil-email"><span>📧</span><span>{user?.email}</span></div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '0.9rem', cursor: 'pointer', fontFamily: 'var(--et-font-ui)', fontSize: '0.875rem', color: 'var(--et-text-2)', lineHeight: 1.5 }}>
+          <input
+            type="checkbox"
+            checked={resumeEmailActif}
+            disabled={majResume}
+            onChange={basculerResumeEmail}
+            style={{ width: 16, height: 16, marginTop: 2, accentColor: 'var(--et-accent)', flexShrink: 0 }}
+          />
+          <span>Recevoir un résumé de mes notifications par e-mail (au plus toutes les 5 heures, sans le contenu des Échos)</span>
+        </label>
       </div>
 
       {profile?.role === 'admin' && (

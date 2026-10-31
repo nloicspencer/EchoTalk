@@ -8,6 +8,8 @@ import {
   signOut, User,
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth, db } from '../services/firebase';
 import { OISEAUX, UserProfile } from '../types';
 import { verifierSuspension } from '../hooks/useModeration';
@@ -23,6 +25,25 @@ import { VERSION_DOCUMENTS_LEGAUX } from '../constants/documentsLegaux';
 // confirmation.
 auth.languageCode = 'fr';
 const PARAMETRES_LIEN_VERIFICATION = { url: 'https://echotalk.fr/' };
+
+// E-mail de vérification envoyé par NOTRE Cloud Function (31/10/2026),
+// depuis notifications@echotalk.fr, avec la mention des 3 jours. Si elle
+// échoue (panne, boîte Gandi indisponible), on se rabat sur l'e-mail
+// standard de Firebase pour ne jamais bloquer une inscription.
+// « Trop de demandes » est la seule erreur qu'on remonte telle quelle.
+async function envoyerVerification(u: User) {
+  try {
+    const appel = httpsCallable(getFunctions(getApp(), 'europe-west9'), 'envoyerEmailVerification');
+    await appel();
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code ?? '';
+    if (code.includes('resource-exhausted')) {
+      throw Object.assign(new Error('Trop de demandes.'), { code: 'auth/too-many-requests' });
+    }
+    console.warn('E-mail EchoTalk indisponible, e-mail Firebase envoyé à la place :', err);
+    await sendEmailVerification(u, PARAMETRES_LIEN_VERIFICATION);
+  }
+}
 
 let villesCache: string[] | null = null;
 async function chargerVilles(): Promise<string[]> {
@@ -209,7 +230,7 @@ function useAuthState(): AuthContextValue {
     // E-mail de vérification (31/10/2026). Un échec d'envoi ne bloque pas
     // l'inscription : l'écran de vérification propose « Renvoyer l'e-mail ».
     try {
-      await sendEmailVerification(cred.user, PARAMETRES_LIEN_VERIFICATION);
+      await envoyerVerification(cred.user);
     } catch (e) {
       console.error('Envoi de l\'e-mail de vérification échoué :', e);
     }
@@ -278,7 +299,7 @@ function useAuthState(): AuthContextValue {
   const renvoyerEmailVerification = async () => {
     const u = auth.currentUser;
     if (!u) return;
-    await sendEmailVerification(u, PARAMETRES_LIEN_VERIFICATION);
+    await envoyerVerification(u);
   };
 
   const deconnexion = async () => {
