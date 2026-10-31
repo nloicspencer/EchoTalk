@@ -1,7 +1,7 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, DocumentData, DocumentReference, Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { getFirestore, DocumentData, DocumentReference, Query, QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
 import Anthropic from "@anthropic-ai/sdk";
 
 initializeApp();
@@ -347,6 +347,95 @@ export const modererEchoModifie = onDocumentUpdated(
   }
 );
 
+// ============================================================
+// ÉCHO-BOUTEILLE — tirage du destinataire CÔTÉ SERVEUR (31/10/2026)
+//
+// Avant : le navigateur de l'expéditeur choisissait lui-même le
+// destinataire. N'importe qui pouvait donc, en écrivant directement dans
+// la base, envoyer une bouteille à la personne de son choix — acceptable
+// entre pionniers de confiance, pas pour le public.
+//
+// Désormais :
+//   1. L'appli crée la bouteille SANS destinataire, au statut
+//      « a_distribuer » (ou « en_attente_moderation » si le filtre de
+//      l'appli l'a retenue). Les règles Firestore interdisent toute autre
+//      forme de création.
+//   2. modererEchoBouteille (ci-dessous) l'analyse avec l'IA AVANT tout
+//      envoi : coordonnées → retenue pour un modérateur ; sinon → tirage
+//      au sort d'un destinataire ici, puis notification.
+//   3. Quand un modérateur valide une bouteille retenue, l'appli la
+//      repasse en « a_distribuer » ; distribuerEchoBouteilleValidee la
+//      distribue alors, sans nouvelle analyse (la décision humaine prime).
+//
+// Si l'IA est indisponible (panne, crédits épuisés), la bouteille est
+// distribuée quand même : elle a déjà passé le filtre de l'appli, comme
+// avant ce changement. Si les Cloud Functions elles-mêmes sont arrêtées,
+// les bouteilles restent « a_distribuer » et partiront à leur remise en
+// route.
+// ============================================================
+const DUREE_BOUTEILLE_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Tirage aléatoire via le champ `alea` de l'annuaire (fixé à l'inscription) :
+// quelques lectures seulement, quelle que soit la taille de l'annuaire.
+// 3 candidats par requête pour pouvoir écarter l'expéditeur lui-même.
+async function tirerCandidat(expediteurId: string, seuil: number, sens: "asc" | "desc"): Promise<string | null> {
+  const snap = await db.collection("annuaire")
+    .where("banni", "==", false)
+    .where("alea", sens === "asc" ? ">=" : "<", seuil)
+    .orderBy("alea", sens)
+    .limit(3)
+    .get();
+  const candidat = snap.docs.find((d: QueryDocumentSnapshot) => (d.data().uid || d.id) !== expediteurId);
+  return candidat ? (candidat.data().uid || candidat.id) : null;
+}
+
+async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
+  const seuil = Math.random();
+  return (await tirerCandidat(expediteurId, seuil, "asc"))
+    ?? (await tirerCandidat(expediteurId, seuil, "desc"));
+}
+
+async function distribuerBouteille(ref: DocumentReference, contexteLog: string) {
+  const depart = await ref.get();
+  const data = depart.data();
+  if (!data || data.statut !== "a_distribuer") return;
+
+  const destinataireId = await tirerDestinataireAleatoire(data.expediteurId);
+  if (!destinataireId) {
+    console.warn(`[${contexteLog}] aucun destinataire disponible — bouteille laissée « a_distribuer »`);
+    return;
+  }
+
+  // Transaction : si le déclencheur s'exécute deux fois (cela peut arriver
+  // avec les Cloud Functions), la bouteille n'est distribuée qu'une fois.
+  const distribuee = await db.runTransaction(async (tx) => {
+    const actuel = await tx.get(ref);
+    if (actuel.data()?.statut !== "a_distribuer") return false;
+    tx.update(ref, {
+      destinataireId,
+      statut: "envoyee",
+      expiresAt: Timestamp.fromMillis(Date.now() + DUREE_BOUTEILLE_MS),
+      distribueeAt: Timestamp.now(),
+    });
+    return true;
+  });
+  if (!distribuee) return;
+
+  // Notification au destinataire — sans pseudo d'expéditeur : l'anonymat
+  // fait partie du principe de l'Écho-Bouteille.
+  await db.collection("notifications").add({
+    destinataireId,
+    type: "echoBouteille",
+    expediteurId: data.expediteurId ?? null,
+    expediteurPseudo: null,
+    echoId: null,
+    contenuApercu: (data.contenu || "").toString().slice(0, 140) || null,
+    createdAt: Timestamp.now(),
+    lu: false,
+  });
+  console.log(`[${contexteLog}] distribuée`);
+}
+
 export const modererEchoBouteille = onDocumentCreated(
   {
     document: "echos_bouteille/{bouteilleId}",
@@ -357,53 +446,85 @@ export const modererEchoBouteille = onDocumentCreated(
     const snap = event.data;
     if (!snap) return;
     const data = snap.data();
+    const id = event.params.bouteilleId;
     const contenu = (data.contenu || "").toString().trim();
     if (!contenu) {
-      console.log("[modererEchoBouteille]", event.params.bouteilleId, "contenu vide, aucune analyse effectuée. data:", JSON.stringify(data));
+      console.log("[modererEchoBouteille]", id, "contenu vide, aucune analyse effectuée.");
       return;
     }
 
+    let retenue = false;
     try {
-      const analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `modererEchoBouteille:${event.params.bouteilleId}`);
+      const analyse = await analyserAvecIA(contenu, ANTHROPIC_API_KEY.value(), `modererEchoBouteille:${id}`);
 
       if (analyse.probleme) {
         await creerSignalementIA({
-          contenuId: event.params.bouteilleId,
+          contenuId: id,
           collection: "echos_bouteille",
           auteurId: data.expediteurId,
           auteurPseudo: data.expediteurPseudo,
           contenu,
           categorie: analyse.categorie,
         });
-        console.log("[modererEchoBouteille]", event.params.bouteilleId, "-> signalement créé, catégorie:", analyse.categorie);
+        console.log("[modererEchoBouteille]", id, "-> signalement créé, catégorie:", analyse.categorie);
 
-        // Coordonnées : la bouteille est retirée de la boîte du
-        // destinataire (seules les bouteilles « envoyee » y sont
-        // affichées) et repasse en attente de modération.
-        // destinataireId remis à vide (24/10/2026) : le destinataire ne peut
-        // plus la lire du tout, même en interrogeant la base directement ;
-        // un modérateur qui la valide tire un nouveau destinataire.
-        if (analyse.categorie === "coordonnees" && data.statut !== "en_attente_moderation") {
-          await snap.ref.update({ statut: "en_attente_moderation", destinataireId: null });
-          if (data.destinataireId) {
-            await effacerApercusNotifications([["destinataireId", data.destinataireId], ["type", "echoBouteille"]]);
+        // Coordonnées : la bouteille n'est pas envoyée, elle attend un
+        // modérateur (qui la validera ou la supprimera).
+        if (analyse.categorie === "coordonnees") {
+          retenue = true;
+          if (data.statut === "a_distribuer") {
+            await snap.ref.update({ statut: "en_attente_moderation", destinataireId: null });
+          } else if (data.statut === "envoyee") {
+            // Bouteille créée par une ancienne version de l'appli (déjà
+            // envoyée) : on la retire de la boîte du destinataire.
+            await snap.ref.update({ statut: "en_attente_moderation", destinataireId: null });
+            if (data.destinataireId) {
+              await effacerApercusNotifications([["destinataireId", data.destinataireId], ["type", "echoBouteille"]]);
+            }
           }
-          console.log("[modererEchoBouteille]", event.params.bouteilleId, "-> remise en attente (coordonnées)");
+          console.log("[modererEchoBouteille]", id, "-> retenue (coordonnées)");
         }
       }
 
       if (analyse.detresse) {
         await creerAlerteDetresse({
-          contenuId: event.params.bouteilleId,
+          contenuId: id,
           collection: "echos_bouteille",
           auteurId: data.expediteurId,
           auteurPseudo: data.expediteurPseudo,
           contenu,
         });
-        console.log("[modererEchoBouteille]", event.params.bouteilleId, "-> alerte détresse créée");
+        console.log("[modererEchoBouteille]", id, "-> alerte détresse créée");
       }
     } catch (err) {
-      console.error("Erreur modération IA Écho-Bouteille", event.params.bouteilleId, err);
+      console.error("Erreur modération IA Écho-Bouteille (distribuée quand même)", id, err);
+    }
+
+    if (!retenue && data.statut === "a_distribuer") {
+      try {
+        await distribuerBouteille(snap.ref, `modererEchoBouteille:${id}`);
+      } catch (err) {
+        console.error("Erreur distribution Écho-Bouteille", id, err);
+      }
+    }
+  }
+);
+
+// Bouteille validée par un modérateur : en_attente_moderation → a_distribuer.
+export const distribuerEchoBouteilleValidee = onDocumentUpdated(
+  {
+    document: "echos_bouteille/{bouteilleId}",
+    region: "europe-west9",
+  },
+  async (event) => {
+    const avant = event.data?.before.data();
+    const apres = event.data?.after.data();
+    if (!avant || !apres || !event.data) return;
+    if (avant.statut !== "en_attente_moderation" || apres.statut !== "a_distribuer") return;
+    try {
+      await distribuerBouteille(event.data.after.ref, `distribuerEchoBouteilleValidee:${event.params.bouteilleId}`);
+    } catch (err) {
+      console.error("Erreur distribution Écho-Bouteille validée", event.params.bouteilleId, err);
     }
   }
 );

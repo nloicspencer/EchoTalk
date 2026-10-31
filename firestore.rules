@@ -156,8 +156,14 @@ service cloud.firestore {
         && (request.auth.uid == resource.data.expediteurId
             || request.auth.uid == resource.data.destinataireId
             || estModerateurOuAdmin());
+      // Création (31/10/2026) : toujours SANS destinataire. Le destinataire
+      // est tiré au sort par le serveur (Cloud Function modererEchoBouteille),
+      // jamais choisi par l'appli.
       allow create: if estConnecte()
-        && request.resource.data.expediteurId == request.auth.uid;
+        && request.resource.data.expediteurId == request.auth.uid
+        && request.resource.data.destinataireId == null
+        && request.resource.data.statut in ['a_distribuer', 'en_attente_moderation']
+        && request.resource.data.lu == false;
       // Modification (24/10/2026) : l'expéditeur ne peut plus rien modifier
       // (il pouvait auparavant, en écrivant directement dans la base, changer
       // le texte, le destinataire ou le statut d'une bouteille retenue par la

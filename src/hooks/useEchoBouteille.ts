@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import {
-  collection, addDoc, onSnapshot, query, where, orderBy, limit,
-  getDocs, updateDoc, doc, serverTimestamp, Timestamp
+  collection, addDoc, onSnapshot, query, where,
+  updateDoc, doc, serverTimestamp, Timestamp
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { analyserContenu } from '../services/moderation';
-import { creerNotification } from './useNotifications';
+
+// Tirage du destinataire CÔTÉ SERVEUR (31/10/2026) — l'appli crée la
+// bouteille SANS destinataire, au statut « a_distribuer ». La Cloud
+// Function modererEchoBouteille l'analyse avec l'IA, tire un destinataire
+// au sort et le notifie (voir functions/src/index.ts). L'appli ne choisit
+// plus jamais le destinataire et ne lit plus l'annuaire pour ça.
 
 export interface EchoBouteille {
   id: string;
@@ -13,7 +18,7 @@ export interface EchoBouteille {
   expediteurPseudo: string;
   destinataireId: string | null;
   contenu: string;
-  statut: 'envoyee' | 'en_attente_moderation' | 'validee' | 'supprimee';
+  statut: 'a_distribuer' | 'envoyee' | 'en_attente_moderation' | 'validee' | 'supprimee';
   createdAt: Date;
   expiresAt: Date | null;
   lu: boolean;
@@ -50,14 +55,11 @@ export async function envoyerEchoBouteille(
     return 'en_attente_moderation';
   }
 
-  const destinataireId = await tirerDestinataireAleatoire(expediteurId);
-  if (!destinataireId) throw new Error('Aucun autre utilisateur disponible pour le moment.');
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const refEnvoyee = await addDoc(collection(db, 'echos_bouteille'), {
-    expediteurId, expediteurPseudo, destinataireId, contenu,
-    statut: 'envoyee',
-    createdAt: serverTimestamp(), expiresAt, lu: false,
+    expediteurId, expediteurPseudo,
+    destinataireId: null, contenu,
+    statut: 'a_distribuer',
+    createdAt: serverTimestamp(), expiresAt: null, lu: false,
   });
   if (resultat.mineur || resultat.numeroDissimule) {
     await addDoc(collection(db, 'signalements'), {
@@ -71,65 +73,9 @@ export async function envoyerEchoBouteille(
       statut: 'en_attente', createdAt: serverTimestamp(),
     });
   }
-  // Notification (30/09/2026) — le destinataire vient d'être tiré au sort
-  // et reçoit sa bouteille immédiatement dans ce cas (contenu non signalé
-  // par la modération automatique). expediteurPseudo omis volontairement :
-  // l'anonymat de l'expéditeur fait partie du principe de l'Écho-Bouteille.
-  await creerNotification({
-    destinataireId, type: 'echoBouteille',
-    expediteurId, contenuApercu: contenu,
-  });
+  // Destinataire et notification : gérés par le serveur, quelques secondes
+  // plus tard.
   return 'envoyee';
-}
-
-// Fix v70 — lire depuis la collection publique "annuaire" (uid + banni)
-// au lieu de "users" (protégé), pour que le tirage aléatoire fonctionne
-// pour tous les comptes et pas seulement pour un admin/modérateur.
-//
-// Fix scalabilité — l'ancienne version lisait TOUTE la collection annuaire
-// à chaque envoi (coûteux à grande échelle). Cette version utilise un
-// champ `alea` (nombre aléatoire fixé une fois pour toutes à l'inscription,
-// voir AuthContext.tsx) : on tire un nombre au hasard, et on demande à
-// Firestore les documents dont `alea` est juste au-dessus (ou, si aucun,
-// juste en-dessous) — ne coûte que quelques lectures, peu importe la
-// taille de la collection.
-//
-// On demande 3 candidats (pas 1 seul) : Firestore n'autorisant qu'un seul
-// champ en inégalité par requête, on ne peut pas filtrer "uid différent de
-// l'expéditeur" directement dans la même requête que le tri sur `alea`.
-// En retenant les 3 premiers résultats, il est extrêmement rare (sauf très
-// petite base d'utilisateurs) que TOUS soient l'expéditeur lui-même — ce
-// qui permet d'exclure l'expéditeur après coup, côté client, sans avoir
-// besoin d'une seconde lecture dans l'immense majorité des cas.
-//
-// Le résultat perçu est strictement identique à avant : un destinataire
-// choisi au hasard, jamais l'expéditeur, jamais un compte banni, jamais
-// un compte qui n'existe plus (voir nettoyerAnnuaireSurSuppressionUser
-// côté Cloud Functions).
-async function tirerCandidat(
-  expediteurId: string,
-  seuil: number,
-  sens: 'asc' | 'desc'
-): Promise<string | null> {
-  const operateur = sens === 'asc' ? '>=' : '<';
-  const q = query(
-    collection(db, 'annuaire'),
-    where('banni', '==', false),
-    where('alea', operateur, seuil),
-    orderBy('alea', sens),
-    limit(3)
-  );
-  const snap = await getDocs(q);
-  const candidat = snap.docs.find(d => (d.data().uid || d.id) !== expediteurId);
-  return candidat ? (candidat.data().uid || candidat.id) : null;
-}
-
-async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
-  const seuil = Math.random();
-  // Essai dans un sens, puis dans l'autre si rien trouvé (cas où le nombre
-  // tiré tombe après le dernier document, ou avant le premier).
-  return (await tirerCandidat(expediteurId, seuil, 'asc'))
-    ?? (await tirerCandidat(expediteurId, seuil, 'desc'));
 }
 
 export function useBouteillesRecues(destinataireId: string) {
@@ -187,19 +133,13 @@ export async function signalerEchoBouteille(
   });
 }
 
-export async function validerEchoBouteille(bouteilleId: string, expediteurId: string) {
-  const destinataireId = await tirerDestinataireAleatoire(expediteurId);
-  if (!destinataireId) throw new Error('Aucun destinataire disponible.');
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+// Validation par un modérateur d'une bouteille retenue : elle repasse en
+// « a_distribuer » ; la Cloud Function distribuerEchoBouteilleValidee tire
+// alors le destinataire et le notifie. `expediteurId` n'est plus utilisé
+// (gardé pour ne pas modifier ModerationPage.tsx).
+export async function validerEchoBouteille(bouteilleId: string, _expediteurId?: string) {
   await updateDoc(doc(db, 'echos_bouteille', bouteilleId), {
-    destinataireId, statut: 'envoyee', expiresAt,
-  });
-  // Notification (30/09/2026) — cas où la bouteille avait d'abord été mise
-  // en attente de modération : le destinataire n'est tiré au sort qu'ici,
-  // une fois le contenu validé.
-  await creerNotification({
-    destinataireId, type: 'echoBouteille',
-    expediteurId,
+    statut: 'a_distribuer', destinataireId: null,
   });
 }
 
