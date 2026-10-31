@@ -1,4 +1,6 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { getAuth } from "firebase-admin/auth";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, DocumentData, DocumentReference, Query, QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
@@ -385,8 +387,20 @@ async function tirerCandidat(expediteurId: string, seuil: number, sens: "asc" | 
     .orderBy("alea", sens)
     .limit(3)
     .get();
-  const candidat = snap.docs.find((d: QueryDocumentSnapshot) => (d.data().uid || d.id) !== expediteurId);
-  return candidat ? (candidat.data().uid || candidat.id) : null;
+  // Jamais l'expéditeur, et jamais un compte dont l'adresse e-mail n'est
+  // pas confirmée (31/10/2026) : il ne pourrait de toute façon pas lire
+  // la bouteille.
+  for (const d of snap.docs as QueryDocumentSnapshot[]) {
+    const uid: string = d.data().uid || d.id;
+    if (uid === expediteurId) continue;
+    try {
+      const compte = await getAuth().getUser(uid);
+      if (compte.emailVerified) return uid;
+    } catch {
+      // Compte de connexion introuvable : on l'ignore.
+    }
+  }
+  return null;
 }
 
 async function tirerDestinataireAleatoire(expediteurId: string): Promise<string | null> {
@@ -715,5 +729,64 @@ export const modererPropositionEchoRep = onDocumentCreated(
     } catch (err) {
       console.error("[modererPropositionEchoRep]", attenteId, "erreur", err);
     }
+  }
+);
+
+// ============================================================
+// SUPPRESSION DES COMPTES NON VÉRIFIÉS (31/10/2026)
+// Une fois par jour : tout compte créé à partir du 31/10/2026 (ouverture
+// publique) dont l'adresse e-mail n'a pas été confirmée dans les 3 jours
+// est supprimé — compte de connexion, fiche, entrée d'annuaire et pseudo.
+// Le pseudo est libéré (réattribuable), puisque personne ne l'a jamais
+// vu… sauf si le compte a publié quelque chose avant la mise en place de
+// la vérification : dans ce cas le pseudo reste réservé.
+//
+// Les comptes plus anciens (pionniers, comptes de test) ne sont JAMAIS
+// supprimés par cette fonction : ils restent simplement bloqués sur
+// l'écran de vérification tant qu'ils n'ont pas confirmé leur adresse.
+// ⚠️ Même date que DEBUT_SUPPRESSION_NON_VERIFIES dans
+// src/pages/VerificationEmailPage.tsx.
+// ============================================================
+const DEBUT_SUPPRESSION_NON_VERIFIES = Date.parse("2026-10-31T12:00:00Z");
+const DELAI_VERIFICATION_MS = 3 * 24 * 60 * 60 * 1000;
+
+export const supprimerComptesNonVerifies = onSchedule(
+  {
+    schedule: "every day 04:00",
+    timeZone: "Europe/Paris",
+    region: "europe-west9",
+  },
+  async () => {
+    const maintenant = Date.now();
+    let pageToken: string | undefined;
+    let supprimes = 0;
+    do {
+      const page = await getAuth().listUsers(1000, pageToken);
+      for (const compte of page.users) {
+        if (compte.emailVerified) continue;
+        const creation = Date.parse(compte.metadata.creationTime);
+        if (Number.isNaN(creation) || creation < DEBUT_SUPPRESSION_NON_VERIFIES) continue;
+        if (maintenant - creation < DELAI_VERIFICATION_MS) continue;
+
+        const uid = compte.uid;
+        try {
+          const fiche = await db.collection("users").doc(uid).get();
+          const pseudo: string | undefined = fiche.exists ? fiche.data()?.pseudo : undefined;
+          const aPublie = fiche.exists && (fiche.data()?.echosPublies ?? 0) > 0;
+          if (pseudo && !aPublie) {
+            await db.collection("pseudos").doc(pseudo).delete();
+          }
+          await db.collection("annuaire").doc(uid).delete();
+          await db.collection("users").doc(uid).delete();
+          await getAuth().deleteUser(uid);
+          supprimes++;
+          console.log("[supprimerComptesNonVerifies] compte supprimé", uid, aPublie ? "(pseudo conservé : contenu publié)" : "");
+        } catch (err) {
+          console.error("[supprimerComptesNonVerifies] échec pour", uid, err);
+        }
+      }
+      pageToken = page.pageToken;
+    } while (pageToken);
+    console.log("[supprimerComptesNonVerifies] terminé —", supprimes, "compte(s) supprimé(s)");
   }
 );

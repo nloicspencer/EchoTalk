@@ -3,7 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Connecté AVEC une adresse e-mail confirmée (31/10/2026). Tout l'accès
+    // aux données passe par là : un compte non vérifié ne peut rien lire
+    // ni écrire, hormis ce qu'il faut pour s'inscrire (estAuthentifie
+    // ci-dessous : sa propre fiche, son pseudo, son entrée d'annuaire).
     function estConnecte() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    // Connecté, adresse confirmée ou non — uniquement pour l'inscription
+    // et la lecture de sa propre fiche (nécessaire à l'écran de
+    // vérification et aux contrôles de suspension).
+    function estAuthentifie() {
       return request.auth != null;
     }
 
@@ -33,14 +44,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if estProprietaire(userId) || estModerateurOuAdmin();
+      allow read: if (estAuthentifie() && request.auth.uid == userId) || estModerateurOuAdmin();
       allow create: if request.auth != null
         && request.auth.uid == userId
         && (!('role' in request.resource.data) || request.resource.data.role == null);
       allow update: if (estProprietaire(userId)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
         || estAdmin();
-      allow delete: if estProprietaire(userId) || estAdmin();
+      allow delete: if (estAuthentifie() && request.auth.uid == userId) || estAdmin();
     }
 
     // Annuaire public minimal (uid + statut banni uniquement).
@@ -48,7 +59,7 @@ service cloud.firestore {
     // sans exposer les données privées de la collection users.
     match /annuaire/{userId} {
       allow read: if estConnecte();
-      allow create: if estProprietaire(userId) || estModerateurOuAdmin();
+      allow create: if (estAuthentifie() && request.auth.uid == userId) || estModerateurOuAdmin();
       allow update: if estProprietaire(userId) || estModerateurOuAdmin();
       allow delete: if false;
     }
@@ -237,7 +248,7 @@ service cloud.firestore {
 
     match /pseudos/{pseudo} {
       allow read: if true;
-      allow create: if estConnecte()
+      allow create: if estAuthentifie()
         && request.resource.data.uid == request.auth.uid;
       allow update, delete: if false;
     }
@@ -260,25 +271,8 @@ service cloud.firestore {
       allow write: if estConnecte();
     }
 
-    // Pré-inscriptions V0 : écriture publique (pas besoin d'être connecté,
-    // la page de pré-inscription s'affiche avant toute authentification),
-    // mais aucune lecture publique — seuls les modérateurs/admins peuvent
-    // consulter la liste des emails inscrits.
-    // Protection anti-spam/anti-bot ajoutée le 8 août 2026 : jeton App Check
-    // valide exigé (request.app != null), champs strictement limités à
-    // email + createdAt (conforme à LandingV0.tsx), email cohérent avec
-    // l'ID du document, et createdAt doit être un vrai serverTimestamp.
-    match /preinscriptions/{email} {
-      allow read: if estModerateurOuAdmin();
-      allow create: if request.app != null
-        && request.resource.data.keys().hasOnly(['email', 'createdAt'])
-        && request.resource.data.email is string
-        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
-        && request.resource.data.email.size() < 200
-        && request.resource.data.email == email
-        && request.resource.data.createdAt == request.time;
-      allow update, delete: if false;
-    }
+    // (Pré-inscriptions supprimées le 31/10/2026 avec la page V0 :
+    //  la collection n'est plus accessible du tout.)
 
     // Notifications (30/09/2026) — un document par événement (réaction,
     // EchoRep, modération) adressé à un destinataire précis.

@@ -437,3 +437,67 @@
 
 .auth-oubli-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 .auth-oubli-actions .auth-submit { width: auto; margin-top: 0; }
+
+/* Vérification de l'adresse e-mail (31/10/2026) */
+.verif-card .auth-logo { margin-bottom: 1.25rem; }
+
+.verif-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(123,94,167,0.1);
+  color: var(--et-accent);
+  font-size: 1.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.verif-card .auth-logo h1 { font-size: 1.4rem; }
+
+.verif-texte {
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  color: var(--et-text-2);
+  line-height: 1.6;
+  margin: 0 0 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.verif-delai {
+  padding: 0.75rem 0.9rem;
+  background: rgba(123,94,167,0.07);
+  border-radius: var(--et-radius-sm);
+}
+
+.verif-astuce { font-size: 0.8125rem; color: var(--et-text-3); }
+
+.verif-message {
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  color: var(--et-accent);
+  margin: 0 0 0.75rem;
+}
+
+.verif-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.verif-secondaire {
+  padding: 0.8rem;
+  background: transparent;
+  color: var(--et-accent);
+  border: 0.5px solid var(--et-border-hover, var(--et-border));
+  border-radius: var(--et-radius-sm);
+  font-size: 0.9rem;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+}
+
+.verif-secondaire:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.verif-deconnexion { align-self: center; margin-top: 0.25rem; }

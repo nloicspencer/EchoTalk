@@ -15,6 +15,7 @@ const ModerationDetressePage = lazy(() => import('./pages/ModerationDetressePage
 const DecouvertePage = lazy(() => import('./pages/DecouvertePage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const VerificationEmailPage = lazy(() => import('./pages/VerificationEmailPage'));
 
 function ChargementPage() {
   return (
@@ -50,7 +51,7 @@ function AppLayout() {
 }
 
 function AppContent({ basename }: { basename?: string }) {
-  const { user, profile, loading, messageDeconnexion } = useAuth();
+  const { user, profile, loading, messageDeconnexion, emailVerifie } = useAuth();
   const [onboardingInfo, setOnboardingInfo] = useState<{ pseudo: string } | null>(null);
 
   // /test est réservé au compte admin (31/10/2026). Toute autre personne
@@ -81,6 +82,13 @@ function AppContent({ basename }: { basename?: string }) {
       {!user ? (
         <Suspense fallback={<ChargementPage />}>
           <AuthPage onInscriptionComplete={(pseudo) => setOnboardingInfo({ pseudo })} />
+        </Suspense>
+      ) : !emailVerifie ? (
+        // Adresse e-mail non confirmée (31/10/2026) : rien d'autre n'est
+        // accessible. L'onboarding (pseudo attribué) s'affiche juste après
+        // la confirmation, si elle a lieu dans la même session.
+        <Suspense fallback={<ChargementPage />}>
+          <VerificationEmailPage />
         </Suspense>
       ) : onboardingInfo ? (
         <Suspense fallback={<ChargementPage />}>

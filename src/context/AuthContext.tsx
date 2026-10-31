@@ -4,7 +4,7 @@ import {
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged, signInWithEmailAndPassword,
-  sendPasswordResetEmail,
+  sendPasswordResetEmail, sendEmailVerification,
   signOut, User,
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -18,6 +18,12 @@ import { VERSION_DOCUMENTS_LEGAUX } from '../constants/documentsLegaux';
 // moment où quelqu'un s'inscrit réellement — pas à chaque ouverture de
 // l'application. L'import dynamique la place dans un fichier séparé
 // (découpé automatiquement par Vite), téléchargé uniquement ici.
+// Vérification de l'adresse e-mail (31/10/2026) — e-mails Firebase en
+// français, et lien « Continuer » qui ramène sur EchoTalk après la
+// confirmation.
+auth.languageCode = 'fr';
+const PARAMETRES_LIEN_VERIFICATION = { url: 'https://echotalk.fr/' };
+
 let villesCache: string[] | null = null;
 async function chargerVilles(): Promise<string[]> {
   if (villesCache) return villesCache;
@@ -56,6 +62,11 @@ interface AuthContextValue {
   connexion: (email: string, password: string) => Promise<import('firebase/auth').UserCredential>;
   reinitialiserMotDePasse: (email: string) => Promise<void>;
   deconnexion: () => Promise<void>;
+  // Vérification de l'adresse e-mail (31/10/2026) : tant qu'elle est à
+  // false, App.tsx n'affiche que l'écran « Vérifiez votre boîte mail ».
+  emailVerifie: boolean;
+  verifierEmail: () => Promise<boolean>;
+  renvoyerEmailVerification: () => Promise<void>;
   suspension: { suspendu: boolean; banni: boolean; message: string };
   messageDeconnexion: string;
   effacerMessageDeconnexion: () => void;
@@ -75,12 +86,14 @@ function useAuthState(): AuthContextValue {
   const [suspension, setSuspension] = useState<{ suspendu: boolean; banni: boolean; message: string }>
     ({ suspendu: false, banni: false, message: '' });
   const [messageDeconnexion, setMessageDeconnexion] = useState('');
+  const [emailVerifie, setEmailVerifie] = useState(false);
   const unsubUserRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
       if (unsubUserRef.current) { unsubUserRef.current(); unsubUserRef.current = null; }
       setUser(u);
+      setEmailVerifie(!!u?.emailVerified);
       if (u) {
         const userRef = doc(db, 'users', u.uid);
 
@@ -179,6 +192,14 @@ function useAuthState(): AuthContextValue {
       console.error('setDoc annuaire échoué :', e);
     }
 
+    // E-mail de vérification (31/10/2026). Un échec d'envoi ne bloque pas
+    // l'inscription : l'écran de vérification propose « Renvoyer l'e-mail ».
+    try {
+      await sendEmailVerification(cred.user, PARAMETRES_LIEN_VERIFICATION);
+    } catch (e) {
+      console.error('Envoi de l\'e-mail de vérification échoué :', e);
+    }
+
     const snap = await getDoc(doc(db, 'users', cred.user.uid));
     if (snap.exists()) {
       setProfile(snap.data() as UserProfile);
@@ -224,6 +245,28 @@ function useAuthState(): AuthContextValue {
     }
   };
 
+  // Relit l'état du compte chez Firebase (la confirmation se fait dans un
+  // autre onglet, ou dans Safari sur iPhone). Si l'adresse est confirmée,
+  // on force un nouveau jeton de connexion : c'est lui que les règles
+  // Firestore lisent (email_verified), l'ancien dirait encore « non ».
+  const verifierEmail = async () => {
+    const u = auth.currentUser;
+    if (!u) return false;
+    await u.reload();
+    if (u.emailVerified) {
+      await u.getIdToken(true);
+      setEmailVerifie(true);
+      return true;
+    }
+    return false;
+  };
+
+  const renvoyerEmailVerification = async () => {
+    const u = auth.currentUser;
+    if (!u) return;
+    await sendEmailVerification(u, PARAMETRES_LIEN_VERIFICATION);
+  };
+
   const deconnexion = async () => {
     await signOut(auth);
     setProfile(null);
@@ -236,6 +279,7 @@ function useAuthState(): AuthContextValue {
   return {
     user, profile, loading, inscription, connexion, reinitialiserMotDePasse,
     deconnexion, suspension, messageDeconnexion, effacerMessageDeconnexion,
+    emailVerifie, verifierEmail, renvoyerEmailVerification,
   };
 }
 
