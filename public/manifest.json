@@ -2,7 +2,7 @@
   "name": "EchoTalk",
   "short_name": "EchoTalk",
   "description": "Le réseau social où chaque émotion trouve écho et soutien.",
-  "start_url": "/pionniers",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

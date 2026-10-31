@@ -1,67 +1,55 @@
-// Verrouillage par version — remplace l'ancien système de drapeaux
-// indépendants (features.ts, désormais supprimé). Version centrale
-// cumulative : une seule valeur détermine tout ce qui est actif, chaque
-// version incluant automatiquement tout ce qu'il y avait dans les
-// précédentes — plus de risque de combinaison qui ne correspond à
-// aucune vraie étape de la roadmap.
+// Verrouillage par version — échelle du 30/10/2026 (remplace l'ancienne
+// échelle V1→V4 et le réglage spécial de la phase pionnière, supprimés).
 //
-// Roadmap officielle (Charte & Vision, Annexe B) :
-//   V1 — socle (Écho Libre, Écho Ouvert, Écho Solidaire symbolique,
-//        réactions, modération, profil)
-//   V2 — V1 + Écholègue
-//   V3 — V2 + monétisation de l'Écho Solidaire (architecture de façade,
-//        prête pour le prestataire de paiement)
-//   V4 — V3 + Écho-Bouteille + Publicité
+// Version cumulative : une seule valeur décide de tout ce qui est actif,
+// chaque version incluant automatiquement tout ce qu'il y avait dans les
+// précédentes.
 //
-// V5 (Journal Premium) et V6 (Partenariats) ne sont pas encore verrouillés
-// ici — fonctionnalités encore en conception côté produit, à ajouter
-// quand elles se préciseront plutôt que d'anticiper une structure qui
-// pourrait changer.
-export const CURRENT_VERSION = 4;
+//   V1 — Écho Libre, Écho Ouvert, Écho Solidaire gratuit (jarres roses
+//        symboliques), réactions, modération, profil
+//   V2 — + Écholègue
+//   V3 — + Écho-Bouteille
+//   V4 — + paiement de l'Écho Solidaire (prix des packs de jarres roses,
+//        fenêtre de paiement, portefeuille solidaire). Prérequis avant
+//        d'activer : prestataire de paiement réel et statut d'entreprise.
+//   V5 — + publicité. Prérequis : régie publicitaire choisie et branchée,
+//        bandeau de consentement aux traceurs.
+//   V6 — + Journal Premium. Prérequis : fonctionnalité à construire.
+//
+// POUR ACTIVER UNE VERSION : changer CURRENT_VERSION, puis build et
+// déploiement. Rien d'autre à toucher.
+export const CURRENT_VERSION = 1;
 
-// Phase pionnière (21/08/2026, corrigé le même jour) — au départ, cette
-// valeur était fixe (true), ce qui appliquait la restriction partout, y
-// compris sur /test — empêchant de continuer à tester librement les
-// versions 1 à 4 dessus. Corrigé : la phase pionnière ne s'applique
-// désormais QUE sur /pionniers, déduite automatiquement de l'URL. Sur
-// /test, CURRENT_VERSION reprend son contrôle normal et complet, comme
-// avant l'introduction de cette phase.
-//
-// Sur /pionniers : tout le contenu de V4 reste actif (Écholègue,
-// Écho-Bouteille), MAIS la monétisation réelle de l'Écho Solidaire et
-// l'emplacement publicitaire restent désactivés le temps de cette phase
-// fermée — pas de vrai argent en jeu, pas d'impression commerciale,
-// pendant qu'on construit la confiance avec les premiers contributeurs.
-export const PHASE_PIONNIERE = window.location.pathname.startsWith('/pionniers');
+// Accès de test réservé au compte admin (echotalk.fr/test, voir App.tsx).
+// Sur /test, l'appli suit VERSION_TEST au lieu de CURRENT_VERSION : ça
+// permet d'essayer une version AVANT de l'ouvrir au public. Attention :
+// /test travaille sur la vraie base de données — ce qui y est publié est
+// réel (simplement invisible du public tant que la version n'est pas
+// activée pour tous).
+export const VERSION_TEST = 3;
 
-// FEATURES garde exactement la même forme qu'avant, pour que les fichiers
-// qui l'utilisaient déjà (FEATURES.ECHOLEGUE, etc.) n'aient besoin de
-// changer que leur ligne d'import, pas leur logique.
+export const SUR_TEST = window.location.pathname.startsWith('/test');
+export const VERSION_ACTIVE = SUR_TEST ? VERSION_TEST : CURRENT_VERSION;
+
+// FEATURES garde les mêmes noms qu'avant : les fichiers qui l'utilisent
+// (FEATURES.ECHOLEGUE, FEATURES.PUBLICITE…) n'ont rien à changer.
 export const FEATURES = {
-  // Écho Libre et Écho Ouvert sont le cœur du produit dès V1 — pas un
-  // jalon à verrouiller, donc toujours actifs, jamais conditionnés par
-  // CURRENT_VERSION.
+  // V1 — cœur du produit, toujours actifs.
   ECHO_OUVERT: true,
-
-  // L'Écho Solidaire SYMBOLIQUE (jarres roses sans transaction réelle,
-  // sélection mensuelle, historique) est visible dès V1 pour acculturer
-  // les utilisateurs — pas un jalon à verrouiller.
   ECHO_SOLIDAIRE: true,
 
-  // V2 — Écholègue
-  ECHOLEGUE: CURRENT_VERSION >= 2,
+  // V2
+  ECHOLEGUE: VERSION_ACTIVE >= 2,
 
-  // V3 — monétisation RÉELLE de l'Écho Solidaire (prix des packs roses,
-  // fenêtre de paiement de façade, bandeau de récupération, portefeuille
-  // solidaire). Forcée à false sur /pionniers, peu importe CURRENT_VERSION
-  // — reste normale (suit CURRENT_VERSION) sur /test.
-  ECHO_SOLIDAIRE_MONETISE: !PHASE_PIONNIERE && CURRENT_VERSION >= 3,
+  // V3
+  ECHO_BOUTEILLE: VERSION_ACTIVE >= 3,
 
-  // V4 — Écho-Bouteille (jamais désactivé par la phase pionnière — c'est
-  // justement le contenu qu'on veut que les pionniers alimentent).
-  ECHO_BOUTEILLE: CURRENT_VERSION >= 4,
+  // V4
+  ECHO_SOLIDAIRE_MONETISE: VERSION_ACTIVE >= 4,
 
-  // V4 — Publicité. Forcée à false sur /pionniers, peu importe
-  // CURRENT_VERSION — même raison que ECHO_SOLIDAIRE_MONETISE.
-  PUBLICITE: !PHASE_PIONNIERE && CURRENT_VERSION >= 4,
+  // V5
+  PUBLICITE: VERSION_ACTIVE >= 5,
+
+  // V6 — réservé, rien ne l'utilise encore.
+  JOURNAL_PREMIUM: VERSION_ACTIVE >= 6,
 };

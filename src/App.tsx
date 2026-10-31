@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import LandingV0 from './pages/LandingV0';
-import { V0_MODE } from './config/v0Mode';
 import NavBar from './components/NavBar';
 import SuspensionBanner from './SuspensionBanner';
 import './App.css';
@@ -52,10 +50,22 @@ function AppLayout() {
 }
 
 function AppContent({ basename }: { basename?: string }) {
-  const { user, loading, messageDeconnexion } = useAuth();
+  const { user, profile, loading, messageDeconnexion } = useAuth();
   const [onboardingInfo, setOnboardingInfo] = useState<{ pseudo: string } | null>(null);
 
-  if (loading) {
+  // /test est réservé au compte admin (31/10/2026). Toute autre personne
+  // connectée qui l'ouvre est renvoyée vers l'accueil. Tant que le profil
+  // n'est pas chargé, on affiche l'écran de chargement plutôt que de
+  // laisser entrevoir l'appli de test.
+  const surTest = basename === '/test';
+  const testAttenteProfil = surTest && !!user && !profile;
+  const testRefuse = surTest && !!user && !!profile && profile.role !== 'admin';
+
+  useEffect(() => {
+    if (testRefuse) window.location.replace('/');
+  }, [testRefuse]);
+
+  if (loading || testAttenteProfil || testRefuse) {
     return (
       <div className="app-loading">
         <span>🫙</span>
@@ -86,32 +96,27 @@ function AppContent({ basename }: { basename?: string }) {
   );
 }
 
-// V0 : tant que V0_MODE est activé (voir config/v0Mode.ts), tout visiteur
-// qui arrive sur le site public (n'importe quelle URL hors /test et
-// /pionniers) voit la page de pré-inscription, pas l'application réelle.
+// Ouverture publique (1er novembre 2026) : la page de pré-inscription
+// (V0) et l'accès /pionniers sont supprimés. Deux portes d'entrée :
+//   - echotalk.fr       → l'appli, pour tout le monde
+//   - echotalk.fr/test  → réservé au compte admin, suit VERSION_TEST
+//                         (voir config/appVersion.ts) pour essayer une
+//                         version avant de l'ouvrir au public
 //
-// Trois portes d'entrée coexistent (21/08/2026) :
-//   - echotalk.fr           → grand public, page de pré-inscription
-//   - echotalk.fr/test      → accès technique (Loïc, tests de version)
-//   - echotalk.fr/pionniers → accès pour les Échos pionniers, le temps
-//                             de la phase de pré-remplissage — nom choisi
-//                             pour ne pas inquiéter des contributeurs de
-//                             confiance avec le mot "test"
+// Les anciennes adresses /pionniers (icônes d'écran d'accueil des
+// pionniers, liens envoyés) sont redirigées vers l'accueil.
 //
 // Le `basename` de react-router fait que toutes les routes internes
-// ("/", "/profil"...) se résolvent alors automatiquement sous le bon
-// préfixe, sans rien changer au reste du code.
+// ("/", "/profil"...) se résolvent automatiquement sous /test.
 export default function App() {
   const path = window.location.pathname;
-  const enModeTest = path.startsWith('/test');
-  const enModePionniers = path.startsWith('/pionniers');
-  const accesDirect = enModeTest || enModePionniers;
 
-  if (V0_MODE && !accesDirect) {
-    return <LandingV0 />;
+  if (path.startsWith('/pionniers')) {
+    window.location.replace('/');
+    return null;
   }
 
-  const basename = enModeTest ? '/test' : enModePionniers ? '/pionniers' : undefined;
+  const basename = path.startsWith('/test') ? '/test' : undefined;
 
   return (
     <AuthProvider>

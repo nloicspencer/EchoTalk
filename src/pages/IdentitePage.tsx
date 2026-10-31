@@ -1,5 +1,10 @@
+import { useState } from 'react';
 import JarreIcon from '../components/JarreIcon';
+import DocumentLegalModal from '../components/DocumentLegalModal';
 import { FEATURES } from '../config/appVersion';
+import {
+  CGU_SECTIONS, CONFIDENTIALITE_SECTIONS, MENTIONS_LEGALES_SECTIONS, SectionLegale,
+} from '../constants/documentsLegaux';
 import './IdentitePage.css';
 
 type FeatureKey = keyof typeof FEATURES;
@@ -9,6 +14,15 @@ const PILIERS: { icon: string; titre: string; texte: string; feature?: FeatureKe
   { icon: '🌊', titre: 'Résonance', texte: "Ce qui compte, c'est ce que vous vivez et ce que vous partagez. Chaque écho a vocation à trouver un écho chez quelqu'un d'autre." },
   { icon: '✨', titre: 'Soutien humain', texte: "Des jarres, pas des chiffres. Du sens, pas de la performance. Trois façons d'être présent pour quelqu'un : soutenir, compatir, encourager." },
   { icon: '🤝', titre: 'Entraide réelle', texte: "L'Écho Solidaire existe pour ceux qui traversent des moments difficiles. La communauté se mobilise. Ensemble, concrètement.", feature: 'ECHO_SOLIDAIRE' },
+];
+
+// Documents légaux consultables à tout moment (31/10/2026) — obligation
+// légale : les mentions légales et la politique de confidentialité doivent
+// rester accessibles en permanence, pas seulement à l'inscription.
+const DOCUMENTS: { cle: string; titre: string; sections: SectionLegale[] }[] = [
+  { cle: 'cgu', titre: "Conditions Générales d'Utilisation", sections: CGU_SECTIONS },
+  { cle: 'confidentialite', titre: 'Politique de confidentialité', sections: CONFIDENTIALITE_SECTIONS },
+  { cle: 'mentions', titre: 'Mentions légales', sections: MENTIONS_LEGALES_SECTIONS },
 ];
 
 const VALEURS = [
@@ -38,6 +52,8 @@ const PROPOSITIONS: { texte: string; feature?: FeatureKey }[] = [
 export default function IdentitePage() {
   const piliersVisibles = PILIERS.filter(p => !p.feature || FEATURES[p.feature]);
   const propositionsVisibles = PROPOSITIONS.filter(p => !p.feature || FEATURES[p.feature]);
+  const [documentOuvert, setDocumentOuvert] = useState<string | null>(null);
+  const docOuvert = DOCUMENTS.find(d => d.cle === documentOuvert);
 
   return (
     <div className="identite-page">
@@ -248,6 +264,23 @@ export default function IdentitePage() {
       <div className="identite-slogan">
         <p>Le réseau social où chaque émotion trouve écho et soutien.</p>
       </div>
+
+      <nav className="identite-legal" aria-label="Informations légales">
+        {DOCUMENTS.map(d => (
+          <button key={d.cle} type="button" onClick={() => setDocumentOuvert(d.cle)}>
+            {d.titre}
+          </button>
+        ))}
+        <p>Contact : <a href="mailto:contact@echotalk.fr">contact@echotalk.fr</a></p>
+      </nav>
+
+      {docOuvert && (
+        <DocumentLegalModal
+          titre={docOuvert.titre}
+          sections={docOuvert.sections}
+          onClose={() => setDocumentOuvert(null)}
+        />
+      )}
     </div>
   );
 }

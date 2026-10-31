@@ -1,4 +1,4 @@
-import { SectionLegale } from '../constants/documentsLegaux';
+import { SectionLegale, DATE_DOCUMENTS_LEGAUX } from '../constants/documentsLegaux';
 import './DocumentLegalModal.css';
 
 interface Props {
@@ -16,7 +16,7 @@ export default function DocumentLegalModal({ titre, sections, onClose }: Props) 
           <button className="document-legal-fermer" onClick={onClose} aria-label="Fermer">✕</button>
         </div>
         <p className="document-legal-note">
-          Version provisoire, en cours de relecture juridique avant l'ouverture publique.
+          Dernière mise à jour : {DATE_DOCUMENTS_LEGAUX}
         </p>
         <div className="document-legal-corps">
           {sections.map((s, i) => (

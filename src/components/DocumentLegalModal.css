@@ -85,4 +85,6 @@
   color: var(--et-text-2);
   line-height: 1.6;
   margin: 0;
+  /* Paragraphes séparés par des sauts de ligne dans documentsLegaux.ts */
+  white-space: pre-line;
 }
