@@ -1,6 +1,7 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getAuth } from "firebase-admin/auth";
+import { getMessaging } from "firebase-admin/messaging";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as nodemailer from "nodemailer";
 import { createHmac, timingSafeEqual } from "crypto";
@@ -1055,5 +1056,70 @@ export const desinscrireResume = onCall(
     if (!(await fiche.get()).exists) return { ok: true };
     await fiche.update({ resumeEmail: false });
     return { ok: true };
+  }
+);
+
+// ============================================================
+// NOTIFICATIONS PUSH (01/11/2026)
+// À chaque nouvelle notification, un push est envoyé à tous les appareils
+// sur lesquels le destinataire a activé les notifications
+// (users/{uid}/push/{jeton}). Le texte est générique : jamais de texte
+// d'Écho ni de pseudonyme, car il s'affiche sur l'écran verrouillé.
+// Les appareils qui ne répondent plus (appli désinstallée, autorisation
+// retirée) sont retirés automatiquement.
+// ============================================================
+const TEXTES_PUSH: Record<string, string> = {
+  jarreBleue: "Vous avez reçu une jarre bleue.",
+  jarreRose: "Vous avez reçu une jarre rose.",
+  coeur: "Un de vos Échos a résonné chez quelqu'un.",
+  coeurBrise: "Un de vos Échos a touché quelqu'un.",
+  echoRep: "Une réponse attend votre validation.",
+  echoRepValidee: "Votre réponse à un Écho Ouvert a été acceptée.",
+  echoRepRefusee: "Votre réponse à un Écho Ouvert n'a pas été retenue.",
+  echoBouteille: "Vous avez reçu un Écho-Bouteille.",
+  mention: "Quelqu'un vous a mentionné·e.",
+  echolegueSelectionnee: "Votre Écholègue figure dans le Journal des Lègues.",
+  echoSolidaire: "Votre Écho a été choisi comme Écho Solidaire du mois.",
+  moderation: "Un message de l'équipe de modération vous attend.",
+};
+
+const ERREURS_JETON_MORT = [
+  "messaging/registration-token-not-registered",
+  "messaging/invalid-registration-token",
+  "messaging/invalid-argument",
+];
+
+export const envoyerPushNotification = onDocumentCreated(
+  {
+    document: "notifications/{notificationId}",
+    region: "europe-west9",
+  },
+  async (event) => {
+    const n = event.data?.data();
+    if (!n || typeof n.destinataireId !== "string") return;
+    const corps = TEXTES_PUSH[n.type];
+    if (!corps) return;
+
+    const appareils = await db.collection("users").doc(n.destinataireId).collection("push").get();
+    if (appareils.empty) return;
+    const jetons: string[] = appareils.docs.map((d: QueryDocumentSnapshot) => d.id);
+
+    try {
+      const reponse = await getMessaging().sendEachForMulticast({
+        tokens: jetons,
+        data: { titre: "EchoTalk", corps, lien: "/notifications", type: String(n.type) },
+        webpush: { headers: { Urgency: "high", TTL: "86400" } },
+      });
+      const morts: string[] = [];
+      reponse.responses.forEach((r, i) => {
+        if (!r.success && r.error && ERREURS_JETON_MORT.includes(r.error.code)) morts.push(jetons[i]);
+      });
+      await Promise.all(morts.map((j) =>
+        db.collection("users").doc(n.destinataireId).collection("push").doc(j).delete()
+      ));
+      console.log("[envoyerPushNotification]", event.params.notificationId, "->", reponse.successCount, "envoyé(s),", morts.length, "appareil(s) retiré(s)");
+    } catch (err) {
+      console.error("[envoyerPushNotification] échec", event.params.notificationId, err);
+    }
   }
 );

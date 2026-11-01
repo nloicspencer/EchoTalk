@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import SuspensionBanner from './SuspensionBanner';
+import { rafraichirPush } from './services/push';
 import './App.css';
 
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -28,6 +29,13 @@ function ChargementPage() {
 }
 
 function AppLayout() {
+  // Notifications push (01/11/2026) : met à jour le jeton de cet appareil
+  // à chaque ouverture, si la personne les a activées ici.
+  const { user } = useAuth();
+  useEffect(() => {
+    if (user) rafraichirPush(user.uid);
+  }, [user]);
+
   return (
     <>
       <SuspensionBanner />

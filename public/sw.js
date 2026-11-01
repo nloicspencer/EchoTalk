@@ -1,4 +1,5 @@
-// Service worker EchoTalk (PWA, 21/08/2026 — révisé le 19/10/2026).
+// Service worker EchoTalk (PWA, 21/08/2026 — révisé le 19/10/2026,
+// notifications push ajoutées le 01/11/2026 : voir en fin de fichier).
 //
 // Ne cache que les fichiers propres à EchoTalk, jamais le contenu
 // dynamique. Exclusions :
@@ -11,7 +12,7 @@
 //     masqué ne doit jamais réapparaître depuis un cache).
 //
 // Correction du 19/10/2026 — deux stratégies au lieu d'une :
-//   - PAGES (navigation : /, /pionniers, /test, /profil…) : RÉSEAU
+//   - PAGES (navigation : /, /test, /profil…) : RÉSEAU
 //     D'ABORD. Chaque ouverture charge la dernière version déployée ; le
 //     cache ne sert que hors connexion. Avant, la page était servie
 //     depuis le cache d'abord (stale-while-revalidate) : après un
@@ -103,5 +104,52 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => caches.match(request).then((cached) => cached || Response.error()))
+  );
+});
+
+// ============================================================
+// NOTIFICATIONS PUSH (01/11/2026)
+// Envoyées par la Cloud Function envoyerPushNotification via Firebase
+// Cloud Messaging, sous forme de « données » : { titre, corps, lien, type }.
+// Le texte ne contient jamais de texte d'Écho ni de pseudonyme.
+// Une notification est TOUJOURS affichée pour chaque push reçu : sur
+// iPhone, un push reçu sans notification affichée peut faire retirer
+// l'autorisation par le système.
+// ============================================================
+self.addEventListener('push', (event) => {
+  let donnees = {};
+  try {
+    const charge = event.data ? event.data.json() : {};
+    donnees = charge.data || charge;
+  } catch {
+    donnees = {};
+  }
+  const titre = donnees.titre || 'EchoTalk';
+  const options = {
+    body: donnees.corps || 'Du nouveau vous attend sur EchoTalk.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: donnees.type || 'echotalk',
+    renotify: true,
+    data: { lien: donnees.lien || '/notifications' },
+  };
+  event.waitUntil(self.registration.showNotification(titre, options));
+});
+
+// Clic sur la notification : on revient dans EchoTalk (onglet ou appli
+// déjà ouverts si possible), sur la page des notifications.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const lien = (event.notification.data && event.notification.data.lien) || '/notifications';
+  const cible = new URL(lien, self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenetres) => {
+      for (const fenetre of fenetres) {
+        if (fenetre.url.startsWith(self.location.origin) && 'focus' in fenetre) {
+          return fenetre.focus().then((f) => (f && 'navigate' in f ? f.navigate(cible) : f));
+        }
+      }
+      return self.clients.openWindow(cible);
+    })
   );
 });

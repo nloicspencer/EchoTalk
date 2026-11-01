@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { convertEcho } from '../hooks/useEchos';
 import { acquerirPack, PRIX_PACKS_ROSES, useStockJarres } from '../hooks/useReactions';
 import { db } from '../services/firebase';
+import { activerPush, desactiverPush, etatPush, EtatPush } from '../services/push';
 import { FEATURES } from '../config/appVersion';
 import { Echo } from '../types';
 import './ProfilPage.css';
@@ -150,6 +151,28 @@ export default function ProfilPage() {
       console.error('[ProfilPage] résumé e-mail', err);
     } finally {
       setMajResume(false);
+    }
+  };
+
+  // Notifications push sur CET appareil (01/11/2026).
+  const [push, setPush] = useState<EtatPush | null>(null);
+  const [majPush, setMajPush] = useState(false);
+  const [erreurPush, setErreurPush] = useState('');
+  useEffect(() => {
+    if (!user) return;
+    etatPush(user.uid).then(setPush).catch(() => setPush('indisponible'));
+  }, [user]);
+  const basculerPush = async () => {
+    if (!user) return;
+    setMajPush(true);
+    setErreurPush('');
+    try {
+      setPush(push === 'actif' ? await desactiverPush(user.uid) : await activerPush(user.uid));
+    } catch (err) {
+      console.error('[ProfilPage] push', err);
+      setErreurPush('Impossible d\'activer les notifications pour le moment. Réessayez dans un instant.');
+    } finally {
+      setMajPush(false);
     }
   };
 
@@ -628,9 +651,29 @@ export default function ProfilPage() {
       </div>
 
       <div className="profil-section">
-        <h3>Identité privée</h3>
-        <p className="profil-note">Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.</p>
-        <div className="profil-email"><span>📧</span><span>{user?.email}</span></div>
+        <h3>Notifications</h3>
+        {push === 'actif' && (
+          <p className="profil-note">Les notifications sont activées sur cet appareil. Elles ne montrent jamais le contenu des Échos ni les pseudonymes.</p>
+        )}
+        {(push === 'inactif' || push === 'refuse') && (
+          <p className="profil-note">Soyez prévenu·e sur cet appareil quand quelqu'un vous offre une jarre, vous répond ou vous envoie un Écho-Bouteille. Les notifications ne montrent jamais le contenu des Échos ni les pseudonymes.</p>
+        )}
+        {push === 'refuse' && (
+          <p className="profil-note profil-push-alerte">Les notifications sont bloquées pour EchoTalk sur cet appareil. Pour les autoriser, passez par les réglages de votre navigateur ou de votre téléphone.</p>
+        )}
+        {push === 'iphone-a-installer' && (
+          <p className="profil-note">Sur iPhone, les notifications ne fonctionnent que si EchoTalk est installé sur l'écran d'accueil : dans Safari, touchez Partager, puis « Sur l'écran d'accueil », et ouvrez EchoTalk depuis son icône.</p>
+        )}
+        {push === 'indisponible' && (
+          <p className="profil-note">Ce navigateur ne permet pas de recevoir les notifications. Le résumé par e-mail reste disponible ci-dessous.</p>
+        )}
+        {(push === 'inactif' || push === 'actif') && (
+          <button className={`btn-push ${push === 'actif' ? 'actif' : ''}`} onClick={basculerPush} disabled={majPush}>
+            <i className={`ti ${push === 'actif' ? 'ti-bell-off' : 'ti-bell-ringing'}`} aria-hidden="true" />
+            {majPush ? '...' : push === 'actif' ? 'Désactiver sur cet appareil' : 'Activer les notifications sur cet appareil'}
+          </button>
+        )}
+        {erreurPush && <p className="pack-erreur">{erreurPush}</p>}
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '0.9rem', cursor: 'pointer', fontFamily: 'var(--et-font-ui)', fontSize: '0.875rem', color: 'var(--et-text-2)', lineHeight: 1.5 }}>
           <input
             type="checkbox"
@@ -641,6 +684,12 @@ export default function ProfilPage() {
           />
           <span>Recevoir un résumé de mes notifications par e-mail (au plus toutes les 5 heures, sans le contenu des Échos)</span>
         </label>
+      </div>
+
+      <div className="profil-section">
+        <h3>Identité privée</h3>
+        <p className="profil-note">Votre identité réelle est strictement confidentielle et ne sera jamais visible par les autres utilisateurs.</p>
+        <div className="profil-email"><span>📧</span><span>{user?.email}</span></div>
       </div>
 
       {profile?.role === 'admin' && (

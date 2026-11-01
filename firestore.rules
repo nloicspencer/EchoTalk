@@ -54,6 +54,14 @@ service cloud.firestore {
       allow delete: if (estAuthentifie() && request.auth.uid == userId) || estAdmin();
     }
 
+    // Appareils inscrits aux notifications push (01/11/2026) : un document
+    // par appareil, lisible et modifiable par son seul propriétaire. Le
+    // serveur (Cloud Function envoyerPushNotification) les lit pour envoyer
+    // les push et retire les appareils qui ne répondent plus.
+    match /users/{userId}/push/{appareilId} {
+      allow read, write: if estProprietaire(userId);
+    }
+
     // Annuaire public minimal (uid + statut banni uniquement).
     // Sert au tirage aléatoire de destinataire pour Écho-Bouteille
     // sans exposer les données privées de la collection users.
