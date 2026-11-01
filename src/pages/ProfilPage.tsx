@@ -656,7 +656,7 @@ export default function ProfilPage() {
           <p className="profil-note">Les notifications sont activées sur cet appareil. Elles ne montrent jamais le contenu des Échos ni les pseudonymes.</p>
         )}
         {(push === 'inactif' || push === 'refuse') && (
-          <p className="profil-note">Soyez prévenu·e sur cet appareil quand quelqu'un vous offre une jarre, vous répond ou vous envoie un Écho-Bouteille. Les notifications ne montrent jamais le contenu des Échos ni les pseudonymes.</p>
+          <p className="profil-note">Soyez prévenu·e sur cet appareil quand quelqu'un vous offre une jarre, vous répond{FEATURES.ECHO_BOUTEILLE ? ' ou vous envoie un Écho-Bouteille' : ''}. Les notifications ne montrent jamais le contenu des Échos ni les pseudonymes.</p>
         )}
         {push === 'refuse' && (
           <p className="profil-note profil-push-alerte">Les notifications sont bloquées pour EchoTalk sur cet appareil. Pour les autoriser, passez par les réglages de votre navigateur ou de votre téléphone.</p>
