@@ -137,3 +137,38 @@
   font-style: italic;
   padding: 1rem 0;
 }
+
+/* Écho Solidaire long (02/11/2026) — la fenêtre tient toujours dans
+   l'écran (encoche et barre du bas de l'iPhone comprises) : en-tête et
+   bouton fixes, texte de l'Écho qui défile entre les deux. Classes
+   propres à cette fenêtre, pour ne pas toucher aux autres fenêtres qui
+   utilisent .modal-overlay / .modal-content. */
+.modal-solidaire {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.modal-solidaire .modal-header { margin-bottom: 1rem; flex-shrink: 0; }
+
+.modal-solidaire-corps {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
+
+.modal-solidaire-corps .modal-contenu { margin-bottom: 0; white-space: pre-line; }
+
+.modal-solidaire-pied {
+  flex-shrink: 0;
+  padding-top: 1rem;
+}
+
+.modal-solidaire-pied .modal-reactions-existantes { margin-bottom: 0.9rem; }
+.modal-solidaire-pied .modal-note { margin-bottom: 0.75rem; }
