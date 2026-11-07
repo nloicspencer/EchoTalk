@@ -86,7 +86,10 @@ interface AuthContextValue {
   // Vérification de l'adresse e-mail (31/10/2026) : tant qu'elle est à
   // false, App.tsx n'affiche que l'écran « Vérifiez votre boîte mail ».
   emailVerifie: boolean;
-  verifierEmail: () => Promise<boolean>;
+  // Relit l'état réel du compte. appliquer = false : ne débloque pas encore
+  // l'appli (l'écran affiche d'abord « Adresse confirmée »), voir validerEmail.
+  verifierEmail: (appliquer?: boolean) => Promise<boolean>;
+  validerEmail: () => void;
   renvoyerEmailVerification: () => Promise<void>;
   suspension: { suspendu: boolean; banni: boolean; message: string };
   messageDeconnexion: string;
@@ -115,20 +118,9 @@ function useAuthState(): AuthContextValue {
       if (unsubUserRef.current) { unsubUserRef.current(); unsubUserRef.current = null; }
       setUser(u);
       setEmailVerifie(!!u?.emailVerified);
-      // Firebase garde en mémoire l'état du compte au moment de la dernière
-      // connexion : une adresse confirmée entre-temps (lien cliqué ailleurs,
-      // compte de test marqué vérifié par script) resterait « non vérifiée ».
-      // On relit donc l'état réel une fois au démarrage.
-      if (u && !u.emailVerified) {
-        u.reload()
-          .then(async () => {
-            if (u.emailVerified) {
-              await u.getIdToken(true);
-              setEmailVerifie(true);
-            }
-          })
-          .catch(() => {});
-      }
+      // (07/11/2026) Si l'adresse a été confirmée entre-temps (lien cliqué
+      // ailleurs), c'est l'écran de vérification qui s'en aperçoit dès son
+      // affichage : il montre « Adresse confirmée », puis laisse passer.
       if (u) {
         const userRef = doc(db, 'users', u.uid);
 
@@ -288,13 +280,13 @@ function useAuthState(): AuthContextValue {
   // autre onglet, ou dans Safari sur iPhone). Si l'adresse est confirmée,
   // on force un nouveau jeton de connexion : c'est lui que les règles
   // Firestore lisent (email_verified), l'ancien dirait encore « non ».
-  const verifierEmail = async () => {
+  const verifierEmail = async (appliquer = true) => {
     const u = auth.currentUser;
     if (!u) return false;
     await u.reload();
     if (u.emailVerified) {
       await u.getIdToken(true);
-      setEmailVerifie(true);
+      if (appliquer) setEmailVerifie(true);
       return true;
     }
     return false;
@@ -319,6 +311,7 @@ function useAuthState(): AuthContextValue {
     user, profile, loading, inscription, connexion, reinitialiserMotDePasse,
     deconnexion, suspension, messageDeconnexion, effacerMessageDeconnexion,
     emailVerifie, verifierEmail, renvoyerEmailVerification,
+    validerEmail: () => setEmailVerifie(true),
   };
 }
 

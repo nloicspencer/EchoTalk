@@ -865,7 +865,13 @@ export const envoyerEmailVerification = onCall(
     }
     await suivi.set({ dernierEnvoi: Timestamp.now() });
 
-    const lien = await getAuth().generateEmailVerificationLink(compte.email, { url: `${URL_APPLI}/` });
+    // Le lien mène à NOTRE page echotalk.fr/verification (07/11/2026), qui
+    // confirme l'adresse et ouvre directement l'accueil, au lieu de la page
+    // Firebase d'où il fallait revenir soi-même. On reprend seulement le
+    // code de confirmation du lien généré par Firebase.
+    const lienFirebase = await getAuth().generateEmailVerificationLink(compte.email, { url: `${URL_APPLI}/` });
+    const code = new URL(lienFirebase).searchParams.get("oobCode");
+    const lien = code ? `${URL_APPLI}/verification?oobCode=${encodeURIComponent(code)}` : lienFirebase;
     const creation = Date.parse(compte.metadata.creationTime);
     const avecDelai = !Number.isNaN(creation) && creation >= DEBUT_SUPPRESSION_NON_VERIFIES;
 

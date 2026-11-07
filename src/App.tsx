@@ -20,6 +20,7 @@ const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const VerificationEmailPage = lazy(() => import('./pages/VerificationEmailPage'));
 const DesinscriptionPage = lazy(() => import('./pages/DesinscriptionPage'));
+const ConfirmationEmailPage = lazy(() => import('./pages/ConfirmationEmailPage'));
 
 function ChargementPage() {
   return (
@@ -155,6 +156,17 @@ export default function App() {
       <Suspense fallback={<ChargementPage />}>
         <DesinscriptionPage />
       </Suspense>
+    );
+  }
+
+  // Lien de confirmation de l'adresse e-mail (07/11/2026).
+  if (path.startsWith('/verification')) {
+    return (
+      <AuthProvider>
+        <Suspense fallback={<ChargementPage />}>
+          <ConfirmationEmailPage />
+        </Suspense>
+      </AuthProvider>
     );
   }
 

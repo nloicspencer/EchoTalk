@@ -501,3 +501,9 @@
 .verif-secondaire:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .verif-deconnexion { align-self: center; margin-top: 0.25rem; }
+
+/* Adresse confirmée (07/11/2026) */
+.verif-icone-ok { background: rgba(39,174,96,0.12); color: #27ae60; }
+.verif-centre { text-align: center; }
+.verif-ok { animation: verifApparition 0.3s ease-out; }
+@keyframes verifApparition { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
