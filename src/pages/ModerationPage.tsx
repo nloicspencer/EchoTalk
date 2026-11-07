@@ -184,7 +184,7 @@ export default function ModerationPage() {
       const etaitSeuleRep = autresReps.docs.filter(d => d.id !== s.echoRepId).length === 0;
       await updateDoc(doc(db, 'echos', s.echoId, 'echoreps', s.echoRepId), {
         supprime: true, suppressionAt: serverTimestamp(),
-        contenu: 'ÉchoRep supprimée suite à une modération.',
+        contenu: 'EchoRep supprimé suite à une modération.',
       });
       if (etaitSeuleRep) {
         const echoSnap = await getDoc(doc(db, 'echos', s.echoId));
@@ -229,8 +229,8 @@ export default function ModerationPage() {
       afficher('✅ ÉchoRep masquée.');
     } else if (s.type === 'echo_bouteille' && s.echoBouteilleId) {
       await supprimerEchoBouteille(s.echoBouteilleId);
-      await marquerTraite(s.id, 'Écho-Bouteille supprimée');
-      afficher('✅ Écho-Bouteille supprimée.');
+      await marquerTraite(s.id, 'Écho-Bouteille supprimé');
+      afficher('✅ Écho-Bouteille supprimé.');
     } else {
       await modererEcho(s.echoId, 'masquer', user!.uid, s.raison);
       await marquerTraite(s.id, 'Écho masqué — récupérable par admin');

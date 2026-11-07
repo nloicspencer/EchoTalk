@@ -403,7 +403,7 @@ export async function supprimerEchoRep(echoId: string, repId: string, auteurId: 
   const autresReps = await getDocs(query(repsRef, where('auteurId', '==', auteurId)));
   const seulementCetteRep = autresReps.docs.length === 1;
   await updateDoc(doc(db, 'echos', echoId, 'echoreps', repId), {
-    supprime: true, contenu: 'EchoRep supprimée par son auteur.', suppressionAt: serverTimestamp(),
+    supprime: true, contenu: 'EchoRep supprimé par son auteur.', suppressionAt: serverTimestamp(),
   });
   if (seulementCetteRep && !estProprietaire) {
     await updateDoc(doc(db, 'echos', echoId), { placesOccupees: Math.max(0, placesOccupees - 1) });
