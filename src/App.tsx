@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import SuspensionBanner from './SuspensionBanner';
 import { rafraichirPush } from './services/push';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from './services/firebase';
 import './App.css';
 
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -62,6 +64,15 @@ function AppLayout() {
 function AppContent({ basename }: { basename?: string }) {
   const { user, profile, loading, messageDeconnexion, emailVerifie } = useAuth();
   const [onboardingInfo, setOnboardingInfo] = useState<{ pseudo: string } | null>(null);
+  const accueilAVoir = !!onboardingInfo
+    || (profile as { accueilAVoir?: boolean } | null)?.accueilAVoir === true;
+  const terminerAccueil = () => {
+    setOnboardingInfo(null);
+    if (user) {
+      updateDoc(doc(db, 'users', user.uid), { accueilAVoir: false })
+        .catch((err) => console.error('[Accueil] fin non enregistrée', err));
+    }
+  };
 
   // /test est réservé au compte admin (31/10/2026). Toute autre personne
   // connectée qui l'ouvre est renvoyée vers l'accueil. Tant que le profil
@@ -94,16 +105,20 @@ function AppContent({ basename }: { basename?: string }) {
         </Suspense>
       ) : !emailVerifie ? (
         // Adresse e-mail non confirmée (31/10/2026) : rien d'autre n'est
-        // accessible. L'onboarding (pseudo attribué) s'affiche juste après
-        // la confirmation, si elle a lieu dans la même session.
+        // accessible. L'accueil s'affiche juste après la confirmation.
         <Suspense fallback={<ChargementPage />}>
           <VerificationEmailPage />
         </Suspense>
-      ) : onboardingInfo ? (
+      ) : accueilAVoir ? (
+        // Accueil (07/11/2026) : affiché à la PREMIÈRE entrée dans l'appli
+        // après la confirmation de l'adresse, même si elle a lieu un autre
+        // jour ou sur un autre appareil (champ accueilAVoir de la fiche,
+        // écrit à l'inscription). Les comptes plus anciens n'ont pas ce
+        // champ et ne le revoient pas.
         <Suspense fallback={<ChargementPage />}>
           <OnboardingPage
-            pseudo={onboardingInfo.pseudo}
-            onTermine={() => setOnboardingInfo(null)}
+            pseudo={onboardingInfo?.pseudo || profile?.pseudo || ''}
+            onTermine={terminerAccueil}
           />
         </Suspense>
       ) : (

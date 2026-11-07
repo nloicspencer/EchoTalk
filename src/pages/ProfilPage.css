@@ -703,3 +703,15 @@
 }
 
 .profil-push-alerte { color: var(--et-rose); }
+
+/* Bouton « Installer EchoTalk » (07/11/2026) */
+.installer-etapes {
+  margin: 0.9rem 0 0;
+  padding-left: 1.25rem;
+  font-family: var(--et-font-ui);
+  font-size: 0.875rem;
+  color: var(--et-text-2);
+  line-height: 1.6;
+}
+
+.installer-etapes li + li { margin-top: 0.35rem; }

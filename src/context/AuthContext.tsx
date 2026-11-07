@@ -193,6 +193,10 @@ function useAuthState(): AuthContextValue {
     const docData = {
       ...newProfile, prenom, nom, dateNaissance, civilite, email, suspension: null,
       consentementLegal,
+      // Accueil (07/11/2026) : l'écran de bienvenue (pseudo, philosophie,
+      // règles) s'affiche à la première entrée dans l'appli, après la
+      // confirmation de l'adresse, puis ce champ passe à false.
+      accueilAVoir: true,
     };
 
     try {

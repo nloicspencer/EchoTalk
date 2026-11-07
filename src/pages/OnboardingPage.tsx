@@ -6,11 +6,16 @@ interface Props {
   onTermine: () => void;
 }
 
+// Accueil (révisé le 07/11/2026) : vouvoiement harmonisé avec le reste de
+// l'appli, et ajout des règles de bienveillance concrètes (dont
+// l'interdiction des coordonnées) et du rappel que l'appli n'est pas un
+// service d'urgence.
 const CARTES = [
-  { icon: '🌊', titre: 'Bienvenue', texte: "EchoTalk est un espace de résonance humaine. Juste des expériences qui trouvent écho chez les autres." },
-  { icon: '☀️', titre: 'Les Échos', texte: "Une joie, une réussite, un doute, une épreuve, une découverte. Tout ce qui fait partie de ton expérience humaine a sa place ici." },
+  { icon: '🌊', titre: 'Bienvenue', texte: "EchoTalk est un espace de résonance humaine. Pas de likes, pas de course à la popularité : juste des expériences qui trouvent écho chez les autres." },
+  { icon: '☀️', titre: 'Les Échos', texte: "Une joie, une réussite, un doute, une épreuve, une découverte. Tout ce qui fait partie de votre expérience humaine a sa place ici." },
   { icon: '✨', titre: 'Les réactions', texte: "Trois façons d'être vraiment présent : un cœur pour résonner, un cœur brisé pour compatir, une jarre pour soutenir." },
-  { icon: '🤝', titre: "La règle d'or", texte: "Un esprit partagé grandit. Écris avec la bienveillance que tu aimerais recevoir." },
+  { icon: '🤝', titre: "La règle d'or : un esprit partagé grandit", texte: "Écrivez avec la bienveillance que vous aimeriez recevoir. Pas de harcèlement, de haine ni de menace. Pour protéger l'anonymat de chacun, ne partagez jamais de coordonnées (téléphone, adresse, réseaux sociaux) : elles sont masquées automatiquement. Un contenu vous dérange ? Signalez-le, l'équipe de modération veille." },
+  { icon: '🫶', titre: 'Si ça ne va pas', texte: "EchoTalk accueille toutes les émotions, même les plus lourdes. Mais ce n'est pas un service d'urgence : si vous êtes en danger, appelez le 112 ; si vous pensez au suicide, appelez le 3114, gratuit, 24 h/24." },
 ];
 
 export default function OnboardingPage({ pseudo, onTermine }: Props) {
@@ -36,7 +41,7 @@ export default function OnboardingPage({ pseudo, onTermine }: Props) {
           <h2>Votre identité EchoTalk</h2>
           <p className="pseudo-label">Vous êtes désormais</p>
           <div className="pseudo-nom">{pseudo}</div>
-          <p className="pseudo-note">Ce pseudonyme est votre seule identité visible sur EchoTalk. Votre nom, prénom et date de naissance restent strictement privés.</p>
+          <p className="pseudo-note">Ce pseudonyme est votre seule identité visible sur EchoTalk. Votre nom, prénom et date de naissance restent strictement privés. Pour préserver cet anonymat, ne publiez rien qui permettrait de vous reconnaître.</p>
           <button className="auth-submit" onClick={() => setEtape('onboarding')}>Continuer</button>
         </div>
       </div>

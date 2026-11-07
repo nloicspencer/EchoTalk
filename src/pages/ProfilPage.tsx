@@ -3,6 +3,7 @@ import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'fir
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import BoutonPartage from '../components/BoutonPartage';
+import BoutonInstaller from '../components/BoutonInstaller';
 import EchoBouteille from '../components/EchoBouteille';
 import EchoCard from '../components/EchoCard';
 import EcholegueForm from '../components/EcholegueForm';
@@ -649,6 +650,8 @@ export default function ProfilPage() {
           libelle="Inviter"
         />
       </div>
+
+      <BoutonInstaller />
 
       <div className="profil-section">
         <h3>Notifications</h3>
