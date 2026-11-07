@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  addDoc, collection, doc, limit, onSnapshot, orderBy, query,
+  addDoc, collection, doc, getDocs, limit, onSnapshot, orderBy, query,
   serverTimestamp, Timestamp, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -95,20 +95,35 @@ export function useNotifications(uid: string | undefined) {
     await updateDoc(doc(db, 'notifications', notifId), { lu: true });
   };
 
+  // « Tout marquer comme lu » (corrigé le 07/11/2026) : marque TOUTES les
+  // notifications non lues, pas seulement les 50 affichées. Avant, au-delà
+  // de 50 notifications non lues, les plus anciennes restaient non lues :
+  // la cloche gardait son point rouge sans qu'on puisse l'effacer.
+  // Par lots de 400 (une écriture groupée Firestore accepte 500 opérations).
   const marquerToutesCommeLues = async () => {
-    const aMarquer = notifications.filter((n) => !n.lu);
-    if (aMarquer.length === 0) return;
-    const batch = writeBatch(db);
-    aMarquer.forEach((n) => batch.update(doc(db, 'notifications', n.id), { lu: true }));
-    await batch.commit();
+    if (!uid) return;
+    for (let tour = 0; tour < 50; tour++) {
+      const snap = await getDocs(query(
+        collection(db, 'notifications'),
+        where('destinataireId', '==', uid),
+        where('lu', '==', false),
+        limit(400)
+      ));
+      if (snap.empty) return;
+      const batch = writeBatch(db);
+      snap.docs.forEach((d) => batch.update(d.ref, { lu: true }));
+      await batch.commit();
+      if (snap.size < 400) return;
+    }
   };
 
   return { notifications, loading, erreur, nonLues, marquerCommeLue, marquerToutesCommeLues };
 }
 
 // Compteur léger pour la cloche de NavBar.tsx : une requête `where(lu==false)`
-// dont on ne garde que la taille, sans jamais charger le contenu des 50
-// notifications — reste bon marché même affiché en permanence.
+// dont on ne garde que la taille. Plafonné à 99 (07/11/2026) : au-delà, le
+// nombre exact n'apporte rien, et chaque notification non lue lue en direct
+// coûte une lecture Firestore.
 export function useCompteurNotificationsNonLues(uid: string | undefined) {
   const [nonLues, setNonLues] = useState(0);
 
@@ -120,7 +135,8 @@ export function useCompteurNotificationsNonLues(uid: string | undefined) {
     const q = query(
       collection(db, 'notifications'),
       where('destinataireId', '==', uid),
-      where('lu', '==', false)
+      where('lu', '==', false),
+      limit(99)
     );
     const unsub = onSnapshot(q, (snap) => setNonLues(snap.size));
     return unsub;
