@@ -261,3 +261,36 @@
 }
 
 .identite-legal a { color: var(--et-text-3); }
+
+/* Règles de l'Écho Ouvert (15/11/2026) */
+.identite-regles {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.identite-regles li {
+  font-family: var(--et-font-ui);
+  font-size: 0.8125rem;
+  color: var(--et-text-2);
+  line-height: 1.5;
+  padding-left: 0.9rem;
+  position: relative;
+}
+
+.identite-regles li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--et-accent);
+  opacity: 0.6;
+}
+
+.identite-regles b { font-weight: 600; color: var(--et-text-1); }

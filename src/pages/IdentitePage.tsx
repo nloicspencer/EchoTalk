@@ -113,6 +113,38 @@ export default function IdentitePage() {
         </ul>
       </div>
 
+      {/* Écho Libre ou Écho Ouvert (15/11/2026) : les règles de l'Écho
+          Ouvert (places, durée, validation des réponses, réouverture)
+          n'étaient expliquées nulle part. */}
+      <div className="identite-section">
+        <h2>Écho Libre ou Écho Ouvert ?</h2>
+        <div className="reaction-explication">
+          <div className="reaction-item">
+            <span className="reaction-emoji">🕊️</span>
+            <div>
+              <strong>L'Écho Libre</strong>
+              <p>Vous partagez, la communauté résonne. Chacun peut y réagir (jarre, cœur, cœur brisé), mais personne n'y répond par écrit. Idéal pour déposer ce que vous vivez, sans attendre d'échange.</p>
+            </div>
+          </div>
+          {FEATURES.ECHO_OUVERT && (
+            <div className="reaction-item">
+              <span className="reaction-emoji">🔓</span>
+              <div>
+                <strong>L'Écho Ouvert</strong>
+                <p>Vous ouvrez un échange en petit comité, pendant une durée limitée.</p>
+                <ul className="identite-regles">
+                  <li><b>Places :</b> vous choisissez 3, 6 ou 8 participants.</li>
+                  <li><b>Durée :</b> 2, 6 ou 10 jours. Passé ce délai, l'Écho se ferme : plus personne ne peut y participer, mais les réponses déjà publiées restent visibles.</li>
+                  <li><b>Un vrai échange :</b> chaque participant peut répondre plusieurs fois, par des EchoReps.</li>
+                  <li><b>Réponses choisies :</b> chaque EchoRep vous est d'abord proposé, et n'apparaît que si vous l'acceptez.</li>
+                  <li><b>Réouverture :</b> une fois fermé, vous pouvez le rouvrir jusqu'à 3 fois pour prolonger l'échange. Les places sont alors de nouveau disponibles, et l'Écho remonte en tête du Fil.</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Levier n°2 — Résonance stricte ou élargie. Pose le principe une
           bonne fois ici, pour que le formulaire de publication n'ait plus
           besoin d'expliquer quoi que ce soit — juste le libellé et le
