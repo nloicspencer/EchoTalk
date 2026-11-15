@@ -1,6 +1,6 @@
 /* Barre de navigation flottante (15/11/2026) — capsule en verre dépoli
    aux couleurs d'EchoTalk, posée au-dessus du bas de l'écran (en tenant
-   compte de la barre d'accueil de l'iPhone), icônes seules. */
+   compte de la barre d'accueil de l'iPhone), icône + petit nom. */
 .navbar {
   position: fixed;
   left: 50%;
@@ -18,7 +18,7 @@
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border: 0.5px solid rgba(123, 94, 167, 0.18);
-  border-radius: 999px;
+  border-radius: 30px;
   box-shadow:
     0 10px 30px rgba(60, 40, 100, 0.16),
     0 2px 6px rgba(60, 40, 100, 0.08),
@@ -27,11 +27,14 @@
 
 .nav-item {
   flex: 1;
-  height: 48px;
+  min-width: 0;
+  height: 54px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  gap: 3px;
+  border-radius: 24px;
   color: var(--et-text-3);
   text-decoration: none;
   transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
@@ -57,8 +60,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   line-height: 1;
+}
+
+.nav-label {
+  font-family: var(--et-font-ui);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Point rouge de notifications non lues, sur la cloche. */
