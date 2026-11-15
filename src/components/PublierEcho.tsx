@@ -27,6 +27,8 @@ export default function PublierEcho({ profile, onEchoPublie }: Props) {
   const [placesMax, setPlacesMax] = useState<3 | 6 | 8>(6);
   const [periodicite, setPeriodicite] = useState<2 | 6 | 10>(6);
   const [loading, setLoading] = useState(false);
+  // Aide Libre / Ouvert (15/11/2026), dépliable sans quitter le formulaire.
+  const [aideType, setAideType] = useState(false);
 
   const handlePublier = async () => {
     if (!contenu.trim()) return;
@@ -149,6 +151,19 @@ export default function PublierEcho({ profile, onEchoPublie }: Props) {
                 <button className={type === 'libre' ? 'active' : ''} onClick={() => setType('libre')}>🕊️ Libre</button>
                 <button className={type === 'ouvert' ? 'active' : ''} onClick={() => setType('ouvert')}>🔓 Ouvert</button>
               </div>
+              <button
+                type="button"
+                className={`btn-aide ${aideType ? 'actif' : ''}`}
+                onClick={() => setAideType(!aideType)}
+                aria-expanded={aideType}
+                aria-label="Quelle différence entre Libre et Ouvert ?"
+              >?</button>
+            </div>
+          )}
+          {FEATURES.ECHO_OUVERT && aideType && (
+            <div className="aide-type">
+              <p><b>🕊️ Libre</b> — La communauté réagit (jarre, cœur, cœur brisé), sans répondre par écrit.</p>
+              <p><b>🔓 Ouvert</b> — Un échange en petit comité : vous choisissez le nombre de participants et la durée. Chaque réponse vous est proposée avant d'être publiée. Une fois fermé, vous pouvez le rouvrir jusqu'à 3 fois.</p>
             </div>
           )}
 

@@ -124,3 +124,43 @@
 
 .btn-publier:hover { opacity: 0.88; }
 .btn-publier:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Aide Libre / Ouvert (15/11/2026) */
+.btn-aide {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0.5px solid var(--et-border-hover, var(--et-border));
+  background: transparent;
+  color: var(--et-accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--et-font-ui);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.btn-aide:hover, .btn-aide.actif { background: rgba(123,94,167,0.12); }
+
+.aide-type {
+  background: rgba(123,94,167,0.06);
+  border-radius: var(--et-radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aide-type p {
+  margin: 0;
+  font-family: var(--et-font-ui);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--et-text-2);
+}
+
+.aide-type b { color: var(--et-text-1); font-weight: 600; }
